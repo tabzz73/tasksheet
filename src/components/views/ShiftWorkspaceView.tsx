@@ -800,8 +800,8 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-red-950">Exceptions / Needs Review — {sheet.exceptions.length} timed task{sheet.exceptions.length === 1 ? '' : 's'} withheld</p>
-              <p className="mt-0.5 text-[11px] text-red-800">These tasks are outside {shift.shortCode || shift.name} ({shift.startTime}–{shift.endTime}) and cannot appear on this shift’s TaskSheet.</p>
+              <p className="text-xs font-bold text-red-950">Exceptions / Needs Review — {sheet.exceptions.length} timed item{sheet.exceptions.length === 1 ? '' : 's'} withheld</p>
+              <p className="mt-0.5 text-[11px] text-red-800">These items have a missing or out-of-window time for {shift.shortCode || shift.name} ({shift.startTime}–{shift.endTime}) and cannot appear on this shift’s TaskSheet.</p>
               <ul className="mt-2 space-y-1 text-[11px] text-red-900">
                 {sheet.exceptions.map(exception => (
                   <li key={`${exception.taskType}-${exception.taskId}`}>

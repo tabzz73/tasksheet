@@ -697,7 +697,7 @@ return {
           woundId: w.id,
           site: w.siteLocation,
           siteHeader: w.siteLocation.toUpperCase(),
-          time: '1000', // wounds are typically scheduled at 1000
+          time: w.time || '—',
           actions,
         };
       });
@@ -849,7 +849,7 @@ return {
       g.woundGroups.forEach(w => {
         rawResidentItems.push({
           id: `row_wound_${w.woundId}`,
-          time: w.time || '1000',
+          time: w.time || '—',
           roomNumber: g.roomNumber,
           residentName: g.residentName,
           residentId: g.residentId,

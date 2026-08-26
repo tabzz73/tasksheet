@@ -140,10 +140,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
   // Form State: Wound
   const [woundSiteLocation, setWoundSiteLocation] = useState('');
+  const [woundShiftId, setWoundShiftId] = useState('');
+  const [woundTime, setWoundTime] = useState('1000');
   const [woundFirstAction, setWoundFirstAction] = useState<'treatment' | 'assessment' | 'dressing_change'>('treatment');
   const [woundFrequency, setWoundFrequency] = useState<RecurrenceFrequency>('daily');
+  const [woundRecurrenceRule, setWoundRecurrenceRule] = useState<RecurrenceRule | undefined>(undefined);
   const [woundBathingRelation, setWoundBathingRelation] = useState<'independent' | 'before_bath' | 'after_bath' | 'separate_day'>('independent');
   const [woundInstructions, setWoundInstructions] = useState('');
+  const clinicalShifts = shifts.filter(shift => {
+    if (shift.isActive === false) return false;
+    const role = roles.find(item => item.id === shift.roleId);
+    const roleText = `${role?.code || ''} ${role?.name || ''}`.toLowerCase();
+    return roleText.includes('lpn') || roleText.includes('rn') || roleText.includes('nurse') || roleText.includes('practical');
+  });
 
   // When shift is selected or changes, derive role automatically
   useEffect(() => {
@@ -197,8 +206,11 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setSelectedType('wound');
         setResidentId(initialWound.residentId);
         setWoundSiteLocation(initialWound.siteLocation);
+        setWoundShiftId(initialWound.shiftId || '');
+        setWoundTime(initialWound.time || '1000');
         setWoundFirstAction(initialWound.firstAction);
         setWoundFrequency(initialWound.frequency);
+        setWoundRecurrenceRule(initialWound.recurrenceRule);
         setWoundBathingRelation(initialWound.bathingRelation);
         setWoundInstructions(initialWound.instructions || '');
       } else if (initialFYI) {
@@ -248,6 +260,12 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setResNotes('');
         setFyiText('');
         setWoundSiteLocation('');
+        setWoundShiftId(clinicalShifts[0]?.id || '');
+        setWoundTime('1000');
+        setWoundFirstAction('treatment');
+        setWoundFrequency('daily');
+        setWoundRecurrenceRule(undefined);
+        setWoundBathingRelation('independent');
         setWoundInstructions('');
       }
     }
@@ -269,6 +287,18 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     ? validateCareShiftSelection({ shifts: state.shifts, roles, shiftId, roleId })
     : getShiftTimeError(taskTime);
   const unitTaskTimeError = getShiftTimeError(unitTime);
+  const selectedWoundShift = clinicalShifts.find(shift => shift.id === woundShiftId);
+  const woundShiftTimeError = clinicalShifts.length === 0
+    ? 'No active LPN/RN shift is configured. Create one in Settings → Roles & Shifts before saving this wound protocol.'
+    : !woundShiftId
+      ? 'Select the active LPN/RN shift that should receive this wound protocol.'
+      : validateTimedCareShift({
+          shifts: state.shifts,
+          roles,
+          shiftId: woundShiftId,
+          roleId: selectedWoundShift?.roleId || '',
+          time: woundTime,
+        });
 
   // Role-Aware Filtered Catalog Tasks
   const roleCatalogTasks = getRoleCatalogTasks(catalogTemplates, currentRoleCode);
@@ -477,24 +507,30 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
   const handleAddWound = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!woundSiteLocation.trim() || !residentId) return;
+    if (!woundSiteLocation.trim() || !residentId || !woundShiftId || woundShiftTimeError) return;
 
     if (mode === 'edit' && initialWound) {
       db.updateWound(initialWound.id, {
         residentId,
+        shiftId: woundShiftId,
+        time: woundTime,
         siteLocation: woundSiteLocation.trim(),
         firstAction: woundFirstAction,
         frequency: woundFrequency,
+        recurrenceRule: woundRecurrenceRule,
         bathingRelation: woundBathingRelation,
         instructions: woundInstructions.trim() || undefined
       });
     } else {
       db.addWound({
         residentId,
+        shiftId: woundShiftId,
+        time: woundTime,
         siteLocation: woundSiteLocation.trim(),
         status: 'active',
         firstAction: woundFirstAction,
         frequency: woundFrequency,
+        recurrenceRule: woundRecurrenceRule,
         bathingRelation: woundBathingRelation,
         instructions: woundInstructions.trim() || undefined
       });
@@ -1528,6 +1564,64 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 <option value="separate_day">Separate Day from Bathing</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="wound-shift" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Assigned LPN/RN Shift <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="wound-shift"
+                value={woundShiftId}
+                onChange={(event) => setWoundShiftId(event.target.value)}
+                required
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+              >
+                <option value="">Select clinical shift...</option>
+                {clinicalShifts.map(shift => (
+                  <option key={shift.id} value={shift.id}>
+                    {shift.shortCode} — {shift.name} ({shift.startTime}–{shift.endTime})
+                  </option>
+                ))}
+              </select>
+              {clinicalShifts.length === 0 && (
+                <p className="mt-1 text-[11px] font-semibold text-red-700">No active LPN/RN shift is configured. Add one in Settings → Roles &amp; Shifts.</p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="wound-time" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Scheduled Time <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="wound-time"
+                type="text"
+                value={woundTime}
+                onChange={(event) => setWoundTime(event.target.value)}
+                required
+                aria-invalid={!!woundShiftTimeError}
+                className={`w-full px-3 py-2 bg-white border rounded-lg text-sm font-mono font-bold ${woundShiftTimeError ? 'border-red-400' : 'border-slate-300'}`}
+                placeholder="1000"
+              />
+            </div>
+          </div>
+
+          {woundShiftTimeError && (
+            <p className="flex items-start space-x-1.5 text-xs font-semibold text-red-700" role="alert">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{woundShiftTimeError}</span>
+            </p>
+          )}
+
+          <div className="pt-2 border-t border-slate-100">
+            <RecurrenceSelector
+              value={woundRecurrenceRule}
+              frequency={woundFrequency}
+              onChange={(newRule, newFrequency) => {
+                setWoundRecurrenceRule(newRule);
+                setWoundFrequency(newFrequency);
+              }}
+            />
           </div>
 
           <div>

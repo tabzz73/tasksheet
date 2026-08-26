@@ -13,7 +13,7 @@ export interface GeneratedResidentAssignment {
 
 export interface ShiftGenerationException {
   taskId: string;
-  taskType: 'resident_task' | 'unit_task';
+  taskType: 'resident_task' | 'unit_task' | 'wound';
   title: string;
   time: string;
   reason: 'outside_shift_window' | 'invalid_time';
@@ -223,9 +223,29 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
     const prnResidentTasks = allMatchingTasks.filter(t => t.frequency === 'prn');
 
     // Wounds for this resident
-    const wounds = state.wounds
-      .filter(w => w.residentId === res.id && w.status !== 'resolved')
+    const candidateWounds = state.wounds
+      .filter(w => w.residentId === res.id && w.status !== 'resolved' && w.shiftId === shiftId)
       .filter(w => isDateDue(dateStr, w.frequency, w.recurrenceRule, w.createdAt));
+    const wounds = candidateWounds.filter(w => {
+      if (w.time && isTimeWithinShift(w.time, shift.startTime, shift.endTime)) return true;
+      const configuredTime = w.time || 'Not set';
+      exceptions.push({
+        taskId: w.id,
+        taskType: 'wound',
+        title: `Wound Care — ${w.siteLocation}`,
+        time: configuredTime,
+        reason: exceptionReason(configuredTime),
+        shiftId: shift.id,
+        shiftCode: shift.shortCode || shift.name,
+        shiftStart: shift.startTime,
+        shiftEnd: shift.endTime,
+        residentId: res.id,
+        residentName: `${res.firstName} ${res.lastName}`,
+        roomNumber: res.roomNumber,
+        source: w.source,
+      });
+      return false;
+    });
 
     // FYIs for this resident (matching role/shift scope)
     const fyis = state.fyis.filter(

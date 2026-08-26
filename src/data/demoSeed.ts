@@ -691,6 +691,8 @@ export function generateDemoData() {
     {
       id: 'wound-wh-01',
       residentId: 'res-329b',
+      shiftId: SHIFT_LPN_DAY_ID,
+      time: '1000',
       siteLocation: 'Left Lower Leg (Venous Ulcer)',
       status: 'active',
       firstAction: 'treatment',
@@ -703,6 +705,8 @@ export function generateDemoData() {
     {
       id: 'wound-ms-01',
       residentId: 'res-254',
+      shiftId: SHIFT_LPN_DAY_ID,
+      time: '1000',
       siteLocation: 'Right Forearm Skin Tear',
       status: 'healing',
       firstAction: 'dressing_change',

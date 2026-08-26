@@ -371,6 +371,10 @@ export interface FYI {
 export interface Wound {
   id: UUID;
   residentId: UUID;
+  /** Required for new protocols; optional only for legacy records awaiting reassignment. */
+  shiftId?: UUID;
+  /** Scheduled 24-hour time within the assigned LPN/RN shift. */
+  time?: string;
   siteLocation: string;
   status: 'active' | 'healing' | 'resolved';
   firstAction: 'treatment' | 'assessment' | 'dressing_change';

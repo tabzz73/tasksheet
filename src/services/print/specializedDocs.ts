@@ -1,6 +1,6 @@
 import { db } from '../../db';
-import { Facility, Resident, ResidentTask, Wound, Shift, Role } from '../../types';
-import { sortRoomNumbers } from '../generator';
+import { Facility, Resident, ResidentTask, Shift, Role } from '../../types';
+import { isDateDue, sortRoomNumbers } from '../generator';
 
 // ─── 1. Bathing Schedule Types & Builder ─────────────────────────────────────
 
@@ -172,7 +172,9 @@ export interface WoundScheduleItem {
   bathingRelation: string;
   instructions?: string;
   scheduledTime: string;
+  shiftCode: string;
   roleName: string;
+  configurationWarning?: string;
 }
 
 export interface WoundScheduleModel {
@@ -189,23 +191,37 @@ export function buildWoundScheduleModel(currentDateStr: string): WoundScheduleMo
   const state = db.getState();
   const facility = state.facility;
   const activeWounds = (state.wounds || [])
-    .filter(w => w.status !== 'resolved');
+    .filter(w => w.status !== 'resolved')
+    .filter(w => isDateDue(currentDateStr, w.frequency, w.recurrenceRule, w.createdAt));
   
   const residents = state.residents;
 
   const wounds: WoundScheduleItem[] = activeWounds.map(w => {
     const res = residents.find(r => r.id === w.residentId);
+    const shift = state.shifts.find(item => item.id === w.shiftId);
+    const role = shift ? state.roles.find(item => item.id === shift.roleId) : undefined;
+    const configurationWarning = !shift
+      ? 'Needs LPN/RN shift assignment before operational printing.'
+      : !w.time
+        ? 'Needs a scheduled time before operational printing.'
+        : undefined;
     return {
       id: w.id,
       roomNumber: res?.roomNumber || '—',
       residentName: res ? `${res.firstName} ${res.lastName}` : 'Unknown Resident',
       siteLocation: w.siteLocation,
-      firstAction: w.firstAction === 'treatment' ? 'Treatment / Dressing Change' : 'Assessment & Staging',
+      firstAction: w.firstAction === 'treatment'
+        ? 'Wound Treatment'
+        : w.firstAction === 'dressing_change'
+          ? 'Dressing Change'
+          : 'Assessment & Staging',
       frequency: w.frequency.replace(/_/g, ' '),
       bathingRelation: w.bathingRelation === 'after_bath' ? 'After scheduled shower/bath' : w.bathingRelation === 'before_bath' ? 'Before shower' : 'Independent of bathing',
       instructions: w.instructions,
-      scheduledTime: '10:00',
-      roleName: 'Licensed Practical Nurse (LPN)',
+      scheduledTime: w.time || '—',
+      shiftCode: shift ? `${shift.shortCode} — ${shift.name}` : 'Unassigned clinical shift',
+      roleName: role?.name || 'Unassigned',
+      configurationWarning,
     };
   }).sort((a, b) => sortRoomNumbers(a.roomNumber, b.roomNumber));
 
@@ -253,6 +269,8 @@ export interface ResidentCareSummaryModel {
     firstAction: string;
     frequency: string;
     bathingRelation: string;
+    shiftCode: string;
+    scheduledTime: string;
     instructions?: string;
   }>;
 }
@@ -312,14 +330,19 @@ export function buildResidentCareSummaryModel(residentId: string, currentDateStr
       importance: f.importance || 'normal',
     })),
     tasksByShift,
-    wounds: wounds.map(w => ({
-      id: w.id,
-      siteLocation: w.siteLocation,
-      firstAction: w.firstAction === 'treatment' ? 'Treatment / Dressing Change' : 'Assessment',
-      frequency: w.frequency.replace(/_/g, ' '),
-      bathingRelation: w.bathingRelation === 'after_bath' ? 'After Shower' : 'Independent',
-      instructions: w.instructions,
-    })),
+    wounds: wounds.map(w => {
+      const assignedShift = shifts.find(shift => shift.id === w.shiftId);
+      return {
+        id: w.id,
+        siteLocation: w.siteLocation,
+        firstAction: w.firstAction === 'treatment' ? 'Wound Treatment' : w.firstAction === 'dressing_change' ? 'Dressing Change' : 'Assessment',
+        frequency: w.frequency.replace(/_/g, ' '),
+        bathingRelation: w.bathingRelation === 'after_bath' ? 'After Shower' : 'Independent',
+        shiftCode: assignedShift ? `${assignedShift.shortCode} — ${assignedShift.name}` : 'Needs clinical shift assignment',
+        scheduledTime: w.time || 'Time required',
+        instructions: w.instructions,
+      };
+    }),
   };
 }
 

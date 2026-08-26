@@ -3,7 +3,7 @@
 ## Candidate identity
 
 - Product: TaskSheet
-- Version: `1.0.0-rc.16`
+- Version: `1.0.0-rc.17`
 - Release state: Pilot Artifact Ready; clean-machine validation pending
 - Production approval: **Not granted**
 - Package metadata: `package.json` and `package-lock.json`
@@ -29,20 +29,20 @@ The clean-machine validator must record the exact supported release environment 
 
 ## Current build disposition
 
-RC16 adds role-aware paper tracking assignments and structured write-in prompts while preserving TaskSheet's non-electronic-documentation boundary. Final RC16 verification is recorded in the generated build evidence:
+RC17 adds recurrence, clinical-shift, and in-window time enforcement to wound protocols while preserving RC16 tracking and print behavior. Final RC17 verification is recorded in the generated build evidence:
 
 - `npx tsc --noEmit`: PASS, 0 errors.
-- `npm test`: PASS, 128/128 tests.
+- `npm test`: PASS, 133/133 tests.
 - `npm run build`: PASS.
 
 The build emitted non-failing warnings for a `.print-landscape @page` CSS selector and a JavaScript chunk over 500 kB. These remain visible in build evidence and clean-machine print validation.
 
-The authoritative source is maintained in Git and tagged `v1.0.0-rc.16`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
+The authoritative source is maintained in Git and tagged `v1.0.0-rc.17`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
 
 Build output: `dist/`  
-Build ID: See generated RC16 build evidence
-Build date: See generated RC16 build evidence
-Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.16.txt`
-Git tag: `v1.0.0-rc.16`
-Pilot installer: `TaskSheet-Setup-1.0.0-rc.16-x64.exe`
+Build ID: See generated RC17 build evidence
+Build date: See generated RC17 build evidence
+Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.17.txt`
+Git tag: `v1.0.0-rc.17`
+Pilot installer: `TaskSheet-Setup-1.0.0-rc.17-x64.exe`
 Installer SHA-256: See generated artifact evidence

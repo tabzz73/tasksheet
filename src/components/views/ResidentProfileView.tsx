@@ -669,7 +669,10 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                 No active wound protocols for this resident.
               </div>
             ) : (
-              wounds.map(w => (
+              wounds.map(w => {
+                const assignedShift = shifts.find(shift => shift.id === w.shiftId);
+                const needsSchedulingReview = !assignedShift || !w.time;
+                return (
                 <div key={w.id} className="p-4 flex items-start justify-between hover:bg-slate-50 transition-colors">
                   <div className="flex items-start space-x-3 flex-1 mr-3">
                     <Bandage className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
@@ -681,6 +684,11 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                       </div>
                       <p className="text-xs text-slate-600 mt-1">
                         <strong>Frequency:</strong> {w.frequency.replace('_', ' ')} · <strong>Bathing:</strong> {w.bathingRelation}
+                      </p>
+                      <p className={`text-xs mt-1 ${needsSchedulingReview ? 'text-rose-700 font-bold' : 'text-slate-600'}`}>
+                        <strong>Clinical shift:</strong>{' '}
+                        {assignedShift ? `${assignedShift.shortCode} — ${assignedShift.name} at ${w.time}` : 'Needs LPN/RN shift assignment'}
+                        {assignedShift && !w.time ? ' — scheduled time required' : ''}
                       </p>
                       {w.instructions && <p className="text-xs text-slate-500 mt-0.5">{w.instructions}</p>}
                     </div>
@@ -695,7 +703,8 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                     />
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

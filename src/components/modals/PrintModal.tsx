@@ -110,7 +110,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               <div className="min-w-0 flex-1">
                 <h3 className="text-xs font-black text-amber-950">Exceptions / Needs Review</h3>
                 <p className="mt-1 text-xs font-semibold text-amber-900">
-                  {shiftSheet.exceptions.length} timed task{shiftSheet.exceptions.length === 1 ? ' is' : 's are'} scheduled outside this shift and {shiftSheet.exceptions.length === 1 ? 'was' : 'were'} not included.
+                  {shiftSheet.exceptions.length} timed item{shiftSheet.exceptions.length === 1 ? ' is' : 's are'} missing a valid in-shift time and {shiftSheet.exceptions.length === 1 ? 'was' : 'were'} not included.
                 </p>
                 <ul className="mt-2 space-y-1.5">
                   {shiftSheet.exceptions.map(exception => (

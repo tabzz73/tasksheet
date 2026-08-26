@@ -139,6 +139,21 @@ class DatabaseService {
             };
           });
 
+          // Wound scheduling became shift-aware after the original schema. Demo
+          // protocols may safely use the baseline clinical shift; real legacy
+          // protocols stay unassigned until an administrator reviews them.
+          const loadedRoles: Role[] = parsed.roles?.length ? parsed.roles : DEFAULT_ROLES;
+          const demoClinicalShift = migratedShifts.find(shift => {
+            const role = loadedRoles.find(item => item.id === shift.roleId);
+            const roleText = `${role?.code || ''} ${role?.name || ''}`.toLowerCase();
+            return shift.isActive !== false && (roleText.includes('lpn') || roleText.includes('rn') || roleText.includes('nurse'));
+          });
+          const migratedWounds: Wound[] = (parsed.wounds || []).map((wound: Wound) => ({
+            ...wound,
+            shiftId: wound.shiftId || (wound.source === 'demo' ? demoClinicalShift?.id : undefined),
+            time: wound.time || (wound.source === 'demo' ? '1000' : undefined),
+          }));
+
           // Always enforce current 25 standardized categories and latest starter templates
           // while preserving any custom user templates (isStandardTemplate === false)
           const customTemplates = (parsed.catalogTaskTemplates || []).filter((t: CatalogTaskTemplate) => t.isStandardTemplate === false);
@@ -147,13 +162,13 @@ class DatabaseService {
           const loadedState: AppDatabaseState = {
             facility: parsed.facility || DEFAULT_FACILITY,
             settings: migratedSettings,
-            roles: parsed.roles?.length ? parsed.roles : DEFAULT_ROLES,
+            roles: loadedRoles,
             shifts: migratedShifts,
             residents: parsed.residents || [],
             residentTasks: migratedResidentTasks,
             unitTasks: parsed.unitTasks || [],
             fyis: parsed.fyis || [],
-            wounds: parsed.wounds || [],
+            wounds: migratedWounds,
             legacyCompletions: parsed.legacyCompletions || parsed.completions || [], // migrate old key
             binderState: parsed.binderState || DEFAULT_BINDER_STATE,
             catalogCategories: ALBERTA_STARTER_CATEGORIES,
@@ -414,11 +429,12 @@ class DatabaseService {
   public deleteShift(id: string): { success: boolean; error?: string } {
     const assignedResidentTasks = this.state.residentTasks.filter(t => t.shiftId === id && t.isActive !== false);
     const assignedUnitTasks = this.state.unitTasks.filter(u => u.shiftId === id && u.isActive !== false);
+    const assignedWounds = this.state.wounds.filter(w => w.shiftId === id && w.status !== 'resolved');
     
-    if (assignedResidentTasks.length > 0 || assignedUnitTasks.length > 0) {
+    if (assignedResidentTasks.length > 0 || assignedUnitTasks.length > 0 || assignedWounds.length > 0) {
       return {
         success: false,
-        error: `Cannot delete shift. It currently has ${assignedResidentTasks.length} active resident task(s) and ${assignedUnitTasks.length} active unit task(s). Deactivate the shift instead, or reassign its tasks.`
+        error: `Cannot delete shift. It currently has ${assignedResidentTasks.length} active resident task(s), ${assignedUnitTasks.length} active unit task(s), and ${assignedWounds.length} active wound protocol(s). Deactivate the shift instead, or reassign its work.`
       };
     }
 

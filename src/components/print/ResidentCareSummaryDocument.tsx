@@ -151,6 +151,9 @@ export const ResidentCareSummaryDocument: React.FC<ResidentCareSummaryDocumentPr
                   <p className="text-[11px] text-slate-700 mt-0.5">
                     {w.firstAction} · {w.frequency} · {w.bathingRelation}
                   </p>
+                  <p className={`text-[11px] mt-0.5 ${w.shiftCode.startsWith('Needs') ? 'text-rose-800 font-bold' : 'text-slate-700'}`}>
+                    {w.shiftCode} · {w.scheduledTime}
+                  </p>
                   {w.instructions && <p className="text-[11px] text-slate-600 italic mt-0.5">{w.instructions}</p>}
                 </div>
                 <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded">

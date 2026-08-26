@@ -22,7 +22,7 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
             </h1>
           </div>
           <p className="text-xs font-semibold text-slate-600 mt-0.5">
-            Assignment Date: <strong className="text-slate-900">{formattedDate}</strong> · <span className="text-rose-800 font-bold">{totalActiveWounds} active wound protocol{totalActiveWounds !== 1 ? 's' : ''}</span> across {totalResidentsWithWounds} resident{totalResidentsWithWounds !== 1 ? 's' : ''}
+            Assignment Date: <strong className="text-slate-900">{formattedDate}</strong> · <span className="text-rose-800 font-bold">{totalActiveWounds} due wound protocol{totalActiveWounds !== 1 ? 's' : ''}</span> across {totalResidentsWithWounds} resident{totalResidentsWithWounds !== 1 ? 's' : ''}
           </p>
         </div>
 
@@ -44,7 +44,7 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
             <th className="p-2 border border-slate-700 w-16 text-center">Room</th>
             <th className="p-2 border border-slate-700 w-36">Resident</th>
             <th className="p-2 border border-slate-700 w-44">Wound Site & Protocol</th>
-            <th className="p-2 border border-slate-700 w-28">Timing / Shower</th>
+            <th className="p-2 border border-slate-700 w-32">Shift / Time / Shower</th>
             <th className="p-2 border border-slate-700 flex-1">Treatment / Dressing Protocol</th>
             <th className="p-2 border border-slate-700 w-48">Observations & Sign-off</th>
           </tr>
@@ -53,7 +53,7 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
           {wounds.length === 0 ? (
             <tr>
               <td colSpan={6} className="p-8 text-center text-slate-400 font-medium">
-                No active wound care protocols in the facility at this time.
+                No wound care protocols are due on this date.
               </td>
             </tr>
           ) : (
@@ -78,8 +78,10 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
 
                 {/* Timing */}
                 <td className="p-2 border border-slate-300 text-[10px] text-slate-700 align-top">
+                  <span className={`font-bold block ${w.configurationWarning ? 'text-rose-800' : 'text-slate-900'}`}>{w.shiftCode}</span>
                   <span className="font-mono font-bold block">{w.scheduledTime}</span>
                   <span className="text-teal-800 font-semibold">{w.bathingRelation}</span>
+                  {w.configurationWarning && <span className="block mt-1 text-rose-800 font-bold">Needs review</span>}
                 </td>
 
                 {/* Treatment Instructions */}

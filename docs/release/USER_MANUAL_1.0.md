@@ -10,7 +10,7 @@ The optional Welcome page offers **Watch 60-Second Demo** and **Start Using Task
 
 In Settings, confirm facility identity, HCA/LPN roles, shift codes and start/end times, task catalog, schedules, FYIs, print preferences, and backup practices before live use.
 
-Fresh RC11 installations open with an empty, editable real facility setup. No Cedar Grove facility, demo shifts, residents, tasks, FYIs, or wounds are installed. The built-in standardized task catalog remains available. To practice with fictional content, open **Settings → Demo Workspace → Load Demo Workspace**. Demo content is visibly identified and can be cleared without removing manually entered production records.
+Fresh installations open with an empty, editable real facility setup. No Cedar Grove facility, demo shifts, residents, tasks, FYIs, or wounds are installed. The built-in standardized task catalog remains available. To practice with fictional content, open **Settings → Demo Workspace → Load Demo Workspace**. Demo content is visibly identified and can be cleared without removing manually entered production records.
 
 Configure common medication-pass and meal times under **Settings → Care Timing Presets**. When Medication Assistance or a meal-related catalog task is selected, Add Care Task shows the active facility times that fall inside the selected shift. A different valid time may still be entered manually.
 
@@ -25,6 +25,10 @@ Selecting a catalog task pre-fills common instructions. Review and edit them for
 5. Select the date, role, and shift to generate the TaskSheet.
 
 Timed work must fall inside its assigned shift. Boundaries are end-exclusive: 0700-1500 includes 0700-1459, and 2300-0700 includes 2300-2359 plus 0000-0659.
+
+## Schedule wound protocols
+
+Add or edit a wound protocol from the resident profile. Select its recurrence, the active LPN/RN shift responsible for the work, and a scheduled time inside that shift. A wound appears only when it is due on the selected date and only on its assigned clinical shift. Legacy protocols marked **Needs Review** must be assigned a clinical shift and time before operational printing.
 
 ## Review and print
 

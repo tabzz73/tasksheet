@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../db';
 import { generateShiftSheet, isDateDue, sortRoomNumbers } from '../services/generator';
 import { PrintService, calculateAdaptivePrintLayout } from '../services/print';
-import { ROLE_HCA_ID, ROLE_LPN_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID } from '../data/defaultData';
+import { ROLE_HCA_ID, ROLE_LPN_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID, SHIFT_LPN_NIGHT_ID } from '../data/defaultData';
 import { ALBERTA_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { recordPrint, detectChanges, buildWhatChangedModel } from '../services/printHistory';
 import { buildHcaDailyPackage, buildLpnClinicalPackage } from '../services/print/packages';
@@ -10,11 +10,91 @@ import { detectAttentionIndicators, getPrintAttentionTags, getPrintAttentionLege
 import { compressTaskInstruction, filterPrioritizedAttentionTags } from '../services/print';
 import { isTimeWithinShift } from '../services/scheduling/timeWindow';
 import { filterCatalogTasks, getCommonCatalogTasks, getRoleCatalogTasks } from '../services/catalogDiscovery';
+import { buildWoundScheduleModel } from '../services/print/specializedDocs';
 
 describe('TaskSheet Generator & Domain Core Tests', () => {
   beforeEach(() => {
     // Reset database to fresh clean default state
     db.resetToDemoState();
+  });
+
+  it('prints a wound protocol only on its assigned LPN shift and due date', () => {
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'Wound', lastName: 'Schedule', roomNumber: '210', status: 'active' });
+    db.addWound({
+      residentId: resident.id,
+      shiftId: SHIFT_LPN_DAY_ID,
+      time: '1000',
+      siteLocation: 'Left heel',
+      status: 'active',
+      firstAction: 'dressing_change',
+      frequency: 'selected_days',
+      recurrenceRule: { type: 'SELECTED_WEEKDAYS', basis: 'selected_weekdays', weekdays: [1], selectedDays: [1] },
+      bathingRelation: 'independent',
+    });
+    db.addWound({
+      residentId: resident.id,
+      shiftId: SHIFT_LPN_DAY_ID,
+      time: '2200',
+      siteLocation: 'Invalid evening wound',
+      status: 'active',
+      firstAction: 'treatment',
+      frequency: 'daily',
+      bathingRelation: 'independent',
+    });
+
+    const mondayDay = generateShiftSheet('2026-08-31', SHIFT_LPN_DAY_ID);
+    const mondayNight = generateShiftSheet('2026-08-31', SHIFT_LPN_NIGHT_ID);
+    const mondayHca = generateShiftSheet('2026-08-31', SHIFT_HCA_DAY_ID);
+    const tuesdayDay = generateShiftSheet('2026-09-01', SHIFT_LPN_DAY_ID);
+
+    expect(mondayDay.residentAssignments.flatMap(item => item.wounds)).toHaveLength(1);
+    expect(mondayDay.exceptions.some(item => item.taskType === 'wound' && item.time === '2200')).toBe(true);
+    expect(mondayNight.residentAssignments.flatMap(item => item.wounds)).toHaveLength(0);
+    expect(mondayHca.residentAssignments.flatMap(item => item.wounds)).toHaveLength(0);
+    expect(tuesdayDay.residentAssignments.flatMap(item => item.wounds)).toHaveLength(0);
+  });
+
+  it('keeps legacy unassigned wounds off shift sheets and flags them on the wound schedule', () => {
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'Legacy', lastName: 'Protocol', roomNumber: '211', status: 'active' });
+    const wound = db.addWound({
+      residentId: resident.id,
+      siteLocation: 'Right forearm',
+      status: 'active',
+      firstAction: 'assessment',
+      frequency: 'daily',
+      bathingRelation: 'independent',
+    });
+
+    expect(generateShiftSheet('2026-08-24', SHIFT_LPN_DAY_ID).residentAssignments.flatMap(item => item.wounds)).toHaveLength(0);
+    const schedule = buildWoundScheduleModel('2026-08-24');
+    const scheduledWound = schedule.wounds.find(item => item.id === wound.id);
+    expect(scheduledWound?.shiftCode).toMatch(/Unassigned/i);
+    expect(scheduledWound?.configurationWarning).toMatch(/shift assignment/i);
+  });
+
+  it('prevents deletion of a clinical shift assigned to an active wound protocol', () => {
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'Shift', lastName: 'Dependency', roomNumber: '212', status: 'active' });
+    const shift = db.addShift({
+      name: 'Wound Evening', shortCode: 'WEL', roleId: ROLE_LPN_ID,
+      startTime: '1500', endTime: '2300', isActive: true,
+    });
+    db.addWound({
+      residentId: resident.id,
+      shiftId: shift.id,
+      time: '1700',
+      siteLocation: 'Sacrum',
+      status: 'healing',
+      firstAction: 'treatment',
+      frequency: 'daily',
+      bathingRelation: 'after_bath',
+    });
+
+    const result = db.deleteShift(shift.id);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/1 active wound protocol/i);
   });
 
   it('uses end-exclusive shift windows for normal and overnight shifts', () => {
