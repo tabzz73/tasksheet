@@ -223,7 +223,8 @@ export function calculateAdaptivePrintLayout(options: {
     requestedHandoffLines,
   } = options;
 
-  const density: PrintDensity = isClinical && requestedDensity === 'standard' && !largePrint && taskRowCount >= 9
+  const autoCompactThreshold = isClinical ? 9 : 14;
+  const density: PrintDensity = requestedDensity === 'standard' && !largePrint && taskRowCount >= autoCompactThreshold
     ? 'compact'
     : requestedDensity;
 

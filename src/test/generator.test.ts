@@ -1189,6 +1189,49 @@ describe('Alberta Standard Starter Catalog Tests', () => {
       expect(accessibleShift.estimatedPages).toBeGreaterThan(1);
     });
 
+    it('adapts HCA print density for assignments of fifteen or more residents and paginates without clipping', () => {
+      const fifteenResidentShift = calculateAdaptivePrintLayout({
+        isClinical: false,
+        requestedDensity: 'standard',
+        largePrint: false,
+        taskRowCount: 18,
+        sectionCount: 2,
+        alertCount: 0,
+        requestedHandoffLines: 3,
+      });
+      expect(fifteenResidentShift).toMatchObject({
+        density: 'compact',
+        handoffLines: 3,
+        estimatedPages: 1,
+      });
+
+      const highVolumeShift = calculateAdaptivePrintLayout({
+        isClinical: false,
+        requestedDensity: 'standard',
+        largePrint: false,
+        taskRowCount: 30,
+        sectionCount: 3,
+        alertCount: 1,
+        requestedHandoffLines: 3,
+      });
+      expect(highVolumeShift.density).toBe('compact');
+      expect(highVolumeShift.handoffLines).toBe(1);
+      expect(highVolumeShift.estimatedPages).toBe(2);
+
+      const largePrintShift = calculateAdaptivePrintLayout({
+        isClinical: false,
+        requestedDensity: 'standard',
+        largePrint: true,
+        taskRowCount: 18,
+        sectionCount: 2,
+        alertCount: 0,
+        requestedHandoffLines: 3,
+      });
+      expect(largePrintShift.density).toBe('standard');
+      expect(largePrintShift.handoffLines).toBe(3);
+      expect(largePrintShift.estimatedPages).toBeGreaterThan(1);
+    });
+
     it('generates Universal Compact Table TaskSheet with inline structured results and minimal paper estimation', () => {
       const today = new Date().toISOString().split('T')[0];
       const sheet = generateShiftSheet(today, SHIFT_LPN_DAY_ID);
