@@ -1,4 +1,5 @@
 import React from 'react';
+import { TASKSHEET_TAGLINE } from '../../constants/branding';
 import { 
   LayoutGrid, 
   Clock, 
@@ -64,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div>
             <h1 className="text-lg font-bold text-white tracking-tight leading-tight">TaskSheet</h1>
-            <p className="text-xs text-teal-300 font-medium">Shift Task & Print Center</p>
+            <p className="max-w-[150px] text-[10px] leading-tight text-teal-300 font-medium">{TASKSHEET_TAGLINE}</p>
           </div>
         </div>
 

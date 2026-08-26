@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { db } from '../../db';
 import packageJson from '../../../package.json';
+import { TASKSHEET_TAGLINE } from '../../constants/branding';
 
 interface WelcomeHeroViewProps {
   onStartWork: () => void;
@@ -63,7 +64,7 @@ export const WelcomeHeroView: React.FC<WelcomeHeroViewProps> = ({
             <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4 text-white">
               <div>
                 <h2 id="demo-video-title" className="text-base font-bold">TaskSheet in 60 Seconds</h2>
-                <p className="mt-0.5 text-xs text-slate-400">Know the shift. See the tasks. Print what matters.</p>
+                <p className="mt-0.5 text-xs text-slate-400">{TASKSHEET_TAGLINE}</p>
               </div>
               <button
                 type="button"
@@ -133,7 +134,7 @@ export const WelcomeHeroView: React.FC<WelcomeHeroViewProps> = ({
                 <span>TaskSheet · SoftVibeSolutions</span>
               </span>
               <span className="text-xs text-slate-300 font-semibold px-2.5 py-1 bg-slate-800/60 rounded-full border border-slate-700">
-                Know the shift. See the tasks. Print what matters.
+                {TASKSHEET_TAGLINE}
               </span>
             </div>
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Info, Play, ShieldCheck, Sparkles } from 'lucide-react';
 import packageJson from '../../../package.json';
 import { FacilitySettings } from '../../types';
+import { TASKSHEET_TAGLINE } from '../../constants/branding';
 
 interface AppInformationTabProps {
   settings: FacilitySettings;
@@ -21,7 +22,7 @@ export const AppInformationTab: React.FC<AppInformationTabProps> = ({
           <span className="rounded-xl bg-white/10 p-2"><Info className="h-5 w-5 text-teal-300" /></span>
           <div>
             <h2 className="text-base font-black">TaskSheet</h2>
-            <p className="mt-1 text-xs text-slate-300">Daily Role Assignment & Task Sheet Generator</p>
+            <p className="mt-1 text-xs text-slate-300">{TASKSHEET_TAGLINE}</p>
           </div>
         </div>
       </div>

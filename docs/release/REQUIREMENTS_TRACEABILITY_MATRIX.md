@@ -42,7 +42,8 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | UX-07 | Welcome & Overview is absent from primary navigation and accessible under App Information | Settings/navigation regression | Verified |
 | UX-08 | App and developer identity have dedicated Settings pages | Settings/navigation regression | Verified |
 | PRT-04 | Attention indicators print as distinctive symbols with a matching full-word legend | Symbol rendering regression; HCA/LPN/universal documents | Verified/Pilot |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.13` | Git SHA/tag in generated build evidence | Verified |
+| PRE-04 | Product tagline is consistent across branded application surfaces | Central branding constant; Settings/navigation regression | Verified |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.14` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

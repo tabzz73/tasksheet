@@ -1,6 +1,6 @@
 # Pilot Acceptance Report
 
-Release candidate: `1.0.0-rc.13`
+Release candidate: `1.0.0-rc.14`
 Pilot site: __________  
 Pilot dates: __________  
 Report owner: __________  
@@ -49,4 +49,4 @@ Pilot lead: ____________________ Date: __________
 Operational owner: ______________ Date: __________  
 Release owner: __________________ Date: __________
 
-Until the first option is selected and all signatures are complete, the product remains **TaskSheet 1.0.0-rc.13 - Pilot Artifact Ready**.
+Until the first option is selected and all signatures are complete, the product remains **TaskSheet 1.0.0-rc.14 - Pilot Artifact Ready**.

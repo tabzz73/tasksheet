@@ -7,6 +7,7 @@ import { SettingsView } from '../components/views/SettingsView';
 import { CareTimingSettingsTab } from '../components/views/CareTimingSettingsTab';
 import { Sidebar } from '../components/layout/Sidebar';
 import packageJson from '../../package.json';
+import { TASKSHEET_TAGLINE } from '../constants/branding';
 
 describe('modern Settings navigation and smart facility entry', () => {
   beforeEach(() => {
@@ -52,12 +53,14 @@ describe('modern Settings navigation and smart facility entry', () => {
       />,
     );
     expect(sidebar.queryByText('Welcome & Overview')).toBeNull();
+    expect(sidebar.getByText(TASKSHEET_TAGLINE)).not.toBeNull();
     sidebar.unmount();
 
     const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
     fireEvent.click(view.getByRole('button', { name: /App Information/ }));
     expect(view.getByRole('button', { name: /Open Welcome & Overview/ })).not.toBeNull();
     expect(view.getByText(packageJson.version)).not.toBeNull();
+    expect(view.getByText(TASKSHEET_TAGLINE)).not.toBeNull();
 
     fireEvent.click(view.getByRole('button', { name: /Developer Information/ }));
     expect(view.getByText('SoftVibeSolutions')).not.toBeNull();
