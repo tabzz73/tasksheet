@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from './db';
 import { AppDatabaseState, Resident, Shift } from './types';
 import { Navbar } from './components/layout/Navbar';
+import { DemoModeBanner } from './components/layout/DemoModeBanner';
 import { Sidebar, NavigationTab } from './components/layout/Sidebar';
 import { DashboardView } from './components/views/DashboardView';
 import { ShiftsView } from './components/views/ShiftsView';
@@ -21,6 +22,7 @@ import { PrintPackageModel } from './services/print/packages';
 import { GeneratedShiftSheet, generateShiftSheet } from './services/generator';
 import { recordPrint, buildTaskSnapshot } from './services/printHistory';
 import { buildResidentCareSummaryModel } from './services/print/specializedDocs';
+import { getDemoState } from './services/demoMode';
 
 export function App() {
   const [dbState, setDbState] = useState<AppDatabaseState>(db.getState());
@@ -84,6 +86,21 @@ export function App() {
   };
 
   const currentActiveShift = activeShiftId ? dbState.shifts.find(s => s.id === activeShiftId) : undefined;
+  const demoState = getDemoState(dbState);
+
+  const handleStartRealSetup = () => {
+    if (!window.confirm('Clear the fictional Cedar Grove facility, demo shifts, residents, tasks, FYIs, and wounds, then begin real facility setup? The built-in task catalog will remain.')) return;
+    db.startRealSetup();
+    setActiveShiftId(null);
+    setActiveResidentId(null);
+    setIsPresentationMode(false);
+    setCurrentTab('settings');
+  };
+
+  const handleClearDemoData = () => {
+    if (!window.confirm('Remove all fictional demo records? Your manually entered facility, shifts, residents, tasks, and settings will be preserved.')) return;
+    db.clearDemoData();
+  };
 
   // Full-screen print preview replaces the entire app layout
   if (printPreviewModel) {
@@ -135,6 +152,13 @@ export function App() {
           selectedShift={currentActiveShift}
           facility={dbState.facility}
           pendingChangesCount={dbState.binderState.pendingChangesCount}
+        />
+
+        <DemoModeBanner
+          state={demoState}
+          onStartRealSetup={handleStartRealSetup}
+          onClearDemoData={handleClearDemoData}
+          onConfigureFacility={() => handleTabChange('settings')}
         />
 
         {/* Dynamic Page Views */}
@@ -225,6 +249,7 @@ export function App() {
           {/* SETTINGS */}
           {currentTab === 'settings' && (
             <SettingsView
+              key={dbState.settings.dataMode || 'operational'}
               onNavigateToWelcome={(presentationMode = false) => {
                 handleTabChange('welcome');
                 setIsPresentationMode(presentationMode);

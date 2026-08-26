@@ -261,7 +261,7 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
     expect(docHca.showQuickVitalsGrid).toBe(false);
   });
 
-  it('separates standard catalog from demo data: Clear Demo preserves standard catalog', () => {
+  it('separates standard catalog from demo configuration: Clear Demo starts a blank real setup', () => {
     const initialCatalogCount = db.getState().catalogTaskTemplates.length;
     expect(initialCatalogCount).toBeGreaterThan(20);
 
@@ -273,7 +273,9 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
     // Catalog must be 100% intact!
     expect(db.getState().catalogTaskTemplates.length).toBe(initialCatalogCount);
     expect(db.getState().roles.length).toBeGreaterThanOrEqual(4);
-    expect(db.getState().shifts.length).toBeGreaterThanOrEqual(4);
+    expect(db.getState().shifts).toHaveLength(0);
+    expect(db.getState().facility.siteName).toBe('');
+    expect(db.getState().settings.dataMode).toBe('setup_required');
   });
 
   it('sorts room numbers naturally (e.g. 101, 103A, 103B, 201, 254, 329B)', () => {

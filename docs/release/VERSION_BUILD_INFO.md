@@ -3,8 +3,8 @@
 ## Candidate identity
 
 - Product: TaskSheet
-- Version: `1.0.0-rc.1`
-- Release state: Ready for Controlled Production Pilot
+- Version: `1.0.0-rc.2`
+- Release state: Pilot Artifact Ready; clean-machine validation pending
 - Production approval: **Not granted**
 - Package metadata: `package.json` and `package-lock.json`
 - UI identity: Welcome footer
@@ -17,30 +17,31 @@
 - Build: `npm run build` (`tsc -b && vite build`)
 - Automated tests: `npm test` (`vitest run`)
 
-## Release Artifact Recovery baseline
+## Preserved release history
 
 - 2026-08-25: `npm test` passed 91/91 tests across 2 test files.
 - 2026-08-25: `npm run build` failed during `tsc -b`; Vite artifact generation did not run.
 - The initial build failure was classified as a **P1 release blocker**. The type/build corrections below resolved that blocker; the failed baseline is retained for audit history.
+- RC1 subsequently passed its build and packaging gates but was rejected during clean-machine validation for `CM-P1-001`. Its tag, installer, and checksum remain immutable; see `RC1_REJECTION_RECORD.md`.
 
 The clean-machine validator must record the exact supported release environment and artifact checksum; development tool versions do not by themselves define production support.
 
 ## Current build disposition
 
-Release Artifact Recovery corrected schema/type drift without changing the frozen operational algorithms. Final verification on 2026-08-25:
+RC2 changes only the demo-to-production boundary and its supporting provenance/migration behavior. Final RC2 verification is recorded in the generated build evidence:
 
 - `npx tsc --noEmit`: PASS, 0 errors.
-- `npm test`: PASS, 91/91 tests.
-- `npm run build`: PASS; 1,853 modules transformed and `dist/` produced.
+- `npm test`: PASS, 95/95 tests.
+- `npm run build`: PASS.
 
 The build emitted non-failing warnings for a `.print-landscape @page` CSS selector and a JavaScript chunk over 500 kB. These remain visible in build evidence and clean-machine print validation.
 
-The authoritative source is maintained in Git and tagged `v1.0.0-rc.1`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
+The authoritative source is maintained in Git and tagged `v1.0.0-rc.2`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
 
 Build output: `dist/`  
-Build ID: `TS-1.0.0-rc.1-20260825T213112-0600`  
-Build date: `2026-08-25T21:31:12-06:00`  
-Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.1.txt`  
-Git tag: `v1.0.0-rc.1`  
-Pilot installer: `TaskSheet-Setup-1.0.0-rc.1-x64.exe`  
+Build ID: See generated RC2 build evidence
+Build date: See generated RC2 build evidence
+Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.2.txt`
+Git tag: `v1.0.0-rc.2`
+Pilot installer: `TaskSheet-Setup-1.0.0-rc.2-x64.exe`
 Installer SHA-256: See generated artifact evidence

@@ -18,6 +18,19 @@ export const DEFAULT_FACILITY: Facility = {
   ],
 };
 
+export const EMPTY_FACILITY: Facility = {
+  siteName: '',
+  unitName: '',
+  street: '',
+  city: '',
+  province: 'AB',
+  postalCode: '',
+  mainPhone: '',
+  unitPhone: '',
+  fax: '',
+  additionalExtensions: [],
+};
+
 export const DEFAULT_VITALS_COLUMNS: QuickVitalsColumnConfig[] = [
   { id: 'bp', label: 'Blood Pressure', shortLabel: 'BP', width: '60pt', enabled: true, isSystem: true },
   { id: 'hr', label: 'Heart Rate / Pulse', shortLabel: 'HR', width: '40pt', enabled: true, isSystem: true },
@@ -255,6 +268,7 @@ export const DEFAULT_SETTINGS: FacilitySettings = {
   timeFormat: '24h',
   developerFooterEnabled: false,
   firstRunCompleted: true,
+  dataMode: 'demo',
   printProfiles: [DEFAULT_HCA_PRINT_PROFILE, DEFAULT_LPN_PRINT_PROFILE],
   branding: {
     headerStyle: 'standard',
@@ -329,7 +343,8 @@ export const DEFAULT_SHIFTS: Shift[] = [
     endTime: '1500',
     isActive: true,
     displayOrder: 1,
-    description: 'Daytime personal care, morning routines, breakfast/lunch assistance, and mobilization.'
+    description: 'Daytime personal care, morning routines, breakfast/lunch assistance, and mobilization.',
+    source: 'demo',
   },
   {
     id: SHIFT_HCA_EVE_ID,
@@ -340,7 +355,8 @@ export const DEFAULT_SHIFTS: Shift[] = [
     endTime: '2300',
     isActive: true,
     displayOrder: 2,
-    description: 'Evening care routines, dinner assistance, bedtime preparation, and safety rounds.'
+    description: 'Evening care routines, dinner assistance, bedtime preparation, and safety rounds.',
+    source: 'demo',
   },
   {
     id: SHIFT_LPN_DAY_ID,
@@ -351,7 +367,8 @@ export const DEFAULT_SHIFTS: Shift[] = [
     endTime: '1900',
     isActive: true,
     displayOrder: 3,
-    description: '12-hour day clinical shift: morning/lunch vitals, diabetes care, medication rounds, wound care.'
+    description: '12-hour day clinical shift: morning/lunch vitals, diabetes care, medication rounds, wound care.',
+    source: 'demo',
   },
   {
     id: SHIFT_LPN_NIGHT_ID,
@@ -362,7 +379,8 @@ export const DEFAULT_SHIFTS: Shift[] = [
     endTime: '0700',
     isActive: true,
     displayOrder: 4,
-    description: 'Overnight clinical monitoring, safety checks, morning preparation, and night handoff.'
+    description: 'Overnight clinical monitoring, safety checks, morning preparation, and night handoff.',
+    source: 'demo',
   },
   {
     id: SHIFT_RN_DAY_ID,
@@ -373,7 +391,8 @@ export const DEFAULT_SHIFTS: Shift[] = [
     endTime: '1900',
     isActive: true,
     displayOrder: 5,
-    description: '12-hour RN charge and clinical coordination.'
+    description: '12-hour RN charge and clinical coordination.',
+    source: 'demo',
   }
 ];
 

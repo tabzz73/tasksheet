@@ -1,5 +1,5 @@
 import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule } from '../types';
-import { DEFAULT_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
+import { DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { generateDemoData } from '../data/demoSeed';
@@ -85,6 +85,22 @@ class DatabaseService {
         if (stored) {
           const parsed = JSON.parse(stored);
 
+          const storedCollections = [parsed.residents, parsed.residentTasks, parsed.unitTasks, parsed.fyis, parsed.wounds];
+          const hasStoredDemoRecords = storedCollections.some(items =>
+            Array.isArray(items) && items.some(item => item?.source === 'demo')
+          );
+          const hasDefaultDemoFacility =
+            (parsed.facility?.siteName || DEFAULT_FACILITY.siteName) === DEFAULT_FACILITY.siteName &&
+            (parsed.facility?.street || DEFAULT_FACILITY.street) === DEFAULT_FACILITY.street;
+          const migratedDataMode: FacilitySettings['dataMode'] =
+            parsed.settings?.dataMode || (hasStoredDemoRecords && hasDefaultDemoFacility ? 'demo' : 'operational');
+          const migratedSettings: FacilitySettings = {
+            ...DEFAULT_SETTINGS,
+            ...(parsed.settings || {}),
+            dataMode: migratedDataMode,
+          };
+          const defaultShiftIds = new Set(DEFAULT_SHIFTS.map(shift => shift.id));
+
           // Migrate resident task categories
           const migratedResidentTasks: ResidentTask[] = (parsed.residentTasks || []).map((t: ResidentTask) => ({
             ...t,
@@ -107,7 +123,8 @@ class DatabaseService {
               ...s,
               shortCode,
               isActive: s.isActive !== false,
-              displayOrder: s.displayOrder ?? (idx + 1)
+              displayOrder: s.displayOrder ?? (idx + 1),
+              source: s.source || (migratedDataMode === 'demo' && defaultShiftIds.has(s.id) ? 'demo' : 'manual'),
             };
           });
 
@@ -118,7 +135,7 @@ class DatabaseService {
 
           const loadedState: AppDatabaseState = {
             facility: parsed.facility || DEFAULT_FACILITY,
-            settings: parsed.settings || DEFAULT_SETTINGS,
+            settings: migratedSettings,
             roles: parsed.roles?.length ? parsed.roles : DEFAULT_ROLES,
             shifts: migratedShifts,
             residents: parsed.residents || [],
@@ -178,9 +195,21 @@ class DatabaseService {
 
   // Facility & Settings
   public updateFacility(facility: Partial<Facility>): void {
+    const updatedFacility = { ...this.state.facility, ...facility };
+    const completesRealSetup =
+      this.state.settings.dataMode === 'setup_required' &&
+      updatedFacility.siteName.trim() !== '' &&
+      updatedFacility.street.trim() !== '' &&
+      updatedFacility.city.trim() !== '' &&
+      updatedFacility.postalCode.trim() !== '' &&
+      updatedFacility.mainPhone.trim() !== '' &&
+      this.state.shifts.some(shift => shift.source !== 'demo');
     this.saveToStorage({
       ...this.state,
-      facility: { ...this.state.facility, ...facility }
+      facility: updatedFacility,
+      settings: completesRealSetup
+        ? { ...this.state.settings, dataMode: 'operational', firstRunCompleted: true }
+        : this.state.settings,
     });
   }
 
@@ -281,12 +310,23 @@ class DatabaseService {
       isActive: isAct,
       displayOrder: shift.displayOrder ?? (this.state.shifts.length + 1),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      source: shift.source || 'manual',
     };
 
+    const completesRealSetup =
+      this.state.settings.dataMode === 'setup_required' &&
+      this.state.facility.siteName.trim() !== '' &&
+      this.state.facility.street.trim() !== '' &&
+      this.state.facility.city.trim() !== '' &&
+      this.state.facility.postalCode.trim() !== '' &&
+      this.state.facility.mainPhone.trim() !== '';
     this.saveToStorage({
       ...this.state,
-      shifts: [...this.state.shifts, newShift]
+      shifts: [...this.state.shifts, newShift],
+      settings: completesRealSetup
+        ? { ...this.state.settings, dataMode: 'operational', firstRunCompleted: true }
+        : this.state.settings,
     });
     return newShift;
   }
@@ -829,6 +869,10 @@ class DatabaseService {
   }
 
   public clearDemoData(): void {
+    if (this.state.settings.dataMode === 'demo') {
+      this.startRealSetup();
+      return;
+    }
     this.saveToStorage({
       ...this.state,
       residents: this.state.residents.filter(r => r.source !== 'demo'),
@@ -836,6 +880,42 @@ class DatabaseService {
       unitTasks: this.state.unitTasks.filter(u => u.source !== 'demo'),
       fyis: this.state.fyis.filter(f => f.source !== 'demo'),
       wounds: this.state.wounds.filter(w => w.source !== 'demo')
+    });
+  }
+
+  public startRealSetup(): void {
+    const demoShiftIds = new Set(
+      this.state.shifts.filter(shift => shift.source === 'demo').map(shift => shift.id)
+    );
+    this.saveToStorage({
+      ...this.state,
+      facility: { ...EMPTY_FACILITY },
+      settings: {
+        ...this.state.settings,
+        dataMode: 'setup_required',
+        firstRunCompleted: false,
+        branding: {
+          ...(this.state.settings.branding || DEFAULT_SETTINGS.branding!),
+          watermarkStyle: 'none',
+        },
+      },
+      shifts: this.state.shifts.filter(shift => shift.source !== 'demo'),
+      residents: this.state.residents.filter(resident => resident.source !== 'demo'),
+      residentTasks: this.state.residentTasks.filter(task =>
+        task.source !== 'demo' && !demoShiftIds.has(task.shiftId)
+      ),
+      unitTasks: this.state.unitTasks.filter(task =>
+        task.source !== 'demo' && !demoShiftIds.has(task.shiftId)
+      ),
+      fyis: this.state.fyis.filter(fyi => fyi.source !== 'demo'),
+      wounds: this.state.wounds.filter(wound => wound.source !== 'demo'),
+      legacyCompletions: [],
+      binderState: {
+        ...this.state.binderState,
+        status: 'current',
+        pendingChangesCount: 0,
+        lastModifiedAt: new Date().toISOString(),
+      },
     });
   }
 
@@ -876,6 +956,25 @@ class DatabaseService {
       if (!parsed.facility || !parsed.roles || !parsed.shifts) {
         throw new Error('Backup data is missing core schema objects (facility, roles, shifts).');
       }
+      const restoredCollections = [parsed.residents, parsed.residentTasks, parsed.unitTasks, parsed.fyis, parsed.wounds];
+      const hasDemoRecords = restoredCollections.some(items =>
+        Array.isArray(items) && items.some(item => item?.source === 'demo')
+      );
+      const hasDefaultDemoFacility =
+        parsed.facility.siteName === DEFAULT_FACILITY.siteName &&
+        parsed.facility.street === DEFAULT_FACILITY.street;
+      const restoredDataMode: FacilitySettings['dataMode'] =
+        parsed.settings?.dataMode || (hasDemoRecords && hasDefaultDemoFacility ? 'demo' : 'operational');
+      const defaultShiftIds = new Set(DEFAULT_SHIFTS.map(shift => shift.id));
+      parsed.settings = {
+        ...DEFAULT_SETTINGS,
+        ...(parsed.settings || {}),
+        dataMode: restoredDataMode,
+      };
+      parsed.shifts = parsed.shifts.map((shift: Shift) => ({
+        ...shift,
+        source: shift.source || (restoredDataMode === 'demo' && defaultShiftIds.has(shift.id) ? 'demo' : 'manual'),
+      }));
       this.saveToStorage(parsed);
     } catch (e: any) {
       throw new Error(`Failed to restore database: ${e.message}`);

@@ -271,9 +271,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
   };
 
   const handleClearDemo = () => {
-    if (window.confirm('Clear all demo residents, assignments, and test FYIs? Standard catalog and facility settings are kept 100% intact.')) {
+    if (settings.dataMode === 'demo') {
+      if (window.confirm('Clear the fictional Cedar Grove facility, demo shifts, residents, tasks, FYIs, and wounds, then begin real facility setup? The built-in task catalog will remain.')) {
+        db.startRealSetup();
+        setFacility(db.getState().facility);
+        setSettings(db.getState().settings);
+        setActiveTab('facility');
+        showFeedback('success', 'Demo configuration cleared. Enter your real facility details and create HCA/LPN shifts.');
+      }
+      return;
+    }
+    if (window.confirm('Clear all demo residents, assignments, and test FYIs? Manual facility data, shifts, records, and the standard catalog will remain intact.')) {
       db.clearDemoData();
-      showFeedback('success', 'Demo data purged cleanly. Standard catalog remains active.');
+      showFeedback('success', 'Demo records removed. Manual production records and the standard catalog remain active.');
     }
   };
 
@@ -1323,7 +1333,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
           <div>
             <h3 className="text-base font-bold text-slate-900">Demo Data Manager</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Safely load or clear fictional residents and shift tasks. Standard Catalog and Facility settings remain 100% untouched.
+              Safely load fictional records into a manual setup or convert the bundled sample configuration into a real facility setup.
             </p>
           </div>
 
@@ -1333,7 +1343,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
               <span>Catalog Isolation Guarantee</span>
             </h4>
             <p className="text-xs text-teal-900">
-              In TaskSheet, Demo Data is strictly isolated by source tag (`source: 'demo'`). Loading or clearing demo data will <strong>never</strong> wipe the Alberta Standard Task Catalog, your customized facility shifts, or manual staff entries.
+              Demo operational records are isolated by source tag (`source: 'demo'`). Loading or clearing demo records never overwrites manual production entries. Starting Real Setup also removes the bundled Cedar Grove facility and demo-provenance shifts while retaining the Alberta Standard Task Catalog.
             </p>
             <div className="pt-2 flex items-center space-x-3">
               <button
@@ -1348,7 +1358,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 onClick={handleClearDemo}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
               >
-                Clear Demo Data Only
+                {settings.dataMode === 'demo' ? 'Clear Demo & Start Real Setup' : 'Clear Demo Data Only'}
               </button>
             </div>
           </div>

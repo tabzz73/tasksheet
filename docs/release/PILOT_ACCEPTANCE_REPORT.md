@@ -1,6 +1,6 @@
 # Pilot Acceptance Report
 
-Release candidate: `1.0.0-rc.1`  
+Release candidate: `1.0.0-rc.2`
 Pilot site: __________  
 Pilot dates: __________  
 Report owner: __________  
@@ -23,9 +23,9 @@ Status: **Pending**
 
 | Gate | Evidence reference | Reviewer | Result |
 |---|---|---|---|
-| Automated regression | `npm test`: 91/91 passed, 2026-08-25 |  | Passed |
+| Automated regression | `npm test`: 95/95 passed, 2026-08-26 |  | Passed |
 | Controlled pilot | Completed PIL-01 through PIL-10 |  | Pending |
-| Clean Windows validation | Completed CM-01 through CM-12 |  | Pending |
+| Clean Windows validation | Completed RC2-CM-01 through RC2-CM-18 |  | Pending |
 | Production build/install artifact | Artifact ID and checksum |  | Pending |
 | Backup/restore | Backup and verification record |  | Pending |
 | Documentation review | Approved document set |  | Pending |
@@ -49,4 +49,4 @@ Pilot lead: ____________________ Date: __________
 Operational owner: ______________ Date: __________  
 Release owner: __________________ Date: __________
 
-Until the first option is selected and all signatures are complete, the product remains **TaskSheet 1.0.0-rc.1 - Ready for Controlled Production Pilot**.
+Until the first option is selected and all signatures are complete, the product remains **TaskSheet 1.0.0-rc.2 - Pilot Artifact Ready**.

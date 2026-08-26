@@ -166,6 +166,7 @@ export interface FacilitySettings {
   timeFormat: '24h' | '12h';
   developerFooterEnabled: boolean;
   firstRunCompleted: boolean;
+  dataMode?: 'demo' | 'setup_required' | 'operational';
   printProfiles?: PrintProfileConfig[];
   branding?: FacilityBrandingSettings;
   quickAddPresets?: FacilityQuickAddPreset[];
@@ -195,6 +196,7 @@ export interface Shift {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
+  source?: 'manual' | 'demo';
 }
 
 export interface Resident {

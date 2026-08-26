@@ -21,10 +21,16 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | DAT-01 | Minimal resident identity by design | Product model/manual and pilot review | Pilot |
 | DAT-02 | Backup/restore supports recovery | DB hardening tests; PIL-09 and CM-08 | Verified/Pilot |
 | DAT-03 | Persistence survives restart | CM-04 | Pending |
+| DEM-01 | Active bundled demo configuration is persistently and visibly identified | `DemoModeBanner`; demo-mode regression | Verified |
+| DEM-02 | Start Real Setup removes sample facility, demo shifts, and demo operational records | `startRealSetup`; CM-P1-001 regression | Verified |
+| DEM-03 | Built-in catalogs survive conversion without being presented as facility data | `startRealSetup`; CM-P1-001 regression | Verified |
+| DEM-04 | Reloaded demo content does not overwrite or remove manual production records | demo-mode isolation regression | Verified |
+| DEM-05 | Legacy RC1 Cedar Grove state cannot silently migrate as operational | restore/migration regression | Verified |
+| DEM-06 | Demo-first startup and demo-to-real conversion pass on clean Windows | `CLEAN_MACHINE_VALIDATION_RC2.md` | Pending |
 | REL-01 | Clean Windows install has no local-path/assets dependency | CM-01 through CM-03 | Pending |
 | REL-02 | Upgrade preserves supported data | CM-09 | Pending |
 | REL-03 | Production web artifact builds reproducibly | `npm run build`; build evidence record | Verified |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.1` | Git SHA/tag in generated build evidence | Verified |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.2` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

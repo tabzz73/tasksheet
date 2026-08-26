@@ -1,16 +1,16 @@
 # TaskSheet 1.0 Release Closure
 
-Release candidate: **1.0.0-rc.1**  
+Release candidate: **1.0.0-rc.2**
 Current decision: **Pilot Artifact Ready; clean-machine validation and controlled pilot pending**
 
 ## Release gates
 
 | Gate | Required result | Current status |
 |---|---|---|
-| Shift-window regression | All automated tests pass | Passed: 91/91 on 2026-08-25 |
+| Full regression | All automated tests pass | Passed: 95/95 on 2026-08-26 |
 | Controlled production pilot | Completed; open P0 = 0 and P1 = 0 | Pending external execution |
 | Clean Windows validation | All required checks pass | Pending external execution |
-| Production build | Reproducible web artifact, no TypeScript errors | Passed on 2026-08-25 |
+| Production build | Reproducible web artifact, no TypeScript errors | Passed on 2026-08-26 |
 | Source provenance and pilot installer | Clean Git commit/tag and installer checksum | Passed; exact values are in the generated artifact evidence |
 | Documentation | Required release documents complete | Drafted for pilot use |
 | Presentation layer | Hero retained; public demo asset reviewed | Hero complete; polished video pending |
@@ -20,16 +20,17 @@ No document in this folder authorizes production use by itself. Approval is reco
 ## Documents
 
 - [Controlled Pilot Plan](CONTROLLED_PILOT_PLAN.md)
-- [Clean-Machine Validation](CLEAN_MACHINE_VALIDATION.md)
+- [Clean-Machine Validation - RC2](CLEAN_MACHINE_VALIDATION_RC2.md)
 - [Pilot Acceptance Report](PILOT_ACCEPTANCE_REPORT.md)
-- [Release Notes](RELEASE_NOTES_1.0.0_RC1.md)
-- [Known Limitations](KNOWN_LIMITATIONS_1.0.0_RC1.md)
+- [Release Notes - RC2](RELEASE_NOTES_1.0.0_RC2.md)
+- [Known Limitations - RC2](KNOWN_LIMITATIONS_1.0.0_RC2.md)
+- [RC1 Rejection Record](RC1_REJECTION_RECORD.md)
 - [User Manual](USER_MANUAL_1.0.md)
 - [Backup and Restore](BACKUP_RESTORE.md)
 - [Data Management](DATA_MANAGEMENT.md)
 - [Requirements Traceability Matrix](REQUIREMENTS_TRACEABILITY_MATRIX.md)
 - [Version and Build Information](VERSION_BUILD_INFO.md)
-- [Build Evidence - 1.0.0-rc.1](BUILD_EVIDENCE_1.0.0_RC1.md)
+- [Build Evidence - 1.0.0-rc.2](BUILD_EVIDENCE_1.0.0_RC2.md)
 - [Windows Pilot Installer Pipeline](WINDOWS_INSTALLER.md)
 
 ## Feature freeze

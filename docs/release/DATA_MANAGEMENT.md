@@ -15,6 +15,8 @@ Use only the minimum resident information required by TaskSheet - name and room 
 - Review **Needs Review** exceptions before every print. Correct the source shift/time; do not bypass the warning by copying the task onto an incorrect sheet.
 - Label and validate imports. Imported data is still filtered at generation time and is not trusted merely because it was accepted into storage.
 - Keep demo records isolated by their source tag. Presentation Mode does not imply demo data.
+- A persistent **Demo Mode** banner identifies bundled sample facility/shift data. Use **Start Real Setup** before operational use; this removes the sample facility, demo shifts, and source-tagged demo records while retaining the standardized built-in catalogs.
+- If demo records are later loaded into an operational facility, TaskSheet identifies them separately and clearing them must preserve manually entered production records.
 - Export a verified backup before restore, upgrade, import, bulk edit, pilot start, and pilot close.
 - Follow facility retention and secure-disposal rules for JSON backups and printed sheets.
 
