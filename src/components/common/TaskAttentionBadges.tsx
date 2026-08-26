@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   AlertTriangle, 
   Clock, 
@@ -28,7 +29,26 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
   size = 'xs',
   className = '',
 }) => {
-  const [activeTooltipIndex, setActiveTooltipIndex] = useState<number | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<{
+    index: number;
+    left: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
+
+  const openTooltip = (index: number, target: HTMLElement) => {
+    const rect = target.getBoundingClientRect();
+    const tooltipWidth = 256;
+    const viewportPadding = 8;
+    const left = Math.min(
+      Math.max(viewportPadding, rect.right - tooltipWidth),
+      Math.max(viewportPadding, window.innerWidth - tooltipWidth - viewportPadding),
+    );
+    const hasRoomBelow = window.innerHeight - rect.bottom >= 220;
+    setActiveTooltip(hasRoomBelow
+      ? { index, left, top: rect.bottom + 6 }
+      : { index, left, bottom: window.innerHeight - rect.top + 6 });
+  };
 
   if (!attentionConfig || !attentionConfig.indicators || attentionConfig.indicators.length === 0) {
     return null;
@@ -62,14 +82,17 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
       {visibleIndicators.map((indicator, index) => {
         const details = getIndicatorBadgeDetails(indicator, attentionConfig.mealRelation);
         const meta = findMetadata(indicator);
-        const isHovered = activeTooltipIndex === index;
+        const isHovered = activeTooltip?.index === index;
 
         return (
           <div
             key={indicator}
             className="relative"
-            onMouseEnter={() => setActiveTooltipIndex(index)}
-            onMouseLeave={() => setActiveTooltipIndex(null)}
+            tabIndex={0}
+            onMouseEnter={(event) => openTooltip(index, event.currentTarget)}
+            onMouseLeave={() => setActiveTooltip(null)}
+            onFocus={(event) => openTooltip(index, event.currentTarget)}
+            onBlur={() => setActiveTooltip(null)}
           >
             <span
               className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded border font-mono font-black tracking-wider transition-all cursor-help select-none ${
@@ -82,8 +105,12 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
             </span>
 
             {/* Explainable Popover Tooltip */}
-            {isHovered && (
-              <div className="absolute right-0 top-full mt-1 w-64 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl text-xs z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-100 border border-slate-700">
+            {isHovered && typeof document !== 'undefined' && createPortal(
+              <div
+                role="tooltip"
+                style={{ left: activeTooltip.left, top: activeTooltip.top, bottom: activeTooltip.bottom }}
+                className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-[9999] pointer-events-none animate-in fade-in zoom-in-95 duration-100 border border-slate-700"
+              >
                 <div className="flex items-center space-x-1.5 mb-1 pb-1 border-b border-slate-700 font-bold">
                   {renderIcon(details.iconName, 'w-3.5 h-3.5 text-amber-400')}
                   <span className="text-slate-100">{details.label}</span>
@@ -121,7 +148,8 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
                 <div className="text-[9px] text-slate-500 pt-1 border-t border-slate-800 italic text-right">
                   Confirm against facility policy
                 </div>
-              </div>
+              </div>,
+              document.body,
             )}
           </div>
         );
@@ -131,8 +159,11 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
       {overflowCount > 0 && (
         <div
           className="relative"
-          onMouseEnter={() => setActiveTooltipIndex(999)}
-          onMouseLeave={() => setActiveTooltipIndex(null)}
+          tabIndex={0}
+          onMouseEnter={(event) => openTooltip(999, event.currentTarget)}
+          onMouseLeave={() => setActiveTooltip(null)}
+          onFocus={(event) => openTooltip(999, event.currentTarget)}
+          onBlur={() => setActiveTooltip(null)}
         >
           <span
             className={`inline-flex items-center px-1.5 py-0.5 rounded border border-slate-300 bg-slate-100 text-slate-700 font-mono font-bold cursor-help select-none ${
@@ -142,8 +173,12 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
             +{overflowCount}
           </span>
 
-          {activeTooltipIndex === 999 && (
-            <div className="absolute right-0 top-full mt-1 w-64 p-2.5 bg-slate-900 text-white rounded-xl shadow-xl text-xs z-50 pointer-events-none border border-slate-700">
+          {activeTooltip?.index === 999 && typeof document !== 'undefined' && createPortal(
+            <div
+              role="tooltip"
+              style={{ left: activeTooltip.left, top: activeTooltip.top, bottom: activeTooltip.bottom }}
+              className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-[9999] pointer-events-none border border-slate-700"
+            >
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                 All Attention Indicators ({indicators.length}):
               </span>
@@ -158,7 +193,8 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
                   );
                 })}
               </div>
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       )}

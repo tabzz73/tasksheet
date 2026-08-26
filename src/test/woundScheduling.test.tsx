@@ -88,6 +88,15 @@ describe('wound protocol scheduling UI', () => {
 
     const clinicalView = render(<ShiftWorkspaceView {...commonProps} shiftId={SHIFT_LPN_DAY_ID} />);
     fireEvent.click(clinicalView.getByRole('button', { name: /Add to LP1/i }));
+    expect(clinicalView.getByRole('button', { name: /Wound Protocol/i })).not.toBeNull();
+    fireEvent.pointerDown(document.body);
+    expect(clinicalView.queryByRole('button', { name: /Wound Protocol/i })).toBeNull();
+
+    fireEvent.click(clinicalView.getByRole('button', { name: /Add to LP1/i }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(clinicalView.queryByRole('button', { name: /Wound Protocol/i })).toBeNull();
+
+    fireEvent.click(clinicalView.getByRole('button', { name: /Add to LP1/i }));
     fireEvent.click(clinicalView.getByRole('button', { name: /Wound Protocol/i }));
     expect(onOpenAddWound).toHaveBeenCalledOnce();
     clinicalView.unmount();

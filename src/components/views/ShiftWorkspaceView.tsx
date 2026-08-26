@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Printer,
   Plus,
@@ -66,6 +66,27 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   const [previewProfile, setPreviewProfile] = useState<PrintProfile>('role_default');
   const [fyiCollapsed, setFyiCollapsed] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(event.target as Node)) {
+        setAddMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAddMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [addMenuOpen]);
+
+  useEffect(() => setAddMenuOpen(false), [shiftId]);
 
   // Task Details Drawer state
   const [drawerTask, setDrawerTask] = useState<{ careTask?: ResidentTask | null; unitTask?: UnitTask | null } | null>(null);
@@ -734,10 +755,12 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
               </button>
 
               {/* Contextual Add Dropdown */}
-              <div className="relative">
+              <div ref={addMenuRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setAddMenuOpen(!addMenuOpen)}
+                  aria-expanded={addMenuOpen}
+                  aria-haspopup="menu"
                   className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm flex items-center space-x-1.5 transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -747,6 +770,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
                 {addMenuOpen && (
                   <div 
                     onClick={() => setAddMenuOpen(false)}
+                    role="menu"
                     className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-100"
                   >
                     <button

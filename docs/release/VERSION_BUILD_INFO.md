@@ -3,7 +3,7 @@
 ## Candidate identity
 
 - Product: TaskSheet
-- Version: `1.0.0-rc.18`
+- Version: `1.0.0-rc.19`
 - Release state: Pilot Artifact Ready; clean-machine validation pending
 - Production approval: **Not granted**
 - Package metadata: `package.json` and `package-lock.json`
@@ -29,20 +29,20 @@ The clean-machine validator must record the exact supported release environment 
 
 ## Current build disposition
 
-RC18 exposes wound scheduling directly from clinical shift workspaces and preserves the clicked shift as form context. Final RC18 verification is recorded in the generated build evidence:
+RC19 standardizes shift-menu dismissal and renders alert explanations outside clipping cards. Final RC19 verification is recorded in the generated build evidence:
 
 - `npx tsc --noEmit`: PASS, 0 errors.
-- `npm test`: PASS, 135/135 tests.
+- `npm test`: PASS, 136/136 tests.
 - `npm run build`: PASS.
 
 The build emitted non-failing warnings for a `.print-landscape @page` CSS selector and a JavaScript chunk over 500 kB. These remain visible in build evidence and clean-machine print validation.
 
-The authoritative source is maintained in Git and tagged `v1.0.0-rc.18`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
+The authoritative source is maintained in Git and tagged `v1.0.0-rc.19`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
 
 Build output: `dist/`  
-Build ID: See generated RC18 build evidence
-Build date: See generated RC18 build evidence
-Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.18.txt`
-Git tag: `v1.0.0-rc.18`
-Pilot installer: `TaskSheet-Setup-1.0.0-rc.18-x64.exe`
+Build ID: See generated RC19 build evidence
+Build date: See generated RC19 build evidence
+Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.19.txt`
+Git tag: `v1.0.0-rc.19`
+Pilot installer: `TaskSheet-Setup-1.0.0-rc.19-x64.exe`
 Installer SHA-256: See generated artifact evidence
