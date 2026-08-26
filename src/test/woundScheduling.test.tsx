@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { cleanup, fireEvent, render } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GlobalAddModal } from '../components/modals/GlobalAddModal';
+import { ShiftWorkspaceView } from '../components/views/ShiftWorkspaceView';
 import { db } from '../db';
-import { ROLE_HCA_ID } from '../data/defaultData';
+import { ROLE_HCA_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID, SHIFT_LPN_NIGHT_ID } from '../data/defaultData';
 
 describe('wound protocol scheduling UI', () => {
   beforeEach(() => db.resetToDemoState());
@@ -55,5 +56,44 @@ describe('wound protocol scheduling UI', () => {
     expect(view.getByRole('alert').textContent).toMatch(/outside/i);
     fireEvent.click(view.getByRole('button', { name: /Add Wound Protocol/i }));
     expect(db.getState().wounds.some(item => item.residentId === resident.id && item.siteLocation === 'Right ankle')).toBe(false);
+  });
+
+  it('preselects the clinical shift supplied by a shift workspace', () => {
+    const resident = db.addResident({ firstName: 'Night', lastName: 'Wound', roomNumber: '709', status: 'active' });
+    const view = render(
+      <GlobalAddModal
+        isOpen
+        initialType="wound"
+        contextResidentId={resident.id}
+        contextShiftId={SHIFT_LPN_NIGHT_ID}
+        onClose={() => undefined}
+      />,
+    );
+
+    expect((view.getByLabelText(/Assigned LPN\/RN Shift/i) as HTMLSelectElement).value).toBe(SHIFT_LPN_NIGHT_ID);
+  });
+
+  it('offers Wound Protocol from LPN/RN shift menus but not HCA shift menus', () => {
+    const onOpenAddWound = vi.fn();
+    const commonProps = {
+      currentDate: '2026-08-26',
+      onBack: vi.fn(),
+      onPrint: vi.fn(),
+      onOpenAddCareTask: vi.fn(),
+      onOpenAddUnitTask: vi.fn(),
+      onOpenAddFYI: vi.fn(),
+      onOpenAddWound,
+      onOpenResidentProfile: vi.fn(),
+    };
+
+    const clinicalView = render(<ShiftWorkspaceView {...commonProps} shiftId={SHIFT_LPN_DAY_ID} />);
+    fireEvent.click(clinicalView.getByRole('button', { name: /Add to LP1/i }));
+    fireEvent.click(clinicalView.getByRole('button', { name: /Wound Protocol/i }));
+    expect(onOpenAddWound).toHaveBeenCalledOnce();
+    clinicalView.unmount();
+
+    const hcaView = render(<ShiftWorkspaceView {...commonProps} shiftId={SHIFT_HCA_DAY_ID} />);
+    fireEvent.click(hcaView.getByRole('button', { name: /Add to D1/i }));
+    expect(hcaView.queryByRole('button', { name: /Wound Protocol/i })).toBeNull();
   });
 });

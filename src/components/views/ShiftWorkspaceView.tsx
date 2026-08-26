@@ -46,6 +46,7 @@ interface ShiftWorkspaceViewProps {
   onOpenAddCareTask: (residentId?: string) => void;
   onOpenAddUnitTask: () => void;
   onOpenAddFYI: () => void;
+  onOpenAddWound: () => void;
   onOpenResidentProfile: (residentId: string) => void;
 }
 
@@ -58,6 +59,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   onOpenAddCareTask,
   onOpenAddUnitTask,
   onOpenAddFYI,
+  onOpenAddWound,
   onOpenResidentProfile,
 }) => {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('timeline');
@@ -113,6 +115,8 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   // Generate current shift sheet
   const sheet = generateShiftSheet(currentDate, shiftId);
   const { shift, role, startUnitTasks, duringUnitTasks, endUnitTasks, residentAssignments, prnTasks, importantFYIs, metrics } = sheet;
+  const clinicalRoleText = `${role.code || ''} ${role.name || ''}`.toLowerCase();
+  const isClinicalShift = clinicalRoleText.includes('lpn') || clinicalRoleText.includes('rn') || clinicalRoleText.includes('nurse');
 
   // Build structured task snapshots for delta tracking
   const structuredTasks: TaskSnapshotItem[] = [];
@@ -136,7 +140,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
         roomNumber: a.resident.roomNumber,
         residentName: `${a.resident.firstName} ${a.resident.lastName}`,
         title: `Wound Care: ${w.siteLocation}`,
-        time: '1000',
+        time: w.time,
         category: 'Wound Care',
         instructions: w.instructions,
         updatedAt: (w as any).updatedAt || (w as any).createdAt || '',
@@ -753,6 +757,16 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
                       <HeartHandshake className="w-4 h-4 text-teal-600" />
                       <span>+ Care Task</span>
                     </button>
+                    {isClinicalShift && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenAddWound()}
+                        className="w-full px-3.5 py-2 text-left hover:bg-rose-50 font-semibold text-slate-800 flex items-center space-x-2"
+                      >
+                        <Bandage className="w-4 h-4 text-rose-600" />
+                        <span>+ Wound Protocol</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => onOpenAddUnitTask()}

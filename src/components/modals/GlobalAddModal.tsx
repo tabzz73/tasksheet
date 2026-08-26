@@ -260,7 +260,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setResNotes('');
         setFyiText('');
         setWoundSiteLocation('');
-        setWoundShiftId(clinicalShifts[0]?.id || '');
+        const contextualClinicalShift = clinicalShifts.find(shift => shift.id === contextShiftId);
+        setWoundShiftId(contextualClinicalShift?.id || clinicalShifts[0]?.id || '');
         setWoundTime('1000');
         setWoundFirstAction('treatment');
         setWoundFrequency('daily');

@@ -187,6 +187,7 @@ export function App() {
                 onOpenAddCareTask={(resId) => handleOpenQuickAdd('care_task', resId, activeShiftId)}
                 onOpenAddUnitTask={() => handleOpenQuickAdd('unit_task', undefined, activeShiftId)}
                 onOpenAddFYI={() => handleOpenQuickAdd('fyi', undefined, activeShiftId)}
+                onOpenAddWound={() => handleOpenQuickAdd('wound', undefined, activeShiftId)}
                 onOpenResidentProfile={handleOpenResident}
               />
             ) : (
@@ -331,7 +332,7 @@ export function App() {
                   roomNumber: a.resident.roomNumber,
                   residentName: `${a.resident.firstName} ${a.resident.lastName}`,
                   title: `Wound Care: ${w.siteLocation}`,
-                  time: '1000',
+                  time: w.time,
                   category: 'Wound Care',
                   instructions: w.instructions,
                   updatedAt: (w as any).updatedAt || (w as any).createdAt || '',
