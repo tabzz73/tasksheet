@@ -331,6 +331,27 @@ describe('Alberta Standard Starter Catalog Tests', () => {
     expect(lpnCommon.slice(0, 3).map(task => task.slug)).toEqual(expectedSlugs);
   });
 
+  it('offers Wellness Check as a common editable task for both HCA and LPN', () => {
+    const templates = db.getState().catalogTaskTemplates;
+    const wellness = templates.find(task => task.slug === 'shared.monitoring.wellness_check');
+
+    expect(wellness).toBeDefined();
+    expect(wellness?.title).toBe('Wellness Check');
+    expect(wellness?.roleCode).toBe('SHARED');
+    expect(wellness?.defaultInstructions).toContain('comfort');
+
+    for (const roleCode of ['HCA', 'LPN']) {
+      const roleTasks = getRoleCatalogTasks(templates, roleCode);
+      expect(roleTasks.some(task => task.slug === wellness?.slug)).toBe(true);
+      expect(getCommonCatalogTasks(roleTasks).some(task => task.slug === wellness?.slug)).toBe(true);
+    }
+  });
+
+  it('provides editable starter instructions for every standard catalog task', () => {
+    expect(ALBERTA_TASK_TEMPLATES.length).toBeGreaterThan(0);
+    expect(ALBERTA_TASK_TEMPLATES.every(task => Boolean(task.defaultInstructions?.trim()))).toBe(true);
+  });
+
   it('finds Medication Assistance by displayed category name for HCA and LPN', () => {
     const state = db.getState();
 

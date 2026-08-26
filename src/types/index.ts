@@ -161,6 +161,18 @@ export interface WelcomeHeroSettings {
   showWhyTaskSheetContent?: boolean;
 }
 
+export interface FacilityTimePreset {
+  id: string;
+  label: string;
+  time: string;
+  isActive?: boolean;
+}
+
+export interface FacilityCareTimingSettings {
+  medicationTimes: FacilityTimePreset[];
+  mealTimes: FacilityTimePreset[];
+}
+
 export interface FacilitySettings {
   timezone: string;
   timeFormat: '24h' | '12h';
@@ -173,6 +185,7 @@ export interface FacilitySettings {
   attentionRules?: FacilityAttentionRule[];
   smartSuggestionsEnabled?: boolean;
   welcomeHero?: WelcomeHeroSettings;
+  careTimingPresets?: FacilityCareTimingSettings;
 }
 
 export interface Role {

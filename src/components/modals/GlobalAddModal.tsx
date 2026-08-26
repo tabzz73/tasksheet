@@ -44,6 +44,8 @@ import { detectAttentionIndicators, getIndicatorBadgeDetails } from '../../servi
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { isTimeWithinShift, parseMilitaryTime } from '../../services/scheduling/timeWindow';
 import { filterCatalogTasks, getCommonCatalogTasks, getRoleCatalogTasks } from '../../services/catalogDiscovery';
+import { DEFAULT_CARE_TIMING_PRESETS } from '../../data/defaultData';
+import { choosePreferredTimingPreset, getCareTimingPresetKind, getInShiftTimingPresets } from '../../services/careTiming';
 
 export type AddEntityType = 'care_task' | 'unit_task' | 'resident' | 'fyi' | 'wound';
 export type FormMode = 'add' | 'edit' | 'duplicate';
@@ -267,15 +269,36 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     selectedCategoryFilter,
   );
   const commonTemplates = getCommonCatalogTasks(roleCatalogTasks);
+  const selectedCatalogTemplate = catalogTemplates.find(t => t.slug === taskTemplateSlug);
+  const timingPresetKind = getCareTimingPresetKind(selectedCatalogTemplate, taskCategory, taskTitle);
+  const configuredTimingPresets = state.settings.careTimingPresets || DEFAULT_CARE_TIMING_PRESETS;
+  const availableTimingPresets = getInShiftTimingPresets(
+    timingPresetKind === 'medication'
+      ? configuredTimingPresets.medicationTimes
+      : timingPresetKind === 'meal'
+        ? configuredTimingPresets.mealTimes
+        : [],
+    currentShiftObj?.startTime,
+    currentShiftObj?.endTime,
+  );
 
   const selectCatalogTemplate = (t: CatalogTaskTemplate) => {
     setTaskTitle(t.title);
     setTaskTemplateSlug(t.slug);
-    if (t.defaultTime) setTaskTime(t.defaultTime);
-    if (t.defaultFrequency) setTaskFrequency(t.defaultFrequency);
-    if (t.defaultInstructions) setTaskInstructions(t.defaultInstructions);
-    if (t.attentionConfig) setTaskAttentionConfig(t.attentionConfig);
     const cat = state.catalogCategories.find(c => c.id === t.categoryId);
+    const presetKind = getCareTimingPresetKind(t, cat?.name || '', t.title);
+    const configured = state.settings.careTimingPresets || DEFAULT_CARE_TIMING_PRESETS;
+    const eligiblePresets = getInShiftTimingPresets(
+      presetKind === 'medication' ? configured.medicationTimes : presetKind === 'meal' ? configured.mealTimes : [],
+      currentShiftObj?.startTime,
+      currentShiftObj?.endTime,
+    );
+    const preferredPreset = choosePreferredTimingPreset(eligiblePresets, t);
+    if (preferredPreset) setTaskTime(preferredPreset.time);
+    else if (t.defaultTime) setTaskTime(t.defaultTime);
+    if (t.defaultFrequency) setTaskFrequency(t.defaultFrequency);
+    setTaskInstructions(t.defaultInstructions || t.description || '');
+    setTaskAttentionConfig(t.attentionConfig);
     if (cat) setTaskCategory(cat.name);
     setTaskSearchQuery('');
   };
@@ -801,6 +824,33 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               aria-invalid={!!careTaskTimeError}
               className={`w-full sm:w-48 px-3.5 py-2.5 bg-white disabled:bg-slate-100 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 tabular-nums font-mono font-bold ${careTaskTimeError ? 'border-red-400' : 'border-slate-300'}`}
             />
+            {timingPresetKind && !isNoSpecificTime && (
+              <div className="mt-2">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  Facility {timingPresetKind === 'medication' ? 'medication' : 'meal'} times
+                </p>
+                {availableTimingPresets.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {availableTimingPresets.map(preset => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setTaskTime(preset.time)}
+                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-colors ${
+                          taskTime === preset.time
+                            ? 'border-teal-600 bg-teal-50 text-teal-900 ring-1 ring-teal-200'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:bg-teal-50'
+                        }`}
+                      >
+                        {preset.label} <span className="font-mono">{preset.time}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-[11px] text-amber-700">No active preset falls inside this shift. Enter a valid time manually or update Care Timing Presets in Settings.</p>
+                )}
+              </div>
+            )}
             {careTaskTimeError && (
               <p className="mt-1.5 flex items-start space-x-1.5 text-xs font-semibold text-red-700" role="alert">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -833,6 +883,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               placeholder="e.g. Fasting check before breakfast; notify nurse if BG < 4.0..."
               className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
             />
+            {taskTemplateSlug && (
+              <p className="mt-1 text-[11px] text-slate-500">Pre-filled from the task catalog. Edit these instructions for this resident as needed.</p>
+            )}
           </div>
 
           {/* Smart Attention Suggestions Banner */}

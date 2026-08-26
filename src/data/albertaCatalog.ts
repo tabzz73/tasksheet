@@ -1664,15 +1664,37 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     synonyms: ['med teaching', 'family education'],
     isStandardTemplate: true,
     isActive: true
+  },
+
+  // ==========================================
+  // 27. SHARED — COMMON RESIDENT MONITORING
+  // ==========================================
+  {
+    slug: 'shared.monitoring.wellness_check',
+    title: 'Wellness Check',
+    categoryId: 'cat-health-monitoring',
+    roleCode: 'SHARED',
+    defaultTime: '0900',
+    defaultFrequency: 'daily',
+    defaultInstructions: 'Check comfort, alertness, breathing, hydration needs, and immediate safety; report any change from baseline to the nurse.',
+    description: 'Brief resident well-being and safety check appropriate for HCA and LPN workflows.',
+    synonyms: ['wellness', 'wellness check', 'well-being check', 'welfare check', 'resident check', 'check in', 'rounding'],
+    isPopular: true,
+    isStandardTemplate: true,
+    isActive: true
   }
 ];
 
 export const ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = RAW_ALBERTA_TASK_TEMPLATES.map(t => {
-  if (t.attentionConfig) return t;
-  const detection = detectAttentionIndicators(t.title, t.defaultInstructions);
+  const template = {
+    ...t,
+    defaultInstructions: t.defaultInstructions?.trim() || t.description?.trim() || 'Complete according to the current care plan or orders and facility procedure; document and report concerns as required.',
+  };
+  if (template.attentionConfig) return template;
+  const detection = detectAttentionIndicators(template.title, template.defaultInstructions);
   if (detection.suggestedIndicators.length > 0) {
     return {
-      ...t,
+      ...template,
       attentionConfig: {
         indicators: detection.suggestedIndicators,
         mealRelation: detection.mealRelation,
@@ -1682,7 +1704,7 @@ export const ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = RAW_ALBERTA_TASK_TE
       },
     };
   }
-  return t;
+  return template;
 });
 
 export const STANDARD_UNIT_TASK_TEMPLATES: UnitTaskTemplate[] = [

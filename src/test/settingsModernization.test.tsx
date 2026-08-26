@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { db } from '../db';
 import { SettingsView } from '../components/views/SettingsView';
+import { CareTimingSettingsTab } from '../components/views/CareTimingSettingsTab';
 
 describe('modern Settings navigation and smart facility entry', () => {
   beforeEach(() => {
@@ -19,12 +20,17 @@ describe('modern Settings navigation and smart facility entry', () => {
     const sidebar = view.getByLabelText('Settings sections');
     const facilityButton = view.getByRole('button', { name: /Facility Setup/ });
     const printButton = view.getByRole('button', { name: /Print Profiles/ });
+    const timingButton = view.getByRole('button', { name: /Care Timing Presets/ });
     const mobileSelector = view.getByLabelText('Settings section');
 
     expect(sidebar).not.toBeNull();
     expect(view.container.querySelector('.overflow-x-auto')).toBeNull();
     expect(facilityButton.getAttribute('aria-current')).toBe('page');
     expect(mobileSelector.tagName).toBe('SELECT');
+
+    fireEvent.click(timingButton);
+    expect(view.getByText('Facility Care Timing Presets')).not.toBeNull();
+    expect(view.getAllByDisplayValue('0800').length).toBeGreaterThan(0);
 
     fireEvent.click(printButton);
     expect(printButton.getAttribute('aria-current')).toBe('page');
@@ -52,5 +58,17 @@ describe('modern Settings navigation and smart facility entry', () => {
     expect(province.value).toBe('BC');
     expect(city.value).toBe('Custom Municipality');
     expect(view.container.querySelector('datalist option[value="Vancouver"]')).not.toBeNull();
+  });
+
+  it('saves editable facility medication and meal timing presets', () => {
+    const feedback: Array<{ type: string; text: string }> = [];
+    const view = render(<CareTimingSettingsTab onShowFeedback={(type, text) => feedback.push({ type, text })} />);
+    const morning = view.getByLabelText('Morning medications time') as HTMLInputElement;
+
+    fireEvent.change(morning, { target: { value: '0830' } });
+    fireEvent.click(view.getByRole('button', { name: 'Save Timing Presets' }));
+
+    expect(db.getState().settings.careTimingPresets?.medicationTimes[0].time).toBe('0830');
+    expect(feedback[feedback.length - 1]?.type).toBe('success');
   });
 });

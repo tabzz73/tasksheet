@@ -1,9 +1,10 @@
 import { CatalogCategory, CatalogTaskTemplate } from '../types';
 
-const MEDICATION_ASSISTANCE_SLUGS = [
+const COMMON_PRIORITY_SLUGS = [
   'hca.medication.map1',
   'hca.medication.map2',
   'hca.medication.map3',
+  'shared.monitoring.wellness_check',
 ];
 
 export function getRoleCatalogTasks(
@@ -47,11 +48,11 @@ export function getCommonCatalogTasks(
   templates: CatalogTaskTemplate[],
   limit = 8,
 ): CatalogTaskTemplate[] {
-  const medicationTasks = MEDICATION_ASSISTANCE_SLUGS
+  const priorityTasks = COMMON_PRIORITY_SLUGS
     .map(slug => templates.find(template => template.slug === slug))
     .filter((template): template is CatalogTaskTemplate => Boolean(template));
-  const medicationSlugs = new Set(medicationTasks.map(template => template.slug));
-  const otherPopularTasks = templates.filter(template => template.isPopular && !medicationSlugs.has(template.slug));
+  const prioritySlugs = new Set(priorityTasks.map(template => template.slug));
+  const otherPopularTasks = templates.filter(template => template.isPopular && !prioritySlugs.has(template.slug));
 
-  return [...medicationTasks, ...otherPopularTasks].slice(0, limit);
+  return [...priorityTasks, ...otherPopularTasks].slice(0, limit);
 }

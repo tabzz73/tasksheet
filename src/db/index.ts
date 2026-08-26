@@ -1,5 +1,5 @@
 import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule } from '../types';
-import { DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
+import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { generateDemoData } from '../data/demoSeed';
@@ -97,6 +97,10 @@ class DatabaseService {
             ...DEFAULT_SETTINGS,
             ...(parsed.settings || {}),
             dataMode: migratedDataMode,
+            careTimingPresets: {
+              medicationTimes: parsed.settings?.careTimingPresets?.medicationTimes || DEFAULT_CARE_TIMING_PRESETS.medicationTimes,
+              mealTimes: parsed.settings?.careTimingPresets?.mealTimes || DEFAULT_CARE_TIMING_PRESETS.mealTimes,
+            },
           };
           const defaultShiftIds = new Set(DEFAULT_SHIFTS.map(shift => shift.id));
 
@@ -1001,6 +1005,10 @@ class DatabaseService {
         ...DEFAULT_SETTINGS,
         ...(parsed.settings || {}),
         dataMode: restoredDataMode,
+        careTimingPresets: {
+          medicationTimes: parsed.settings?.careTimingPresets?.medicationTimes || DEFAULT_CARE_TIMING_PRESETS.medicationTimes,
+          mealTimes: parsed.settings?.careTimingPresets?.mealTimes || DEFAULT_CARE_TIMING_PRESETS.mealTimes,
+        },
       };
       parsed.shifts = parsed.shifts.map((shift: Shift) => ({
         ...shift,

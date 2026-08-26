@@ -1,4 +1,4 @@
-import { Facility, FacilitySettings, FacilityQuickAddPreset, Role, Shift, BinderState, QuickVitalsColumnConfig, PrintProfileConfig } from '../types';
+import { Facility, FacilityCareTimingSettings, FacilitySettings, FacilityQuickAddPreset, Role, Shift, BinderState, QuickVitalsColumnConfig, PrintProfileConfig } from '../types';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 
 export const DEFAULT_FACILITY: Facility = {
@@ -263,6 +263,20 @@ export const DEFAULT_HCA_QUICK_ADD_PRESETS: FacilityQuickAddPreset[] = [
   },
 ];
 
+export const DEFAULT_CARE_TIMING_PRESETS: FacilityCareTimingSettings = {
+  medicationTimes: [
+    { id: 'med-0800', label: 'Morning medications', time: '0800', isActive: true },
+    { id: 'med-1200', label: 'Noon medications', time: '1200', isActive: true },
+    { id: 'med-1700', label: 'Evening medications', time: '1700', isActive: true },
+    { id: 'med-2100', label: 'Bedtime medications', time: '2100', isActive: true },
+  ],
+  mealTimes: [
+    { id: 'meal-breakfast', label: 'Breakfast', time: '0800', isActive: true },
+    { id: 'meal-lunch', label: 'Lunch', time: '1200', isActive: true },
+    { id: 'meal-dinner', label: 'Dinner', time: '1700', isActive: true },
+  ],
+};
+
 export const DEFAULT_SETTINGS: FacilitySettings = {
   timezone: 'America/Edmonton',
   timeFormat: '24h',
@@ -281,6 +295,7 @@ export const DEFAULT_SETTINGS: FacilitySettings = {
   quickAddPresets: DEFAULT_HCA_QUICK_ADD_PRESETS,
   attentionRules: DEFAULT_ATTENTION_RULES,
   smartSuggestionsEnabled: true,
+  careTimingPresets: DEFAULT_CARE_TIMING_PRESETS,
   welcomeHero: {
     showWelcomePage: 'on_first_launch',
     showWhyTaskSheetContent: true,

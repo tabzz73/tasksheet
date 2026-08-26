@@ -28,6 +28,7 @@ import { ShiftFormModal } from '../modals/ShiftFormModal';
 import { PrintProfileEditorTab } from './PrintProfileEditorTab';
 import { QuickAddPresetsTab } from './QuickAddPresetsTab';
 import { AttentionRulesTab } from './AttentionRulesTab';
+import { CareTimingSettingsTab } from './CareTimingSettingsTab';
 import { Play, Printer, Sparkles, ShieldAlert } from 'lucide-react';
 import { formatShiftHeader } from '../../services/print';
 import {
@@ -43,7 +44,7 @@ interface SettingsViewProps {
   onNavigateToWelcome?: (presentationMode?: boolean) => void;
 }
 
-type SettingsTab = 'facility' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup';
+type SettingsTab = 'facility' | 'care_timings' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup';
 
 const SETTINGS_NAV_GROUPS: Array<{
   label: string;
@@ -59,6 +60,7 @@ const SETTINGS_NAV_GROUPS: Array<{
     items: [
       { id: 'facility', label: 'Facility Setup', description: 'Identity, address and print branding', icon: Building2 },
       { id: 'shifts', label: 'Roles & Shifts', description: 'Operational schedules and coverage', icon: Users },
+      { id: 'care_timings', label: 'Care Timing Presets', description: 'Medication and meal schedules', icon: Clock },
       { id: 'preferences', label: 'Preferences', description: 'Clock, display and startup behavior', icon: Clock },
     ],
   },
@@ -951,6 +953,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
       {/* QUICK ADD PRESETS */}
       {activeTab === 'quick_presets' && (
         <QuickAddPresetsTab onShowFeedback={showFeedback} />
+      )}
+
+      {/* FACILITY MEDICATION & MEAL TIMES */}
+      {activeTab === 'care_timings' && (
+        <CareTimingSettingsTab onShowFeedback={showFeedback} />
       )}
 
       {/* TASK ATTENTION RULES */}

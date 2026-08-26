@@ -10,7 +10,11 @@ The optional Welcome page offers **Watch 60-Second Demo** and **Start Using Task
 
 In Settings, confirm facility identity, HCA/LPN roles, shift codes and start/end times, task catalog, schedules, FYIs, print preferences, and backup practices before live use.
 
-Fresh RC3 installations open with an empty, editable real facility setup. No Cedar Grove facility, demo shifts, residents, tasks, FYIs, or wounds are installed. The built-in standardized task catalog remains available. To practice with fictional content, open **Settings → Demo Data → Load Demo Workspace**. Demo content is visibly identified and can be cleared without removing manually entered production records.
+Fresh RC11 installations open with an empty, editable real facility setup. No Cedar Grove facility, demo shifts, residents, tasks, FYIs, or wounds are installed. The built-in standardized task catalog remains available. To practice with fictional content, open **Settings → Demo Workspace → Load Demo Workspace**. Demo content is visibly identified and can be cleared without removing manually entered production records.
+
+Configure common medication-pass and meal times under **Settings → Care Timing Presets**. When Medication Assistance or a meal-related catalog task is selected, Add Care Task shows the active facility times that fall inside the selected shift. A different valid time may still be entered manually.
+
+Selecting a catalog task pre-fills common instructions. Review and edit them for the resident and current care plan before saving; the starter text is not a replacement for facility policy, authorization, or current orders.
 
 ## Prepare a shift
 
