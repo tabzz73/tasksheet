@@ -1,5 +1,6 @@
 import React from 'react';
 import { PrintDocumentModel, PrintResidentGroup, PrintTask, PrintWoundGroup, PrintUnitTask, PrintImportantInfo, formatShiftHeader } from '../../services/print';
+import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
 
 interface Props {
   model: PrintDocumentModel;
@@ -82,9 +83,7 @@ const ResidentTaskRow: React.FC<{ task: PrintTask }> = ({ task }) => (
       <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '10pt', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4pt' }}>
         <span>{task.title}</span>
         {task.attentionTags && task.attentionTags.length > 0 && (
-          <span style={{ fontFamily: 'monospace', fontSize: '8pt', fontWeight: 800, color: '#991b1b', letterSpacing: '0.04em' }}>
-            {task.attentionTags.join(' ')}
-          </span>
+          <PrintAttentionIcons codes={task.attentionTags} />
         )}
       </div>
       {task.instruction && (
@@ -344,13 +343,9 @@ export const HcaChecklistDocument: React.FC<Props> = ({ model }) => {
       {model.attentionLegend && model.attentionLegend.length > 0 && (
         <div style={{ marginTop: '10pt', padding: '3pt 6pt', background: '#f8fafc', border: '0.5pt solid #cbd5e1', borderRadius: '3pt', fontSize: '7pt', color: '#475569', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8pt' }}>
           <span style={{ fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Attention Codes:
+            Attention Symbols:
           </span>
-          {model.attentionLegend.map(item => (
-            <span key={item.code}>
-              <strong style={{ color: '#991b1b', fontFamily: 'monospace' }}>{item.code}</strong> {item.label}
-            </span>
-          ))}
+          <PrintAttentionLegend items={model.attentionLegend} />
         </div>
       )}
 

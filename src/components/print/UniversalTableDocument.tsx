@@ -1,4 +1,5 @@
 import React from 'react';
+import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
 import { PrintDocumentModel, PrintTableRow, formatShiftHeader } from '../../services/print';
 
 interface UniversalTableDocumentProps {
@@ -26,7 +27,6 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   const fontSizeBase = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : '8.5pt';
   const fontSizeHeader = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : '8.5pt';
   const fontSizeInfo = isLargePrint ? '8.5pt' : '8.0pt';
-  const fontSizeTags = density === 'compact' ? '7pt' : '7.5pt';
   const headerPaddingY = density === 'compact' ? '2pt' : density === 'spacious' ? '4.5pt' : '3pt';
 
   // Group table rows by workflow section (only non-empty sections will render)
@@ -140,17 +140,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '3pt' }}>
             <span style={{ fontWeight: 700 }}>{row.taskTitle}</span>
             {row.attentionTags && row.attentionTags.length > 0 && (
-              <span
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: fontSizeTags,
-                  fontWeight: 900,
-                  color: '#991b1b',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {row.attentionTags.join(' ')}
-              </span>
+              <PrintAttentionIcons codes={row.attentionTags} size={density === 'compact' ? 8 : 9} />
             )}
           </div>
         </td>
@@ -542,13 +532,9 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           }}
         >
           <span style={{ fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Attention Codes:
+            Attention Symbols:
           </span>
-          {attentionLegend.map(item => (
-            <span key={item.code}>
-              <strong style={{ color: '#991b1b', fontFamily: 'monospace' }}>{item.code}</strong> {item.label}
-            </span>
-          ))}
+          <PrintAttentionLegend items={attentionLegend} />
         </div>
       )}
 
