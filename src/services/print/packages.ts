@@ -40,6 +40,8 @@ export interface PrintPackageModel {
   estimatedTotalPages: number;
   /** Screen-only configuration exceptions withheld across bundled shifts. */
   exceptions: ShiftGenerationException[];
+  /** Blocking configuration warnings. Role packages never substitute another role's shift. */
+  configurationWarnings: string[];
 }
 
 export interface HcaPackageOptions {
@@ -74,24 +76,18 @@ export function buildHcaDailyPackage(
   const exceptions: ShiftGenerationException[] = [];
 
   // 1. All active HCA shifts
-  let hcaShifts = state.shifts.filter(s => {
+  const hcaShifts = state.shifts.filter(s => {
     if (s.isActive === false) return false;
     const role = state.roles.find(r => r.id === s.roleId);
     return (
-      role?.defaultPrintProfile === 'simple_checklist' ||
       role?.code?.toLowerCase().includes('hca') ||
       role?.name?.toLowerCase().includes('hca') ||
-      role?.name?.toLowerCase().includes('aide') ||
-      s.name?.toLowerCase().includes('hca') ||
-      s.shortCode?.toLowerCase().startsWith('d') ||
-      s.shortCode?.toLowerCase().startsWith('e')
+      role?.name?.toLowerCase().includes('aide')
     );
   }).sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99));
-
-  // Fallback: if no HCA shifts match, take first active shift
-  if (hcaShifts.length === 0 && state.shifts.length > 0) {
-    hcaShifts = [state.shifts[0]];
-  }
+  const configurationWarnings = hcaShifts.length === 0
+    ? ['No active HCA shift is configured. The HCA TaskSheet was not generated. Configure an HCA role and shift in Settings → Roles & Shifts.']
+    : [];
 
   for (const shift of hcaShifts) {
     try {
@@ -142,6 +138,7 @@ export function buildHcaDailyPackage(
     items,
     estimatedTotalPages,
     exceptions,
+    configurationWarnings,
   };
 }
 
@@ -165,7 +162,7 @@ export function buildLpnClinicalPackage(
   const exceptions: ShiftGenerationException[] = [];
 
   // 1. All active LPN/RN clinical shifts
-  let lpnShifts = state.shifts.filter(s => {
+  const lpnShifts = state.shifts.filter(s => {
     if (s.isActive === false) return false;
     const role = state.roles.find(r => r.id === s.roleId);
     return (
@@ -173,18 +170,12 @@ export function buildLpnClinicalPackage(
       role?.code?.toLowerCase().includes('lpn') ||
       role?.code?.toLowerCase().includes('rn') ||
       role?.name?.toLowerCase().includes('nurse') ||
-      role?.name?.toLowerCase().includes('practical') ||
-      s.name?.toLowerCase().includes('lpn') ||
-      s.name?.toLowerCase().includes('rn') ||
-      s.shortCode?.toLowerCase().includes('lp') ||
-      s.shortCode?.toLowerCase().includes('rn')
+      role?.name?.toLowerCase().includes('practical')
     );
   }).sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99));
-
-  // Fallback: if no clinical shifts match, take active shifts
-  if (lpnShifts.length === 0 && state.shifts.length > 0) {
-    lpnShifts = state.shifts.filter(s => s.isActive !== false);
-  }
+  const configurationWarnings = lpnShifts.length === 0
+    ? ['No active LPN/RN shift is configured. The clinical TaskSheet was not generated. Configure an LPN/RN role and shift in Settings → Roles & Shifts.']
+    : [];
 
   for (const shift of lpnShifts) {
     try {
@@ -235,5 +226,6 @@ export function buildLpnClinicalPackage(
     items,
     estimatedTotalPages,
     exceptions,
+    configurationWarnings,
   };
 }

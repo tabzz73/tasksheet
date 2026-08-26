@@ -138,6 +138,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   const [selectedDate, setSelectedDate] = useState(currentDate);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
+  const [packageConfigurationError, setPackageConfigurationError] = useState<string | null>(null);
 
   const state = db.getState();
   const today = new Date().toISOString().split('T')[0];
@@ -223,6 +224,11 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       includeBathingGrid: true,
       includeFyiReference: true,
     });
+    if (pkg.configurationWarnings.length > 0) {
+      setPackageConfigurationError(pkg.configurationWarnings.join(' '));
+      return;
+    }
+    setPackageConfigurationError(null);
     onPrintPackage(pkg);
   };
 
@@ -232,6 +238,11 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       includeWoundSchedule: true,
       includeFyiReference: true,
     });
+    if (pkg.configurationWarnings.length > 0) {
+      setPackageConfigurationError(pkg.configurationWarnings.join(' '));
+      return;
+    }
+    setPackageConfigurationError(null);
     onPrintPackage(pkg);
   };
 
@@ -272,6 +283,16 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
         )}
       </div>
+
+      {packageConfigurationError && (
+        <div className="flex items-start space-x-2.5 rounded-xl border border-rose-300 bg-rose-50 p-3 text-rose-950" role="alert">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" />
+          <div>
+            <p className="text-xs font-black">Package Cannot Be Generated Safely</p>
+            <p className="mt-0.5 text-[11px] text-rose-900">{packageConfigurationError}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── DATE NAVIGATOR ── */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4">

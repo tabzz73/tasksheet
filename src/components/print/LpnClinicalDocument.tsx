@@ -2,6 +2,7 @@ import React from 'react';
 import { PrintDocumentModel, PrintResidentGroup, PrintTask, PrintWoundGroup, PrintUnitTask, PrintImportantInfo, PrintWoundAction, formatShiftHeader } from '../../services/print';
 import { QuickVitalsColumnConfig, PrintDensity } from '../../types';
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
+import { ResidentStatusExceptions } from './ResidentStatusExceptions';
 
 interface Props {
   model: PrintDocumentModel;
@@ -388,6 +389,7 @@ export const LpnClinicalDocument: React.FC<Props> = ({ model }) => {
 
       {/* ── IMPORTANT RESIDENT INFORMATION ── */}
       <ImportantInfoSection sharedFYIs={importantSharedFYIs} residentGroups={residentGroups} />
+      <ResidentStatusExceptions items={model.residentStatusExceptions} />
 
       {/* ── RESIDENT CARE ASSIGNMENTS ── */}
       <SectionHeader>Resident Care Assignments</SectionHeader>

@@ -4,6 +4,7 @@ export type ResidentStatus =
   | 'active' 
   | 'in_hospital' 
   | 'out_on_pass' 
+  | 'on_hold'
   | 'discharged' 
   | 'deceased' 
   | 'inactive';

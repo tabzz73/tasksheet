@@ -27,6 +27,7 @@ import { TaskActionConfirmModal } from '../modals/TaskActionConfirmModal';
 import { TaskDetailsDrawer } from '../modals/TaskDetailsDrawer';
 import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
+import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 
 interface ResidentProfileViewProps {
   residentId: string;
@@ -275,10 +276,14 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                           ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                           : resident.status === 'in_hospital'
                           ? 'bg-rose-100 text-rose-800 hover:bg-rose-200'
-                          : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                          : resident.status === 'out_on_pass'
+                          ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                          : resident.status === 'on_hold'
+                          ? 'bg-violet-100 text-violet-800 hover:bg-violet-200'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
-                      <span>{resident.status.replace('_', ' ')}</span>
+                      <span>{getResidentStatusLabel(resident.status)}</span>
                       <span className="text-[10px]">▾</span>
                     </button>
 
@@ -305,19 +310,24 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                         >
                           Out on Pass (Suspend)
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange('on_hold')}
+                          className="w-full px-3 py-1.5 text-left hover:bg-slate-100 font-semibold text-violet-700"
+                        >
+                          On Hold (Suspend)
+                        </button>
                       </div>
                     )}
                   </div>
                 </div>
 
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {resident.status === 'active' 
+                  {resident.status === 'active'
                     ? 'Active in Facility · Daily care sheets active'
-                    : resident.status === 'in_hospital'
-                    ? 'In Hospital · Care sheet generation suspended'
-                    : resident.status === 'out_on_pass'
-                    ? 'Out on Pass · Care sheet generation suspended'
-                    : 'Discharged / Former Resident'}
+                    : isResidentCarePaused(resident.status)
+                    ? `${getResidentStatusLabel(resident.status)} · Care sheet generation suspended; schedules are preserved`
+                    : 'Discharged / Former Resident · Not included on operational sheets'}
                 </p>
               </div>
             </div>

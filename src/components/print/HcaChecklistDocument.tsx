@@ -1,6 +1,7 @@
 import React from 'react';
 import { PrintDocumentModel, PrintResidentGroup, PrintTask, PrintWoundGroup, PrintUnitTask, PrintImportantInfo, formatShiftHeader } from '../../services/print';
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
+import { ResidentStatusExceptions } from './ResidentStatusExceptions';
 
 interface Props {
   model: PrintDocumentModel;
@@ -300,6 +301,7 @@ export const HcaChecklistDocument: React.FC<Props> = ({ model }) => {
 
       {/* ── IMPORTANT INFORMATION ── */}
       <ImportantInfoSection sharedFYIs={importantSharedFYIs} residentGroups={residentGroups} />
+      <ResidentStatusExceptions items={model.residentStatusExceptions} />
 
       {/* ── RESIDENT CARE ── */}
       <SectionHeader>Resident Care</SectionHeader>

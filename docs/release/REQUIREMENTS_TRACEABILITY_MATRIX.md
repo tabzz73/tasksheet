@@ -43,7 +43,12 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | UX-08 | App and developer identity have dedicated Settings pages | Settings/navigation regression | Verified |
 | PRT-04 | Attention indicators print as distinctive symbols with a matching full-word legend | Symbol rendering regression; HCA/LPN/universal documents | Verified/Pilot |
 | PRE-04 | Product tagline is consistent across branded application surfaces | Central branding constant; Settings/navigation regression | Verified |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.14` | Git SHA/tag in generated build evidence | Verified |
+| CFG-03 | Timed care requires an active correct-role shift covering the entered time | Care shift assignment validator; normal/overnight regressions | Verified |
+| CFG-04 | HCA/LPN packages never substitute another role's shifts | Package configuration warnings; role-package regression | Verified |
+| RES-01 | Hospital, pass, and hold suppress care without deleting schedules | Generator/status regressions | Verified |
+| RES-02 | Paused-resident care configuration requires explicit acknowledgement | Add Care/Quick Care safeguards; UI regression | Verified |
+| PRT-05 | Hospital, pass, and hold appear as compact print exceptions without care rows | Print component and generator regressions | Verified/Pilot |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.15` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

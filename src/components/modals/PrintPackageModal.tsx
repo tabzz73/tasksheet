@@ -64,6 +64,18 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
         </div>
 
         {/* ── PACKAGE INCLUSIONS ── */}
+        {model.configurationWarnings.map(warning => (
+          <div key={warning} className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-rose-950" role="alert">
+            <div className="flex items-start space-x-2.5">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" />
+              <div>
+                <p className="text-xs font-black">Package Cannot Be Generated Safely</p>
+                <p className="mt-0.5 text-[11px] text-rose-900">{warning}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+
         {model.exceptions.length > 0 && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950" role="alert">
             <div className="flex items-start space-x-2.5">
@@ -168,7 +180,8 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
             <button
               type="button"
               onClick={handleGenerate}
-              className="px-5 py-2 bg-slate-900 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow flex items-center space-x-1.5 transition-colors"
+              disabled={model.configurationWarnings.length > 0}
+              className="px-5 py-2 bg-slate-900 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold shadow flex items-center space-x-1.5 transition-colors"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Preview & Print Package</span>

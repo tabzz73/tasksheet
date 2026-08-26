@@ -1,5 +1,6 @@
 import React from 'react';
 import { ResidentCareSummaryModel } from '../../services/print/specializedDocs';
+import { getResidentStatusLabel } from '../../services/residentStatus';
 
 interface ResidentCareSummaryDocumentProps {
   model: ResidentCareSummaryModel;
@@ -27,7 +28,7 @@ export const ResidentCareSummaryDocument: React.FC<ResidentCareSummaryDocumentPr
             {resident.firstName} {resident.lastName}
           </h1>
           <p className="text-xs font-semibold text-slate-600 mt-0.5">
-            Status: <span className="capitalize font-bold text-teal-800">{resident.status.replace('_', ' ')}</span> · As of: <strong className="text-slate-900">{formattedDate}</strong>
+            Status: <span className="font-bold text-teal-800">{getResidentStatusLabel(resident.status)}</span> · As of: <strong className="text-slate-900">{formattedDate}</strong>
           </p>
         </div>
 

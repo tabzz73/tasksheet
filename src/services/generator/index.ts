@@ -2,6 +2,7 @@ import { Resident, ResidentTask, UnitTask, FYI, Wound, Role, Shift, RecurrenceFr
 import { db } from '../../db';
 import { isTaskDueOnDate } from '../recurrence';
 import { isTimeWithinShift, parseMilitaryTime } from '../scheduling/timeWindow';
+import { getResidentStatusLabel, isResidentStatusException } from '../residentStatus';
 
 export interface GeneratedResidentAssignment {
   resident: Resident;
@@ -26,6 +27,14 @@ export interface ShiftGenerationException {
   source?: string;
 }
 
+export interface GeneratedResidentStatusException {
+  residentId: string;
+  roomNumber: string;
+  residentName: string;
+  status: 'in_hospital' | 'out_on_pass' | 'on_hold';
+  statusLabel: string;
+}
+
 /**
  * GeneratedShiftSheet — the output of the scheduling generator.
  *
@@ -46,6 +55,8 @@ export interface GeneratedShiftSheet {
   /** PRN tasks scheduled for any resident on this shift — appear in a dedicated PRN section */
   prnTasks: GeneratedResidentAssignment[];
   importantFYIs: FYI[];
+  /** Status-only residents whose care is intentionally suppressed for this shift. */
+  residentStatusExceptions: GeneratedResidentStatusException[];
   /** Timed tasks withheld because their time is invalid for this shift. */
   exceptions: ShiftGenerationException[];
   metrics: {
@@ -61,6 +72,8 @@ export interface GeneratedShiftSheet {
     fyiCount: number;
     /** Count of timed tasks withheld for shift-window configuration errors */
     exceptionCount: number;
+    /** Hospital, pass, or hold residents shown without care tasks. */
+    residentStatusExceptionCount: number;
   };
 }
 
@@ -156,10 +169,20 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
     .filter(u => u.shiftPhase === 'end')
     .sort((a, b) => (a.time || '0000').localeCompare(b.time || '0000'));
 
-  // 2. Active Residents — in_hospital and out_on_pass are suppressed
+  // 2. Active Residents — hospital, pass, and hold care is suppressed.
   const activeResidents = state.residents
     .filter(r => r.status === 'active')
     .sort((a, b) => sortRoomNumbers(a.roomNumber, b.roomNumber));
+  const residentStatusExceptions: GeneratedResidentStatusException[] = state.residents
+    .filter(resident => isResidentStatusException(resident.status))
+    .sort((a, b) => sortRoomNumbers(a.roomNumber, b.roomNumber))
+    .map(resident => ({
+      residentId: resident.id,
+      roomNumber: resident.roomNumber,
+      residentName: `${resident.firstName} ${resident.lastName}`,
+      status: resident.status as GeneratedResidentStatusException['status'],
+      statusLabel: getResidentStatusLabel(resident.status),
+    }));
 
   // 3. Resident Tasks — split into regular vs PRN
   const residentAssignments: GeneratedResidentAssignment[] = [];
@@ -244,6 +267,7 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
     residentAssignments,
     prnTasks,
     importantFYIs,
+    residentStatusExceptions,
     exceptions,
     metrics: {
       totalResidentTasks,
@@ -252,6 +276,7 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
       totalScheduled: totalResidentTasks + totalUnitTasks,
       fyiCount,
       exceptionCount: exceptions.length,
+      residentStatusExceptionCount: residentStatusExceptions.length,
     }
   };
 }

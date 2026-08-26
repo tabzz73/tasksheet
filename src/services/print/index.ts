@@ -1,4 +1,4 @@
-import { GeneratedShiftSheet, ShiftGenerationException } from '../generator';
+import { GeneratedResidentStatusException, GeneratedShiftSheet, ShiftGenerationException } from '../generator';
 import { Facility, PrintProfile, FYI, UnitTask, PrintDensity, QuickVitalsColumnConfig, PrintProfileConfig, TaskAttentionConfig } from '../../types';
 import { getPrintAttentionTags, getPrintAttentionLegend } from '../attention';
 import { DEFAULT_VITALS_COLUMNS, DEFAULT_HCA_PRINT_PROFILE, DEFAULT_LPN_PRINT_PROFILE } from '../../data/defaultData';
@@ -172,6 +172,7 @@ export interface PrintDocumentModel {
   duringUnitTasks: PrintUnitTask[];
   endUnitTasks: PrintUnitTask[];
   importantSharedFYIs: PrintImportantInfo[];
+  residentStatusExceptions: GeneratedResidentStatusException[];
   residentGroups: PrintResidentGroup[];
   prnResidentGroups?: PrintResidentGroup[];
   showQuickVitalsGrid: boolean;
@@ -1005,6 +1006,7 @@ return {
       duringUnitTasks: activeConfig?.showDuringUnitTasks !== false ? duringUnitTasks : [],
       endUnitTasks: activeConfig?.showEndUnitTasks !== false ? endUnitTasks : [],
       importantSharedFYIs: activeConfig?.showImportantFYIs !== false ? importantSharedFYIs : [],
+      residentStatusExceptions: sheet.residentStatusExceptions || [],
       residentGroups,
       prnResidentGroups,
       showQuickVitalsGrid: isClinical,

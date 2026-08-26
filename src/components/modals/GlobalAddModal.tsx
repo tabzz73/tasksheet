@@ -42,10 +42,11 @@ import {
 import { RecurrenceSelector } from '../common/RecurrenceSelector';
 import { detectAttentionIndicators, getIndicatorBadgeDetails } from '../../services/attention';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
-import { isTimeWithinShift, parseMilitaryTime } from '../../services/scheduling/timeWindow';
 import { filterCatalogTasks, getCommonCatalogTasks, getRoleCatalogTasks } from '../../services/catalogDiscovery';
 import { DEFAULT_CARE_TIMING_PRESETS } from '../../data/defaultData';
 import { choosePreferredTimingPreset, getCareTimingPresetKind, getInShiftTimingPresets } from '../../services/careTiming';
+import { validateCareShiftSelection, validateTimedCareShift } from '../../services/scheduling/careShiftAssignment';
+import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 
 export type AddEntityType = 'care_task' | 'unit_task' | 'resident' | 'fyi' | 'wound';
 export type FormMode = 'add' | 'edit' | 'duplicate';
@@ -84,7 +85,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   // Database state
   const state = db.getState();
   const residents = state.residents.filter(r => r.status !== 'deceased');
-  const shifts = state.shifts;
+  const shifts = state.shifts.filter(shift => shift.isActive !== false);
   const roles = state.roles;
   const catalogTemplates = state.catalogTaskTemplates.filter(t => t.isActive !== false);
   const categories = state.catalogCategories;
@@ -111,6 +112,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskInstructions, setTaskInstructions] = useState('');
   const [taskPriority, setTaskPriority] = useState<TaskPriority>('normal');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [allowPausedResidentCare, setAllowPausedResidentCare] = useState(false);
 
   // Form State: Unit Task
   const [unitTitle, setUnitTitle] = useState('');
@@ -154,6 +156,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   useEffect(() => {
     setSelectedCategoryFilter('ALL');
   }, [shiftId]);
+
+  useEffect(() => {
+    setAllowPausedResidentCare(false);
+  }, [isOpen, residentId]);
 
   // Reset or initialize on open / prop changes
   useEffect(() => {
@@ -245,19 +251,18 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const currentShiftObj = shifts.find(s => s.id === shiftId);
   const currentRoleObj = roles.find(r => r.id === (roleId || currentShiftObj?.roleId));
   const currentRoleCode = currentRoleObj?.code || 'HCA';
+  const selectedResident = residents.find(resident => resident.id === residentId);
+  const pausedResidentNeedsAcknowledgement = Boolean(
+    selectedResident && isResidentCarePaused(selectedResident.status) && !allowPausedResidentCare
+  );
 
   const getShiftTimeError = (time: string): string | null => {
-    if (!currentShiftObj) return null;
-    if (parseMilitaryTime(time) === null) {
-      return `“${time || 'blank'}” is not a valid 24-hour time. Enter a time such as 0715.`;
-    }
-    if (!isTimeWithinShift(time, currentShiftObj.startTime, currentShiftObj.endTime)) {
-      return `${time} is outside ${currentShiftObj.shortCode || currentShiftObj.name} (${currentShiftObj.startTime}–${currentShiftObj.endTime}). Choose another time or shift.`;
-    }
-    return null;
+    return validateTimedCareShift({ shifts: state.shifts, roles, shiftId, roleId, time });
   };
 
-  const careTaskTimeError = isNoSpecificTime ? null : getShiftTimeError(taskTime);
+  const careTaskTimeError = isNoSpecificTime
+    ? validateCareShiftSelection({ shifts: state.shifts, roles, shiftId, roleId })
+    : getShiftTimeError(taskTime);
   const unitTaskTimeError = getShiftTimeError(unitTime);
 
   // Role-Aware Filtered Catalog Tasks
@@ -314,7 +319,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   // Submission Handlers
   const handleSaveCareTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskTitle.trim() || !residentId || careTaskTimeError) return;
+    if (!taskTitle.trim() || !residentId || careTaskTimeError || pausedResidentNeedsAcknowledgement) return;
 
     if (mode === 'edit' && initialResidentTask) {
       db.updateResidentTask(initialResidentTask.id, {
@@ -638,10 +643,26 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 <option value="">Select resident or room...</option>
                 {residents.map(r => (
                   <option key={r.id} value={r.id}>
-                    Room {r.roomNumber} — {r.lastName}, {r.firstName} ({r.status.replace('_', ' ')})
+                    Room {r.roomNumber} — {r.lastName}, {r.firstName} ({getResidentStatusLabel(r.status)})
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {selectedResident && isResidentCarePaused(selectedResident.status) && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950" role="alert">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+                <div>
+                  <p className="text-xs font-black">Care generation is paused: {getResidentStatusLabel(selectedResident.status)}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed">This task will be stored but cannot appear on a TaskSheet until the resident returns to Active.</p>
+                  <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] font-bold">
+                    <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-amber-700" />
+                    <span>I understand and want to configure future care while this resident is paused.</span>
+                  </label>
+                </div>
+              </div>
             </div>
           )}
 
@@ -656,7 +677,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 onChange={(e) => setShiftId(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               >
-                <option value="">All Shifts / Role Default</option>
+                <option value="">Select active shift...</option>
                 {shifts.map(s => {
                   const r = roles.find(role => role.id === s.roleId);
                   return (
@@ -1089,7 +1110,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={!!careTaskTimeError}
+              disabled={!!careTaskTimeError || pausedResidentNeedsAcknowledgement}
               className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
             >
               {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Task'}

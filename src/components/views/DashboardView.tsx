@@ -55,6 +55,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const activeResidentCount = state.residents.filter(r => r.status === 'active').length;
   const inHospitalCount = state.residents.filter(r => r.status === 'in_hospital').length;
   const outOnPassCount = state.residents.filter(r => r.status === 'out_on_pass').length;
+  const onHoldCount = state.residents.filter(r => r.status === 'on_hold').length;
 
   const binderNeedsUpdate = state.binderState.status === 'update_required';
 
@@ -163,9 +164,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">RESIDENTS</span>
             <div className="text-2xl font-black text-slate-900 tabular-nums mt-0.5">{activeResidentCount}</div>
             <span className="text-xs text-slate-400">
-              {inHospitalCount > 0 || outOnPassCount > 0 
-                ? `${inHospitalCount} hosp · ${outOnPassCount} pass` 
-                : '1 hosp · 1 pass'}
+              {inHospitalCount > 0 || outOnPassCount > 0 || onHoldCount > 0
+                ? `${inHospitalCount} hosp · ${outOnPassCount} pass · ${onHoldCount} hold`
+                : 'No care suspensions'}
             </span>
           </div>
         </div>

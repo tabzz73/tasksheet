@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { db } from '../../db';
 import { Resident, ResidentStatus } from '../../types';
+import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 import { sortRoomNumbers } from '../../services/generator';
 
 type ResidentsViewMode = 'list' | 'cards' | 'rooms';
@@ -163,6 +164,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
       if (statusFilter === 'active' && r.status !== 'active') return false;
       if (statusFilter === 'in_hospital' && r.status !== 'in_hospital') return false;
       if (statusFilter === 'out_on_pass' && r.status !== 'out_on_pass') return false;
+      if (statusFilter === 'on_hold' && r.status !== 'on_hold') return false;
       if (statusFilter === 'former' && r.status !== 'discharged' && r.status !== 'deceased' && r.status !== 'inactive') return false;
 
       if (!searchQuery.trim()) return true;
@@ -181,6 +183,8 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
         return <span className="px-2 py-0.5 bg-rose-50 text-rose-800 border border-rose-200 rounded font-semibold text-[11px]">In Hospital</span>;
       case 'out_on_pass':
         return <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded font-semibold text-[11px]">Out on Pass</span>;
+      case 'on_hold':
+        return <span className="px-2 py-0.5 bg-violet-50 text-violet-800 border border-violet-200 rounded font-semibold text-[11px]">On Hold</span>;
       case 'discharged':
       case 'deceased':
       case 'inactive':
@@ -194,7 +198,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
     db.updateResident(residentId, { status: newStatus });
     setActiveMenuResidentId(null);
     setResidentMenuPosition(null);
-    showToast(`Resident status updated to ${newStatus.replace('_', ' ')}.`);
+    showToast(`Resident status updated to ${getResidentStatusLabel(newStatus)}.`);
   };
 
   const handleMoveRoomSubmit = (e: React.FormEvent) => {
@@ -381,6 +385,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
             { id: 'active', label: 'Active' },
             { id: 'in_hospital', label: 'Hospital' },
             { id: 'out_on_pass', label: 'Pass' },
+            { id: 'on_hold', label: 'Hold' },
             { id: 'former', label: 'Former' },
           ].map(f => (
             <button
@@ -427,7 +432,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
               const tasksCount = residentTasks.filter(t => t.residentId === res.id && t.isActive).length;
               const woundsCount = wounds.filter(w => w.residentId === res.id && w.status !== 'resolved').length;
               const fyisCount = fyis.filter(f => f.residentId === res.id && f.status === 'active').length;
-              const isPaused = res.status === 'in_hospital' || res.status === 'out_on_pass' || res.status === 'discharged' || res.status === 'deceased';
+              const isPaused = isResidentCarePaused(res.status);
 
               return (
                 <div
@@ -459,7 +464,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                       {isPaused ? (
                         <span className="text-amber-700 font-semibold flex items-center space-x-1">
                           <AlertTriangle className="w-3 h-3 text-amber-500" />
-                          <span>Care generation paused ({res.status.replace('_', ' ')})</span>
+                          <span>Care generation paused ({getResidentStatusLabel(res.status)})</span>
                         </span>
                       ) : (
                         <>
@@ -577,6 +582,13 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                           </button>
                           <button
                             type="button"
+                            onClick={() => handleStatusChange(res.id, 'on_hold')}
+                            className={`w-full px-3.5 py-1.5 text-left hover:bg-slate-50 text-xs font-semibold ${res.status === 'on_hold' ? 'text-violet-700 bg-violet-50/60 font-bold' : 'text-slate-700'}`}
+                          >
+                            On Hold (Pause Care)
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleStatusChange(res.id, 'discharged')}
                             className={`w-full px-3.5 py-1.5 text-left hover:bg-slate-50 text-xs font-semibold ${res.status === 'discharged' ? 'text-slate-900 bg-slate-100 font-bold' : 'text-slate-500'}`}
                           >
@@ -601,7 +613,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
             const tasksCount = residentTasks.filter(t => t.residentId === res.id && t.isActive).length;
             const woundsCount = wounds.filter(w => w.residentId === res.id && w.status !== 'resolved').length;
             const fyisCount = fyis.filter(f => f.residentId === res.id && f.status === 'active').length;
-            const isPaused = res.status === 'in_hospital' || res.status === 'out_on_pass' || res.status === 'discharged' || res.status === 'deceased';
+            const isPaused = isResidentCarePaused(res.status);
 
             return (
               <div
@@ -645,7 +657,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
 
                   {isPaused && (
                     <p className="text-[11px] text-amber-700 font-semibold mt-2.5 bg-amber-50 p-1.5 rounded text-center">
-                      Care generation paused ({res.status.replace('_', ' ')})
+                      Care generation paused ({getResidentStatusLabel(res.status)})
                     </p>
                   )}
                 </div>

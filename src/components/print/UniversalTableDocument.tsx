@@ -1,5 +1,6 @@
 import React from 'react';
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
+import { ResidentStatusExceptions } from './ResidentStatusExceptions';
 import { PrintDocumentModel, PrintTableRow, formatShiftHeader } from '../../services/print';
 
 interface UniversalTableDocumentProps {
@@ -11,6 +12,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
     header, 
     tableRows, 
     conciseShiftAlerts, 
+    residentStatusExceptions,
     confidentialityNotice, 
     developerFooter, 
     attentionLegend, 
@@ -427,6 +429,8 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           </div>
         </div>
       )}
+
+      <ResidentStatusExceptions items={residentStatusExceptions} />
 
       {/* ── 3. UNIVERSAL TASK TABLE ── */}
       <table

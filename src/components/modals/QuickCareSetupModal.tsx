@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Sparkles, 
   Check, 
@@ -35,7 +35,8 @@ import {
 } from '../../types';
 import { RecurrenceSelector } from '../common/RecurrenceSelector';
 import { DEFAULT_HCA_QUICK_ADD_PRESETS, ROLE_HCA_ID, ROLE_LPN_ID } from '../../data/defaultData';
-import { isTimeWithinShift, parseMilitaryTime } from '../../services/scheduling/timeWindow';
+import { findActiveRoleShiftForTime, validateTimedCareShift } from '../../services/scheduling/careShiftAssignment';
+import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 
 interface QuickCareSetupModalProps {
   isOpen: boolean;
@@ -69,17 +70,8 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
     state.catalogCategories.find(category => category.id === categoryId)?.name || categoryId;
   const presets = state.settings.quickAddPresets || DEFAULT_HCA_QUICK_ADD_PRESETS;
   const shifts = state.shifts.filter(s => s.isActive !== false);
-
-  // Default active shifts for HCA and LPN
-  const defaultHcaShift = shifts.find(s => {
-    const r = state.roles.find(role => role.id === s.roleId);
-    return r?.code === 'HCA' || s.name.includes('HCA') || s.name.includes('Day');
-  }) || shifts[0];
-
-  const defaultLpnShift = shifts.find(s => {
-    const r = state.roles.find(role => role.id === s.roleId);
-    return r?.code === 'LPN' || s.name.includes('LPN');
-  }) || shifts[0];
+  const hcaRoleId = state.roles.find(role => role.code === 'HCA')?.id || ROLE_HCA_ID;
+  const lpnRoleId = state.roles.find(role => role.code === 'LPN')?.id || ROLE_LPN_ID;
 
   // Modal Step: 'select' (Step 1) | 'configure' (Step 2)
   const [step, setStep] = useState<'select' | 'configure'>('select');
@@ -117,6 +109,11 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
 
   // Step 2 Draft Tasks
   const [draftTasks, setDraftTasks] = useState<SelectedTaskDraft[]>([]);
+  const [allowPausedResidentCare, setAllowPausedResidentCare] = useState(false);
+
+  useEffect(() => {
+    setAllowPausedResidentCare(false);
+  }, [isOpen, resident.id]);
 
   // Recent tasks used in facility
   const recentTemplates = useMemo(() => {
@@ -170,13 +167,8 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
     return preset.options.some(opt => isTaskAlreadyActive(opt.templateSlug, opt.label));
   };
 
-  const resolveShiftIdForTime = (roleId: string, time: string, fallbackShiftId: string): string => {
-    const matchingShift = shifts
-      .filter(shift => shift.roleId === roleId)
-      .sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99))
-      .find(shift => isTimeWithinShift(time, shift.startTime, shift.endTime));
-    return matchingShift?.id || fallbackShiftId;
-  };
+  const resolveShiftIdForTime = (roleId: string, time: string): string =>
+    findActiveRoleShiftForTime(shifts, roleId, time)?.id || '';
 
   // Toggle preset selection
   const handleTogglePreset = (presetId: string) => {
@@ -206,8 +198,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
     presets.forEach(p => {
       if (!selectedPresetIds.has(p.id)) return;
 
-      const roleId = p.roleCode === 'LPN' ? (defaultLpnShift?.roleId || ROLE_LPN_ID) : (defaultHcaShift?.roleId || ROLE_HCA_ID);
-      const shiftId = p.roleCode === 'LPN' ? (defaultLpnShift?.id || '') : (defaultHcaShift?.id || '');
+      const roleId = p.roleCode === 'LPN' ? lpnRoleId : hcaRoleId;
 
       // Special Case 1: Meal Assistance
       if (p.id === 'preset_meals') {
@@ -232,7 +223,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
             title: `Meal Assistance — ${mInfo.label}`,
             category: p.category,
             roleId,
-            shiftId: resolveShiftIdForTime(roleId, mInfo.time, shiftId),
+            shiftId: resolveShiftIdForTime(roleId, mInfo.time),
             time: mInfo.time,
             frequency: 'daily',
             instructions: assistLabels ? `Assistance required: ${assistLabels}.` : 'Assist resident with meal routine.',
@@ -251,7 +242,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
             title: 'Compression Stocking Assistance — Apply',
             category: p.category,
             roleId,
-            shiftId: resolveShiftIdForTime(roleId, '0800', shiftId),
+            shiftId: resolveShiftIdForTime(roleId, '0800'),
             time: '0800',
             frequency: 'daily',
             instructions: 'Apply clean compression stockings in morning before resident ambulates.',
@@ -265,7 +256,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
             title: 'Compression Stocking Assistance — Remove',
             category: p.category,
             roleId,
-            shiftId: resolveShiftIdForTime(roleId, '2000', shiftId),
+            shiftId: resolveShiftIdForTime(roleId, '2000'),
             time: '2000',
             frequency: 'daily',
             instructions: 'Remove compression stockings in evening during bedtime preparation.',
@@ -284,7 +275,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
           title: mapOpt.label,
           category: p.category,
           roleId,
-          shiftId: resolveShiftIdForTime(roleId, mapOpt.defaultTime || '0800', shiftId),
+          shiftId: resolveShiftIdForTime(roleId, mapOpt.defaultTime || '0800'),
           time: mapOpt.defaultTime || '0800',
           frequency: 'daily',
           instructions: mapOpt.defaultInstructions || 'Assist according to authorized resident care plan.',
@@ -308,7 +299,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
         title: subOpt?.label || p.label,
         category: p.category,
         roleId,
-        shiftId: resolveShiftIdForTime(roleId, subOpt?.defaultTime || p.defaultTime || '0800', shiftId),
+        shiftId: resolveShiftIdForTime(roleId, subOpt?.defaultTime || p.defaultTime || '0800'),
         time: subOpt?.defaultTime || p.defaultTime || '0800',
         frequency: subOpt?.defaultFrequency || p.defaultFrequency || 'daily',
         instructions: subOpt?.defaultInstructions || bundledInst || 'Provide care as planned.',
@@ -321,8 +312,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
       if (!tmpl) return;
 
       const isLpn = tmpl.roleCode === 'LPN';
-      const roleId = isLpn ? (defaultLpnShift?.roleId || ROLE_LPN_ID) : (defaultHcaShift?.roleId || ROLE_HCA_ID);
-      const shiftId = isLpn ? (defaultLpnShift?.id || '') : (defaultHcaShift?.id || '');
+      const roleId = isLpn ? lpnRoleId : hcaRoleId;
 
       drafts.push({
         id: `draft_cat_${tmpl.slug}_${Date.now()}`,
@@ -330,7 +320,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
         title: tmpl.title,
         category: getCatalogCategoryName(tmpl.categoryId),
         roleId,
-        shiftId: resolveShiftIdForTime(roleId, tmpl.defaultTime || '0800', shiftId),
+        shiftId: resolveShiftIdForTime(roleId, tmpl.defaultTime || '0800'),
         time: tmpl.defaultTime || '0800',
         frequency: tmpl.defaultFrequency || 'daily',
         instructions: tmpl.defaultInstructions || 'Follow resident care plan.',
@@ -352,15 +342,13 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
   };
 
   const getDraftTimeError = (task: SelectedTaskDraft): string | null => {
-    const shift = shifts.find(item => item.id === task.shiftId);
-    if (!shift) return 'Choose a valid shift.';
-    if (parseMilitaryTime(task.time) === null) {
-      return `“${task.time || 'blank'}” is not a valid 24-hour time.`;
-    }
-    if (!isTimeWithinShift(task.time, shift.startTime, shift.endTime)) {
-      return `${task.time} is outside ${shift.shortCode || shift.name} (${shift.startTime}–${shift.endTime}). Choose another time or shift.`;
-    }
-    return null;
+    return validateTimedCareShift({
+      shifts: state.shifts,
+      roles: state.roles,
+      shiftId: task.shiftId,
+      roleId: task.roleId,
+      time: task.time,
+    });
   };
 
   const draftTimeErrors = new Map(
@@ -369,7 +357,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
 
   // Final Commit to Database (Duplication-Safe Upsert)
   const handleSaveAll = () => {
-    if (draftTimeErrors.size > 0) return;
+    if (draftTimeErrors.size > 0 || (isResidentCarePaused(resident.status) && !allowPausedResidentCare)) return;
     draftTasks.forEach(task => {
       // Find if an identical active task already exists on this resident
       const existingMatch = state.residentTasks.find(t => 
@@ -426,6 +414,21 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
       maxWidth="4xl"
     >
       <div className="space-y-5">
+        {isResidentCarePaused(resident.status) && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950" role="alert">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+              <div>
+                <p className="text-xs font-black">Care generation is paused: {getResidentStatusLabel(resident.status)}</p>
+                <p className="mt-1 text-[11px] leading-relaxed">New routines will be stored but will not appear on TaskSheets until this resident returns to Active.</p>
+                <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] font-bold">
+                  <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-amber-700" />
+                  <span>I understand and want to configure future care while this resident is paused.</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
         {/* ── STEP 1: DISCOVER & SELECT CARE ROUTINES ── */}
         {step === 'select' && (
           <div className="space-y-4">
@@ -868,7 +871,10 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                         onChange={e => handleUpdateDraft(task.id, { shiftId: e.target.value })}
                         className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold"
                       >
-                        {shifts.map(s => (
+                        {shifts.filter(s => s.roleId === task.roleId).length === 0 && (
+                          <option value="">No active role-matching shift</option>
+                        )}
+                        {shifts.filter(s => s.roleId === task.roleId).map(s => (
                           <option key={s.id} value={s.id}>{s.shortCode} — {s.name}</option>
                         ))}
                       </select>
@@ -928,7 +934,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
               <button
                 type="button"
                 onClick={handleSaveAll}
-                disabled={draftTimeErrors.size > 0}
+                disabled={draftTimeErrors.size > 0 || (isResidentCarePaused(resident.status) && !allowPausedResidentCare)}
                 className="px-6 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold shadow-md flex items-center space-x-1.5 transition-colors"
               >
                 <Check className="w-4 h-4" />
