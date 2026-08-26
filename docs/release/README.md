@@ -1,6 +1,6 @@
 # TaskSheet 1.0 Release Closure
 
-Release candidate: **1.0.0-rc.4**
+Release candidate: **1.0.0-rc.5**
 Current decision: **Pilot Artifact Ready; clean-machine validation and controlled pilot pending**
 
 ## Release gates
@@ -20,10 +20,10 @@ No document in this folder authorizes production use by itself. Approval is reco
 ## Documents
 
 - [Controlled Pilot Plan](CONTROLLED_PILOT_PLAN.md)
-- [Clean-Machine Validation - RC4](CLEAN_MACHINE_VALIDATION_RC4.md)
+- [Clean-Machine Validation - RC5](CLEAN_MACHINE_VALIDATION_RC5.md)
 - [Pilot Acceptance Report](PILOT_ACCEPTANCE_REPORT.md)
-- [Release Notes - RC4](RELEASE_NOTES_1.0.0_RC4.md)
-- [Known Limitations - RC4](KNOWN_LIMITATIONS_1.0.0_RC4.md)
+- [Release Notes - RC5](RELEASE_NOTES_1.0.0_RC5.md)
+- [Known Limitations - RC5](KNOWN_LIMITATIONS_1.0.0_RC5.md)
 - [RC2 Superseded Record](RC2_SUPERSEDED_RECORD.md)
 - [RC1 Rejection Record](RC1_REJECTION_RECORD.md)
 - [User Manual](USER_MANUAL_1.0.md)
@@ -31,7 +31,7 @@ No document in this folder authorizes production use by itself. Approval is reco
 - [Data Management](DATA_MANAGEMENT.md)
 - [Requirements Traceability Matrix](REQUIREMENTS_TRACEABILITY_MATRIX.md)
 - [Version and Build Information](VERSION_BUILD_INFO.md)
-- [Build Evidence - 1.0.0-rc.4](BUILD_EVIDENCE_1.0.0_RC4.md)
+- [Build Evidence - 1.0.0-rc.5](BUILD_EVIDENCE_1.0.0_RC5.md)
 - [Windows Pilot Installer Pipeline](WINDOWS_INSTALLER.md)
 
 ## Feature freeze

@@ -17,13 +17,13 @@ export const DemoModeBanner: React.FC<DemoModeBannerProps> = ({
 }) => {
   if (state.configurationMode === 'setup_required') {
     return (
-      <section className="relative z-20 shrink-0 border-b border-sky-300 bg-sky-50 px-4 py-3 text-sky-950" role="status" aria-label="Real setup required">
+      <section className="relative z-20 shrink-0 border-b border-sky-300 bg-sky-50 px-4 py-3 text-sky-950" role="status" aria-label="Facility setup required">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5">
             <Settings2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" />
             <div>
-              <p className="text-sm font-black uppercase tracking-wide">Real setup required</p>
-              <p className="text-xs font-medium text-sky-800">Demo data and sample facility configuration were cleared. Configure your facility and create real HCA/LPN shifts before operational use.</p>
+              <p className="text-sm font-black uppercase tracking-wide">Facility setup required</p>
+              <p className="text-xs font-medium text-sky-800">Enter your facility details and create at least one HCA or LPN shift before operational use.</p>
             </div>
           </div>
           <button type="button" onClick={onConfigureFacility} className="shrink-0 rounded-lg bg-sky-700 px-4 py-2 text-xs font-bold text-white hover:bg-sky-800">

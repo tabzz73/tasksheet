@@ -32,6 +32,17 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
     expect(state.wounds).toHaveLength(0);
     expect(setupState.demoRecordsActive).toBe(false);
     expect(setupState.demoConfigurationActive).toBe(false);
+
+    const setupMarkup = renderToStaticMarkup(
+      <DemoModeBanner
+        state={setupState}
+        onStartRealSetup={() => undefined}
+        onClearDemoData={() => undefined}
+        onConfigureFacility={() => undefined}
+      />,
+    );
+    expect(setupMarkup).toContain('Facility setup required');
+    expect(setupMarkup).not.toContain('Demo data and sample facility configuration were cleared');
   });
 
   it('allows a fresh blank facility profile to be edited and saved', () => {
