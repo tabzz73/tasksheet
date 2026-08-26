@@ -6,7 +6,7 @@ Confirm that real HCA and LPN users can configure, generate, print, and recover 
 
 ## Entry criteria
 
-- Candidate is identified as `1.0.0-rc.5`.
+- Candidate is identified as `1.0.0-rc.6`.
 - Automated regression suite passes.
 - A reproducible production build is available.
 - Pilot facility, device, printer, pilot lead, and support contact are named.

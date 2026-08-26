@@ -9,6 +9,7 @@ import { buildHcaDailyPackage, buildLpnClinicalPackage } from '../services/print
 import { detectAttentionIndicators, getPrintAttentionTags, getPrintAttentionLegend } from '../services/attention';
 import { compressTaskInstruction, filterPrioritizedAttentionTags } from '../services/print';
 import { isTimeWithinShift } from '../services/scheduling/timeWindow';
+import { filterCatalogTasks, getCommonCatalogTasks, getRoleCatalogTasks } from '../services/catalogDiscovery';
 
 describe('TaskSheet Generator & Domain Core Tests', () => {
   beforeEach(() => {
@@ -313,6 +314,40 @@ describe('Alberta Standard Starter Catalog Tests', () => {
     expect(map3?.defaultInstructions).toContain('Full assistance');
     expect(map3?.carePlanDependent).toBe(true);
     expect(map3?.authorizationDependent).toBe(true);
+  });
+
+  it('shows MAP1, MAP2, and MAP3 in Common Quick Add for both HCA and LPN roles', () => {
+    const templates = db.getState().catalogTaskTemplates;
+    const expectedSlugs = [
+      'hca.medication.map1',
+      'hca.medication.map2',
+      'hca.medication.map3',
+    ];
+
+    const hcaCommon = getCommonCatalogTasks(getRoleCatalogTasks(templates, 'HCA'));
+    const lpnCommon = getCommonCatalogTasks(getRoleCatalogTasks(templates, 'LPN'));
+
+    expect(hcaCommon.slice(0, 3).map(task => task.slug)).toEqual(expectedSlugs);
+    expect(lpnCommon.slice(0, 3).map(task => task.slug)).toEqual(expectedSlugs);
+  });
+
+  it('finds Medication Assistance by displayed category name for HCA and LPN', () => {
+    const state = db.getState();
+
+    for (const roleCode of ['HCA', 'LPN']) {
+      const results = filterCatalogTasks(
+        getRoleCatalogTasks(state.catalogTaskTemplates, roleCode),
+        state.catalogCategories,
+        'Medication Assistance',
+      );
+      const resultSlugs = results.map(task => task.slug);
+
+      expect(resultSlugs).toEqual(expect.arrayContaining([
+        'hca.medication.map1',
+        'hca.medication.map2',
+        'hca.medication.map3',
+      ]));
+    }
   });
 
   it('ensures all catalog task template slugs are completely unique', () => {

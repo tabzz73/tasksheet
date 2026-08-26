@@ -43,6 +43,7 @@ import { RecurrenceSelector } from '../common/RecurrenceSelector';
 import { detectAttentionIndicators, getIndicatorBadgeDetails } from '../../services/attention';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { isTimeWithinShift, parseMilitaryTime } from '../../services/scheduling/timeWindow';
+import { filterCatalogTasks, getCommonCatalogTasks, getRoleCatalogTasks } from '../../services/catalogDiscovery';
 
 export type AddEntityType = 'care_task' | 'unit_task' | 'resident' | 'fyi' | 'wound';
 export type FormMode = 'add' | 'edit' | 'duplicate';
@@ -148,6 +149,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     }
   }, [shiftId, shifts]);
 
+  useEffect(() => {
+    setSelectedCategoryFilter('ALL');
+  }, [shiftId]);
+
   // Reset or initialize on open / prop changes
   useEffect(() => {
     if (isOpen) {
@@ -214,6 +219,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         // Reset inputs
         setTaskTitle('');
         setTaskSearchQuery('');
+        setSelectedCategoryFilter('ALL');
+        setPickerTab('common');
         setTaskTemplateSlug(undefined);
         setTaskTime('0800');
         setIsNoSpecificTime(false);
@@ -252,27 +259,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const unitTaskTimeError = getShiftTimeError(unitTime);
 
   // Role-Aware Filtered Catalog Tasks
-  const roleCatalogTasks = catalogTemplates.filter(t => {
-    if (currentRoleCode === 'HCA') {
-      return t.roleCode === 'HCA' || t.roleCode === 'SHARED';
-    }
-    return t.roleCode === 'LPN' || t.roleCode === 'SHARED' || t.roleCode === 'RN' || t.roleCode === 'HCA';
-  });
-
-  const filteredCatalogTasks = roleCatalogTasks.filter(t => {
-    if (selectedCategoryFilter !== 'ALL' && t.categoryId !== selectedCategoryFilter) {
-      return false;
-    }
-    if (!taskSearchQuery.trim()) return true;
-    const q = taskSearchQuery.toLowerCase();
-    const titleMatch = t.title.toLowerCase().includes(q);
-    const catMatch = t.categoryId.toLowerCase().includes(q);
-    const synMatch = t.synonyms?.some(s => s.toLowerCase().includes(q));
-    const descMatch = t.description?.toLowerCase().includes(q);
-    return titleMatch || catMatch || synMatch || descMatch;
-  });
-
-  const popularTemplates = roleCatalogTasks.filter(t => t.isPopular);
+  const roleCatalogTasks = getRoleCatalogTasks(catalogTemplates, currentRoleCode);
+  const filteredCatalogTasks = filterCatalogTasks(
+    roleCatalogTasks,
+    categories,
+    taskSearchQuery,
+    selectedCategoryFilter,
+  );
+  const commonTemplates = getCommonCatalogTasks(roleCatalogTasks);
 
   const selectCatalogTemplate = (t: CatalogTaskTemplate) => {
     setTaskTitle(t.title);
@@ -746,7 +740,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             {mode === 'add' && pickerTab === 'common' && !taskSearchQuery && (
               <div className="mt-2.5">
                 <div className="flex flex-wrap gap-1.5">
-                  {popularTemplates.slice(0, 8).map(t => (
+                  {commonTemplates.map(t => (
                     <button
                       key={t.slug}
                       type="button"
