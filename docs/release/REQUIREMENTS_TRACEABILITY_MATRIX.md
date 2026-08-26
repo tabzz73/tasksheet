@@ -54,7 +54,7 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | TRK-04 | Tracking results are not electronically persisted | Tracking model boundary and documentation | Verified/Pilot |
 | WND-01 | Wound protocols require recurrence, an active clinical shift, and an in-window scheduled time | Wound modal and UI regressions | Verified |
 | WND-02 | Due wounds print only on their assigned shift; invalid schedules are withheld and flagged | Generator and print regressions | Verified/Pilot |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.19` | Git SHA/tag in generated build evidence | Verified |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.20` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

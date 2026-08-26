@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreVertical, Edit3, Copy, PauseCircle, PlayCircle, Trash2 } from 'lucide-react';
 
 interface TaskActionMenuProps {
@@ -29,42 +30,62 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
   ariaLabel = 'Task actions'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [openUpwards, setOpenUpwards] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<React.CSSProperties | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (!menuRef.current?.contains(target) && !popupRef.current?.contains(target)) {
         setIsOpen(false);
+        setMenuPosition(null);
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsOpen(false);
+        setMenuPosition(null);
       }
+    };
+    const handleViewportChange = () => {
+      setIsOpen(false);
+      setMenuPosition(null);
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('pointerdown', handleClickOutside);
       document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('resize', handleViewportChange);
+      window.addEventListener('scroll', handleViewportChange, true);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
     };
   }, [isOpen]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isOpen && menuRef.current) {
-      const rect = menuRef.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      // If within 220px of bottom of screen, open upwards
-      if (windowHeight - rect.bottom < 220) {
-        setOpenUpwards(true);
-      } else {
-        setOpenUpwards(false);
-      }
+    if (!isOpen) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const width = 192;
+      const estimatedHeight = 260;
+      const gap = 4;
+      const padding = 8;
+      const spaceBelow = window.innerHeight - rect.bottom - padding;
+      const openUpwards = spaceBelow < estimatedHeight && rect.top - padding > spaceBelow;
+      const left = align === 'right' ? rect.right - width : rect.left;
+      setMenuPosition({
+        left: Math.min(Math.max(padding, left), Math.max(padding, window.innerWidth - width - padding)),
+        top: openUpwards ? undefined : rect.bottom + gap,
+        bottom: openUpwards ? window.innerHeight - rect.top + gap : undefined,
+        maxHeight: Math.max(160, openUpwards ? rect.top - padding - gap : spaceBelow - gap),
+      });
+    } else {
+      setMenuPosition(null);
     }
     setIsOpen(!isOpen);
   };
@@ -83,14 +104,14 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
         <MoreVertical className="w-4 h-4" />
       </button>
 
-      {isOpen && (
+      {isOpen && menuPosition && typeof document !== 'undefined' && createPortal(
         <div
-          className={`absolute z-50 w-48 rounded-lg bg-white shadow-xl border border-slate-200 py-1 text-xs text-slate-700 focus:outline-none animate-in fade-in zoom-in-95 duration-100 ${
-            openUpwards ? 'bottom-full mb-1' : 'top-full mt-1'
-          } ${
-            align === 'right' ? 'right-0' : 'left-0'
-          }`}
+          ref={popupRef}
+          style={menuPosition}
+          className="fixed z-[9999] w-48 overflow-y-auto rounded-lg bg-white shadow-2xl border border-slate-200 py-1 text-xs text-slate-700 focus:outline-none animate-in fade-in zoom-in-95 duration-100"
           role="menu"
+          aria-label={`${typeLabel} actions`}
+          onClick={(event) => event.stopPropagation()}
         >
           {/* 0. View Details */}
           {onViewDetails && (
@@ -186,7 +207,8 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
             <Trash2 className="w-3.5 h-3.5 text-red-500" />
             <span className="font-medium">Delete {typeLabel}</span>
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
