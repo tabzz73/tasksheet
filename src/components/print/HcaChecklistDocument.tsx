@@ -106,6 +106,12 @@ const ResidentTaskRow: React.FC<{ task: PrintTask }> = ({ task }) => (
           ⚠ {task.contextualWarning}
         </div>
       )}
+      {task.writableFields.map((field, index) => (
+        <div key={index} style={{ fontFamily: 'Arial, sans-serif', fontSize: '8.5pt', color: '#1e293b', marginTop: '2pt', fontWeight: 600, whiteSpace: 'pre-line' }}>
+          {field.label}
+          {field.lines > 0 && <div style={{ borderBottom: '0.5pt solid #94a3b8', height: '9pt', marginTop: '1pt' }} />}
+        </div>
+      ))}
     </div>
   </div>
 );

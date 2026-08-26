@@ -31,12 +31,15 @@ import {
   CatalogTaskTemplate,
   RecurrenceRule,
   Shift,
-  Role
+  Role,
+  TaskAttentionConfig,
+  ResidentTrackingConfig
 } from '../../types';
 import { RecurrenceSelector } from '../common/RecurrenceSelector';
 import { DEFAULT_HCA_QUICK_ADD_PRESETS, ROLE_HCA_ID, ROLE_LPN_ID } from '../../data/defaultData';
 import { findActiveRoleShiftForTime, validateTimedCareShift } from '../../services/scheduling/careShiftAssignment';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
+import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 
 interface QuickCareSetupModalProps {
   isOpen: boolean;
@@ -57,6 +60,8 @@ interface SelectedTaskDraft {
   frequency: RecurrenceFrequency;
   recurrenceRule?: RecurrenceRule;
   instructions: string;
+  attentionConfig?: TaskAttentionConfig;
+  trackingConfig?: ResidentTrackingConfig;
 }
 
 export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
@@ -324,6 +329,8 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
         time: tmpl.defaultTime || '0800',
         frequency: tmpl.defaultFrequency || 'daily',
         instructions: tmpl.defaultInstructions || 'Follow resident care plan.',
+        attentionConfig: tmpl.attentionConfig,
+        trackingConfig: tmpl.trackingConfig,
       });
     });
 
@@ -380,6 +387,8 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
           frequency: task.frequency,
           recurrenceRule: task.recurrenceRule,
           instructions: task.instructions.trim() || undefined,
+          attentionConfig: task.attentionConfig,
+          trackingConfig: task.trackingConfig,
         });
       } else {
         // Insert new task
@@ -394,6 +403,8 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
           frequency: task.frequency,
           recurrenceRule: task.recurrenceRule,
           instructions: task.instructions.trim() || undefined,
+          attentionConfig: task.attentionConfig,
+          trackingConfig: task.trackingConfig,
           priority: 'normal',
         });
       }
@@ -847,7 +858,11 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                           </span>
                         )}
                       </div>
-                      <h4 className="font-bold text-sm text-slate-900 mt-0.5">{task.title}</h4>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-slate-900">{task.title}</h4>
+                        <TaskAttentionBadges attentionConfig={task.attentionConfig} maxVisible={3} />
+                        {task.trackingConfig && <span className="rounded bg-cyan-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-cyan-800">Tracking</span>}
+                      </div>
                     </div>
 
                     <button

@@ -37,6 +37,7 @@ import {
   RecurrenceRule,
   TaskAttentionConfig,
   TaskAttentionIndicator,
+  ResidentTrackingConfig,
   MealRelation
 } from '../../types';
 import { RecurrenceSelector } from '../common/RecurrenceSelector';
@@ -109,6 +110,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskFrequency, setTaskFrequency] = useState<RecurrenceFrequency>('daily');
   const [taskRecurrenceRule, setTaskRecurrenceRule] = useState<RecurrenceRule | undefined>(undefined);
   const [taskAttentionConfig, setTaskAttentionConfig] = useState<TaskAttentionConfig | undefined>(undefined);
+  const [taskTrackingConfig, setTaskTrackingConfig] = useState<ResidentTrackingConfig | undefined>(undefined);
   const [taskInstructions, setTaskInstructions] = useState('');
   const [taskPriority, setTaskPriority] = useState<TaskPriority>('normal');
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -177,6 +179,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskFrequency(initialResidentTask.frequency);
         setTaskRecurrenceRule(initialResidentTask.recurrenceRule);
         setTaskAttentionConfig(initialResidentTask.attentionConfig);
+        setTaskTrackingConfig(initialResidentTask.trackingConfig);
         setTaskInstructions(initialResidentTask.instructions || '');
         setTaskPriority(initialResidentTask.priority || 'normal');
       } else if (initialUnitTask) {
@@ -230,6 +233,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setSelectedCategoryFilter('ALL');
         setPickerTab('common');
         setTaskTemplateSlug(undefined);
+        setTaskAttentionConfig(undefined);
+        setTaskTrackingConfig(undefined);
         setTaskTime('0800');
         setIsNoSpecificTime(false);
         setTaskFrequency('daily');
@@ -304,6 +309,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     if (t.defaultFrequency) setTaskFrequency(t.defaultFrequency);
     setTaskInstructions(t.defaultInstructions || t.description || '');
     setTaskAttentionConfig(t.attentionConfig);
+    setTaskTrackingConfig(t.trackingConfig);
     if (cat) setTaskCategory(cat.name);
     setTaskSearchQuery('');
   };
@@ -334,6 +340,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         frequency: taskFrequency,
         recurrenceRule: taskRecurrenceRule,
         attentionConfig: taskAttentionConfig,
+        trackingConfig: taskTrackingConfig,
         instructions: taskInstructions.trim() || undefined,
         priority: taskPriority
       });
@@ -360,6 +367,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           frequency: taskFrequency,
           recurrenceRule: taskRecurrenceRule,
           attentionConfig: taskAttentionConfig,
+          trackingConfig: taskTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority
         });
@@ -376,6 +384,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           frequency: taskFrequency,
           recurrenceRule: taskRecurrenceRule,
           attentionConfig: taskAttentionConfig,
+          trackingConfig: taskTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority
         });
@@ -722,6 +731,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                     onClick={() => {
                       setPickerTab('custom');
                       setTaskTemplateSlug(undefined);
+                      setTaskAttentionConfig(undefined);
+                      setTaskTrackingConfig(undefined);
                     }}
                     className={`px-2 py-0.5 rounded font-medium ${pickerTab === 'custom' ? 'bg-teal-100 text-teal-800 font-bold' : 'text-slate-500 hover:text-slate-800'}`}
                   >
@@ -908,6 +919,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               <p className="mt-1 text-[11px] text-slate-500">Pre-filled from the task catalog. Edit these instructions for this resident as needed.</p>
             )}
           </div>
+
+          {taskTrackingConfig && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-cyan-950">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-wider">Paper Tracking Field</p>
+                <p className="text-[11px]">A structured {taskTrackingConfig.kind} write-in field will print on the resident's TaskSheet. Results are not stored electronically.</p>
+              </div>
+              <TaskAttentionBadges attentionConfig={taskAttentionConfig} maxVisible={3} />
+            </div>
+          )}
 
           {/* Smart Attention Suggestions Banner */}
           {(() => {

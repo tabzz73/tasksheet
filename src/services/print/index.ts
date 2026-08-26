@@ -1,5 +1,5 @@
 import { GeneratedResidentStatusException, GeneratedShiftSheet, ShiftGenerationException } from '../generator';
-import { Facility, PrintProfile, FYI, UnitTask, PrintDensity, QuickVitalsColumnConfig, PrintProfileConfig, TaskAttentionConfig } from '../../types';
+import { Facility, PrintProfile, FYI, UnitTask, PrintDensity, QuickVitalsColumnConfig, PrintProfileConfig, ResidentTrackingConfig, TaskAttentionConfig } from '../../types';
 import { getPrintAttentionTags, getPrintAttentionLegend } from '../attention';
 import { DEFAULT_VITALS_COLUMNS, DEFAULT_HCA_PRINT_PROFILE, DEFAULT_LPN_PRINT_PROFILE } from '../../data/defaultData';
 import { db } from '../../db';
@@ -103,6 +103,7 @@ export interface PrintTask {
   timingNote?: string;           // translated from bathingRelation
   contextualWarning?: string;    // concise ⚠ note when FYI directly affects task
   attentionConfig?: TaskAttentionConfig;
+  trackingConfig?: ResidentTrackingConfig;
   attentionTags?: string[];
   writableFields: PrintWritableField[];
   priority: 'normal' | 'high' | 'urgent';
@@ -474,6 +475,31 @@ function buildUnitWritableFields(u: UnitTask, profile: string): PrintWritableFie
   }
 }
 
+/** Paper-only resident tracking prompts; no entered result is stored by TaskSheet. */
+export function buildResidentTrackingFields(config?: ResidentTrackingConfig): PrintWritableField[] {
+  if (!config) return [];
+  switch (config.kind) {
+    case 'rai':
+      return [{ label: 'RAI / Flow Sheet Code: ______   Observation: ____________________', lines: 0 }];
+    case 'bowel':
+      return [{ label: 'BM: ☐ None  ☐ Small  ☐ Medium  ☐ Large   Type: ______', lines: 0 }];
+    case 'fluid':
+      return [{ label: 'Oral Fluid Intake: ______ mL   Notes: ____________________', lines: 0 }];
+    case 'weight':
+      return [{ label: 'Weight: ______ kg   Scale / Notes: ____________________', lines: 0 }];
+    case 'sleep':
+      return [{ label: 'Sleep: ______ hrs   ☐ Settled  ☐ Interrupted   Notes: __________', lines: 0 }];
+    case 'food':
+      return [{ label: 'Meal Intake: ______%   ☐ Poor  ☐ Fair  ☐ Good   Notes: __________', lines: 0 }];
+    case 'behavior':
+      return [{ label: 'Behaviour / Trigger / Response: ______________________________', lines: 1 }];
+    case 'pain':
+      return [{ label: `${config.prompt ? `${config.prompt} — ` : ''}Pain: ______/10   Location: __________   Tool: ☐ 0–10 ☐ PAINAD`, lines: 0 }];
+    default:
+      return [];
+  }
+}
+
 // ─── Main factory ─────────────────────────────────────────────────────────────
 
 export class PrintService {
@@ -590,8 +616,8 @@ export class PrintService {
         const contextualWarning = getContextualWarning(t.category, t.title, resFyis);
 
         // LPN clinical tasks get observation/notes write-in fields
-        const writableFields: PrintWritableField[] = [];
-        if (isClinical) {
+        const writableFields: PrintWritableField[] = buildResidentTrackingFields(t.trackingConfig);
+        if (writableFields.length === 0 && isClinical) {
           const catL = (t.category || '').toLowerCase();
           const titleL = (t.title || '').toLowerCase();
           if (catL.includes('diabetes') || catL.includes('glucose') || titleL.includes('bg') || titleL.includes('blood glucose')) {
@@ -623,6 +649,7 @@ export class PrintService {
           timingNote: undefined, // wounds only use timingNote via woundGroups
           contextualWarning,
           attentionConfig: t.attentionConfig,
+          trackingConfig: t.trackingConfig,
           attentionTags: getPrintAttentionTags(t.attentionConfig),
           writableFields,
           priority: t.priority || 'normal',
@@ -781,7 +808,13 @@ return {
         const titleL = (t.title || '').toLowerCase();
         const catL = (t.category || '').toLowerCase();
 
-        if (titleL.includes('bg') || titleL.includes('glucose') || titleL.includes('insulin')) {
+        if (t.trackingConfig) {
+          structuredResult = {
+            type: t.trackingConfig.kind === 'weight' ? 'weight' : 'generic',
+            label: buildResidentTrackingFields(t.trackingConfig).map(field => field.label).join('\n'),
+          };
+          if (t.trackingConfig.kind === 'behavior') rowType = 'expanded';
+        } else if (titleL.includes('bg') || titleL.includes('glucose') || titleL.includes('insulin')) {
           structuredResult = { type: 'bg', label: 'BG: ______ mmol/L' };
         } else if (titleL.includes('vitals') || titleL.includes('vital signs') || titleL.includes('bp') || titleL.includes('blood pressure')) {
           structuredResult = { type: 'vitals', label: 'BP: ____/____  HR: ____\nRR: ____  Temp: ____\nSpO₂: ____%' };

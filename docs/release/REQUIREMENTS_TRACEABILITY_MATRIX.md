@@ -48,7 +48,11 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | RES-01 | Hospital, pass, and hold suppress care without deleting schedules | Generator/status regressions | Verified |
 | RES-02 | Paused-resident care configuration requires explicit acknowledgement | Add Care/Quick Care safeguards; UI regression | Verified |
 | PRT-05 | Hospital, pass, and hold appear as compact print exceptions without care rows | Print component and generator regressions | Verified/Pilot |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.15` | Git SHA/tag in generated build evidence | Verified |
+| TRK-01 | HCA RAI, bowel, fluid, weight, sleep, food, and behaviour trackers are role-aware and searchable | Standard catalog and discovery regressions | Verified |
+| TRK-02 | LPN pain and monitoring tasks print structured paper result fields | Print-model/render regressions | Verified/Pilot |
+| TRK-03 | Tracking tasks render attention icons and matching legends | Attention configuration and print regressions | Verified/Pilot |
+| TRK-04 | Tracking results are not electronically persisted | Tracking model boundary and documentation | Verified/Pilot |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.16` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

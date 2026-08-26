@@ -5,6 +5,14 @@ const COMMON_PRIORITY_SLUGS = [
   'hca.medication.map2',
   'hca.medication.map3',
   'shared.monitoring.wellness_check',
+  'hca.tracking.rai',
+  'hca.tracking.bowel',
+  'hca.tracking.fluid',
+  'hca.monitoring.weekly_weight',
+  'hca.tracking.sleep',
+  'hca.tracking.food',
+  'hca.tracking.behavior',
+  'lpn.pain.assessment',
 ];
 
 export function getRoleCatalogTasks(
@@ -46,7 +54,7 @@ export function filterCatalogTasks(
 
 export function getCommonCatalogTasks(
   templates: CatalogTaskTemplate[],
-  limit = 8,
+  limit = 14,
 ): CatalogTaskTemplate[] {
   const priorityTasks = COMMON_PRIORITY_SLUGS
     .map(slug => templates.find(template => template.slug === slug))

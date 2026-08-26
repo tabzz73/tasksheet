@@ -1,4 +1,4 @@
-import { CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate } from '../types';
+import { CatalogCategory, CatalogTaskTemplate, TaskAttentionConfig, UnitTaskTemplate } from '../types';
 import { detectAttentionIndicators } from '../services/attention';
 
 export const ALBERTA_STARTER_CATEGORIES: CatalogCategory[] = [
@@ -28,6 +28,15 @@ export const ALBERTA_STARTER_CATEGORIES: CatalogCategory[] = [
   { id: 'cat-education', name: 'Resident / Family Education', description: 'Teaching, clinical reinforcement and family guidance', displayOrder: 24 },
   { id: 'cat-other', name: 'Other', description: 'Facility-defined and custom care assignments', displayOrder: 25 }
 ];
+
+const TRACKING_ATTENTION: TaskAttentionConfig = {
+  indicators: ['OBSERVE', 'DOC_REF'],
+  docRefNote: 'Record on the facility-authorized tracking form or clinical record.',
+  metadata: [
+    { indicator: 'OBSERVE', reason: 'Resident observation required', source: 'catalog' },
+    { indicator: 'DOC_REF', reason: 'Record result on authorized form', source: 'catalog', docRefNote: 'Record on the facility-authorized tracking form or clinical record.' },
+  ],
+};
 
 const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
   // ==========================================
@@ -873,6 +882,96 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
   // 10. HCA — HEALTH MONITORING (Observation Oriented)
   // ==========================================
   {
+    slug: 'hca.tracking.rai',
+    title: 'RAI Observation Tracking',
+    categoryId: 'cat-health-monitoring',
+    roleCode: 'HCA',
+    defaultTime: '1400',
+    defaultFrequency: 'daily',
+    defaultInstructions: 'Observe and record care-plan-directed RAI supporting information on the authorized facility form; report changes from baseline to the nurse.',
+    synonyms: ['rai', 'rai tracking', 'rai observation', 'rai documentation'],
+    trackingConfig: { kind: 'rai' },
+    attentionConfig: TRACKING_ATTENTION,
+    isPopular: true,
+    isStandardTemplate: true,
+    isActive: true
+  },
+  {
+    slug: 'hca.tracking.bowel',
+    title: 'Bowel Movement Tracking',
+    categoryId: 'cat-health-monitoring',
+    roleCode: 'HCA',
+    defaultTime: '1400',
+    defaultFrequency: 'daily',
+    defaultInstructions: 'Record bowel movement occurrence, amount, and type on the authorized bowel record; report constipation, diarrhea, blood, or significant change.',
+    synonyms: ['bowel', 'bm', 'bowel record', 'stool tracking'],
+    trackingConfig: { kind: 'bowel' },
+    attentionConfig: TRACKING_ATTENTION,
+    isPopular: true,
+    isStandardTemplate: true,
+    isActive: true
+  },
+  {
+    slug: 'hca.tracking.fluid',
+    title: 'Fluid Intake Tracking',
+    categoryId: 'cat-health-monitoring',
+    roleCode: 'HCA',
+    defaultTime: '1400',
+    defaultFrequency: 'daily',
+    defaultInstructions: 'Record oral fluid intake in mL on the authorized intake record and report poor intake or fluid restriction concerns.',
+    synonyms: ['fluid', 'fluid intake', 'intake output', 'hydration tracking'],
+    trackingConfig: { kind: 'fluid' },
+    attentionConfig: TRACKING_ATTENTION,
+    isPopular: true,
+    isStandardTemplate: true,
+    isActive: true
+  },
+  {
+    slug: 'hca.tracking.sleep',
+    title: 'Sleep Pattern Tracking',
+    categoryId: 'cat-health-monitoring',
+    roleCode: 'HCA',
+    defaultTime: '0630',
+    defaultFrequency: 'daily',
+    defaultInstructions: 'Record estimated sleep duration and interruptions on the authorized sleep record; report significant change or distress.',
+    synonyms: ['sleep', 'sleep record', 'overnight sleep', 'sleep pattern'],
+    trackingConfig: { kind: 'sleep' },
+    attentionConfig: TRACKING_ATTENTION,
+    isPopular: true,
+    isStandardTemplate: true,
+    isActive: true
+  },
+  {
+    slug: 'hca.tracking.food',
+    title: 'Food Intake Tracking',
+    categoryId: 'cat-health-monitoring',
+    roleCode: 'HCA',
+    defaultTime: '1200',
+    defaultFrequency: 'daily',
+    defaultInstructions: 'Record meal intake percentage on the authorized intake record and report poor intake, swallowing concerns, or refusal.',
+    synonyms: ['food', 'meal intake', 'food intake', 'nutrition tracking', 'percentage eaten'],
+    trackingConfig: { kind: 'food' },
+    attentionConfig: { ...TRACKING_ATTENTION, indicators: ['OBSERVE', 'MEAL_LINKED', 'DOC_REF'], mealRelation: 'WITH_MEAL' },
+    isPopular: true,
+    isStandardTemplate: true,
+    isActive: true
+  },
+  {
+    slug: 'hca.tracking.behavior',
+    title: 'Behaviour Tracking',
+    categoryId: 'cat-health-monitoring',
+    roleCode: 'HCA',
+    defaultTime: '1400',
+    defaultFrequency: 'daily',
+    defaultInstructions: 'Record objective behaviour, possible trigger, intervention, and response on the authorized behaviour record; promptly report safety concerns.',
+    synonyms: ['behavior', 'behaviour', 'behavior mapping', 'responsive behavior', 'abc tracking'],
+    trackingConfig: { kind: 'behavior' },
+    attentionConfig: TRACKING_ATTENTION,
+    isPopular: true,
+    isStandardTemplate: true,
+    isActive: true
+  },
+  {
     slug: 'hca.monitoring.weekly_weight',
     title: 'Weekly Weight',
     categoryId: 'cat-health-monitoring',
@@ -881,6 +980,8 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'weekly',
     defaultInstructions: 'Weigh resident before breakfast using calibrated chair/wheelchair scale.',
     synonyms: ['weight', 'scale', 'weigh'],
+    trackingConfig: { kind: 'weight' },
+    attentionConfig: TRACKING_ATTENTION,
     isPopular: true,
     isStandardTemplate: true,
     isActive: true
@@ -894,6 +995,8 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'monthly',
     defaultInstructions: 'Obtain monthly weight and record.',
     synonyms: ['monthly weight'],
+    trackingConfig: { kind: 'weight' },
+    attentionConfig: TRACKING_ATTENTION,
     isStandardTemplate: true,
     isActive: true
   },
@@ -1270,6 +1373,7 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'daily',
     defaultInstructions: 'Measure BP, HR, RR, Temperature, and SpO2. Note abnormal findings.',
     synonyms: ['vitals', 'vital signs', 'bp', 'temp', 'pulse', 'spo2'],
+    attentionConfig: TRACKING_ATTENTION,
     isPopular: true,
     isStandardTemplate: true,
     isActive: true
@@ -1283,6 +1387,7 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'daily',
     defaultInstructions: 'Measure seated BP. Check against parameters per order.',
     synonyms: ['bp', 'blood pressure'],
+    attentionConfig: TRACKING_ATTENTION,
     isStandardTemplate: true,
     isActive: true
   },
@@ -1295,6 +1400,7 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'daily',
     defaultInstructions: 'Measure lying, sitting, and standing BP/HR; assess for orthostatic drop.',
     synonyms: ['postural vitals', 'orthostatic', 'orthostatic bp', 'postural'],
+    attentionConfig: TRACKING_ATTENTION,
     isPopular: true,
     isStandardTemplate: true,
     isActive: true
@@ -1308,6 +1414,7 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'daily',
     defaultInstructions: 'Complete focused clinical nursing assessment and document findings.',
     synonyms: ['assessment', 'nursing assessment', 'head to toe'],
+    attentionConfig: TRACKING_ATTENTION,
     isPopular: true,
     isStandardTemplate: true,
     isActive: true
@@ -1321,6 +1428,7 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'daily',
     defaultInstructions: 'Complete targeted system assessment (e.g. respiratory, cardiac, abdomen).',
     synonyms: ['focused assessment'],
+    attentionConfig: TRACKING_ATTENTION,
     isStandardTemplate: true,
     isActive: true
   },
@@ -1333,6 +1441,10 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'once',
     defaultInstructions: 'Comprehensive assessment upon acute change; notify RN/physician.',
     synonyms: ['condition change', 'acute change'],
+    attentionConfig: {
+      ...TRACKING_ATTENTION,
+      indicators: ['HIGH_ALERT', 'OBSERVE', 'FOLLOW_UP', 'DOC_REF'],
+    },
     isStandardTemplate: true,
     isActive: true
   },
@@ -1567,6 +1679,8 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'daily',
     defaultInstructions: 'Assess pain using 0-10 scale or PAINAD tool. Check effectiveness of analgesic interventions.',
     synonyms: ['pain assessment', 'pain scale', 'painad', 'pain'],
+    trackingConfig: { kind: 'pain' },
+    attentionConfig: TRACKING_ATTENTION,
     isPopular: true,
     isStandardTemplate: true,
     isActive: true
@@ -1580,6 +1694,11 @@ const RAW_ALBERTA_TASK_TEMPLATES: CatalogTaskTemplate[] = [
     defaultFrequency: 'daily',
     defaultInstructions: 'Reassess pain level following analgesia and non-pharmacological interventions.',
     synonyms: ['pain recheck', 'pain follow-up'],
+    trackingConfig: { kind: 'pain', prompt: 'Reassessment' },
+    attentionConfig: {
+      ...TRACKING_ATTENTION,
+      indicators: ['OBSERVE', 'FOLLOW_UP', 'DOC_REF'],
+    },
     isStandardTemplate: true,
     isActive: true
   },

@@ -105,10 +105,18 @@ class DatabaseService {
           const defaultShiftIds = new Set(DEFAULT_SHIFTS.map(shift => shift.id));
 
           // Migrate resident task categories
-          const migratedResidentTasks: ResidentTask[] = (parsed.residentTasks || []).map((t: ResidentTask) => ({
-            ...t,
-            category: migrateCategoryName(t.category, t.title)
-          }));
+          const migratedResidentTasks: ResidentTask[] = (parsed.residentTasks || []).map((t: ResidentTask) => {
+            const currentTemplate = t.templateSlug
+              ? ALBERTA_TASK_TEMPLATES.find(template => template.slug === t.templateSlug)
+              : undefined;
+            const trackingConfig = t.trackingConfig || currentTemplate?.trackingConfig;
+            return {
+              ...t,
+              category: migrateCategoryName(t.category, t.title),
+              trackingConfig,
+              attentionConfig: t.attentionConfig || currentTemplate?.attentionConfig,
+            };
+          });
 
           // Migrate shifts with shortCode, isActive, and displayOrder
           const migratedShifts: Shift[] = (parsed.shifts || DEFAULT_SHIFTS).map((s: Shift, idx: number) => {

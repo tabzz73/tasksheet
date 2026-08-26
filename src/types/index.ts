@@ -145,6 +145,22 @@ export interface TaskAttentionConfig {
   docRefNote?: string;
 }
 
+export type ResidentTrackingKind =
+  | 'rai'
+  | 'bowel'
+  | 'fluid'
+  | 'weight'
+  | 'sleep'
+  | 'food'
+  | 'behavior'
+  | 'pain';
+
+/** Paper tracking prompt only. TaskSheet does not store clinical tracking results electronically. */
+export interface ResidentTrackingConfig {
+  kind: ResidentTrackingKind;
+  prompt?: string;
+}
+
 export interface FacilityAttentionRule {
   id: string;
   name: string;
@@ -284,6 +300,7 @@ export interface ResidentTask {
   instructions?: string;
   priority?: TaskPriority;
   attentionConfig?: TaskAttentionConfig;
+  trackingConfig?: ResidentTrackingConfig;
   isActive: boolean;
   stoppedAt?: string;
   createdAt: string;
@@ -415,6 +432,7 @@ export interface CatalogTaskTemplate {
   description?: string;
   synonyms?: string[];
   attentionConfig?: TaskAttentionConfig;
+  trackingConfig?: ResidentTrackingConfig;
   isPopular?: boolean;
   isStandardTemplate?: boolean;
   isActive?: boolean;
