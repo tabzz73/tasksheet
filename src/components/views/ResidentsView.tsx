@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Users, 
   Search, 
@@ -29,6 +30,15 @@ import { sortRoomNumbers } from '../../services/generator';
 
 type ResidentsViewMode = 'list' | 'cards' | 'rooms';
 const VIEW_MODE_KEY = 'tasksheet_residents_view_mode';
+const RESIDENT_MENU_WIDTH = 192;
+const RESIDENT_MENU_ESTIMATED_HEIGHT = 270;
+
+interface ResidentMenuPosition {
+  top?: number;
+  bottom?: number;
+  left: number;
+  maxHeight: number;
+}
 
 interface ResidentsViewProps {
   onOpenResidentProfile: (residentId: string) => void;
@@ -51,6 +61,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [quickAddMenuOpen, setQuickAddMenuOpen] = useState(false);
   const [activeMenuResidentId, setActiveMenuResidentId] = useState<string | null>(null);
+  const [residentMenuPosition, setResidentMenuPosition] = useState<ResidentMenuPosition | null>(null);
   const [moveRoomResident, setMoveRoomResident] = useState<Resident | null>(null);
   const [newRoomInput, setNewRoomInput] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -76,10 +87,65 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
     const handleClickOutside = () => {
       setQuickAddMenuOpen(false);
       setActiveMenuResidentId(null);
+      setResidentMenuPosition(null);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveMenuResidentId(null);
+        setResidentMenuPosition(null);
+      }
     };
     window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('keydown', handleEscape);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!activeMenuResidentId) return;
+    const closePositionedMenu = () => {
+      setActiveMenuResidentId(null);
+      setResidentMenuPosition(null);
+    };
+    window.addEventListener('resize', closePositionedMenu);
+    window.addEventListener('scroll', closePositionedMenu, true);
+    return () => {
+      window.removeEventListener('resize', closePositionedMenu);
+      window.removeEventListener('scroll', closePositionedMenu, true);
+    };
+  }, [activeMenuResidentId]);
+
+  const toggleResidentMenu = (event: React.MouseEvent<HTMLButtonElement>, residentId: string) => {
+    event.stopPropagation();
+    if (activeMenuResidentId === residentId) {
+      setActiveMenuResidentId(null);
+      setResidentMenuPosition(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const viewportPadding = 8;
+    const menuGap = 4;
+    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+    const spaceAbove = rect.top - viewportPadding;
+    const openUpwards = spaceBelow < RESIDENT_MENU_ESTIMATED_HEIGHT && spaceAbove > spaceBelow;
+    const availableHeight = Math.max(160, openUpwards ? spaceAbove - menuGap : spaceBelow - menuGap);
+    const maxLeft = Math.max(viewportPadding, window.innerWidth - RESIDENT_MENU_WIDTH - viewportPadding);
+    const left = Math.min(
+      maxLeft,
+      Math.max(viewportPadding, rect.right - RESIDENT_MENU_WIDTH)
+    );
+
+    setResidentMenuPosition({
+      top: openUpwards ? undefined : rect.bottom + menuGap,
+      bottom: openUpwards ? window.innerHeight - rect.top + menuGap : undefined,
+      left,
+      maxHeight: availableHeight,
+    });
+    setActiveMenuResidentId(residentId);
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -127,6 +193,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
   const handleStatusChange = (residentId: string, newStatus: ResidentStatus) => {
     db.updateResident(residentId, { status: newStatus });
     setActiveMenuResidentId(null);
+    setResidentMenuPosition(null);
     showToast(`Resident status updated to ${newStatus.replace('_', ' ')}.`);
   };
 
@@ -441,20 +508,22 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveMenuResidentId(activeMenuResidentId === res.id ? null : res.id);
-                        }}
+                        onClick={(e) => toggleResidentMenu(e, res.id)}
                         className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
                         aria-label={`Actions for ${res.firstName} ${res.lastName}`}
+                        aria-expanded={activeMenuResidentId === res.id}
+                        aria-haspopup="menu"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
 
-                      {activeMenuResidentId === res.id && (
+                      {activeMenuResidentId === res.id && residentMenuPosition && createPortal(
                         <div 
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-100"
+                          role="menu"
+                          aria-label={`Resident actions for ${res.firstName} ${res.lastName}`}
+                          className="fixed w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-[100] text-xs overflow-y-auto animate-in fade-in zoom-in-95 duration-100"
+                          style={residentMenuPosition}
                         >
                           <button
                             type="button"
@@ -513,7 +582,8 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                           >
                             Discharged / Former
                           </button>
-                        </div>
+                        </div>,
+                        document.body
                       )}
                     </div>
                   </div>

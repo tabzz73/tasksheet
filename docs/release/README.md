@@ -1,13 +1,13 @@
 # TaskSheet 1.0 Release Closure
 
-Release candidate: **1.0.0-rc.8**
+Release candidate: **1.0.0-rc.9**
 Current decision: **Pilot Artifact Ready; clean-machine validation and controlled pilot pending**
 
 ## Release gates
 
 | Gate | Required result | Current status |
 |---|---|---|
-| Full regression | All automated tests pass | Passed: 102/102 on 2026-08-26 |
+| Full regression | All automated tests pass | Passed: 104/104 on 2026-08-26 |
 | Controlled production pilot | Completed; open P0 = 0 and P1 = 0 | Pending external execution |
 | Clean Windows validation | All required checks pass | Pending external execution |
 | Production build | Reproducible web artifact, no TypeScript errors | Passed on 2026-08-26 |
@@ -20,10 +20,10 @@ No document in this folder authorizes production use by itself. Approval is reco
 ## Documents
 
 - [Controlled Pilot Plan](CONTROLLED_PILOT_PLAN.md)
-- [Clean-Machine Validation - RC8](CLEAN_MACHINE_VALIDATION_RC8.md)
+- [Clean-Machine Validation - RC9](CLEAN_MACHINE_VALIDATION_RC9.md)
 - [Pilot Acceptance Report](PILOT_ACCEPTANCE_REPORT.md)
-- [Release Notes - RC8](RELEASE_NOTES_1.0.0_RC8.md)
-- [Known Limitations - RC8](KNOWN_LIMITATIONS_1.0.0_RC8.md)
+- [Release Notes - RC9](RELEASE_NOTES_1.0.0_RC9.md)
+- [Known Limitations - RC9](KNOWN_LIMITATIONS_1.0.0_RC9.md)
 - [RC2 Superseded Record](RC2_SUPERSEDED_RECORD.md)
 - [RC1 Rejection Record](RC1_REJECTION_RECORD.md)
 - [User Manual](USER_MANUAL_1.0.md)
@@ -31,7 +31,7 @@ No document in this folder authorizes production use by itself. Approval is reco
 - [Data Management](DATA_MANAGEMENT.md)
 - [Requirements Traceability Matrix](REQUIREMENTS_TRACEABILITY_MATRIX.md)
 - [Version and Build Information](VERSION_BUILD_INFO.md)
-- [Build Evidence - 1.0.0-rc.8](BUILD_EVIDENCE_1.0.0_RC8.md)
+- [Build Evidence - 1.0.0-rc.9](BUILD_EVIDENCE_1.0.0_RC9.md)
 - [Windows Pilot Installer Pipeline](WINDOWS_INSTALLER.md)
 
 ## Feature freeze
