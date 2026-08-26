@@ -48,13 +48,12 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
   it('allows a fresh blank facility profile to be edited and saved', () => {
     const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
     const form = view.container.querySelector('form');
-    const inputs = view.container.querySelectorAll<HTMLInputElement>('form input[type="text"]');
-    const siteNameInput = inputs[0];
-    const streetInput = inputs[1];
-    const cityInput = inputs[3];
-    const provinceInput = inputs[4];
-    const postalInput = inputs[5];
-    const phoneInput = inputs[6];
+    const siteNameInput = view.getByLabelText('Facility or site name') as HTMLInputElement;
+    const streetInput = view.getByLabelText('Street address') as HTMLInputElement;
+    const cityInput = view.getByLabelText('City') as HTMLInputElement;
+    const provinceInput = view.getByLabelText('Province or territory') as HTMLSelectElement;
+    const postalInput = view.getByLabelText('Postal code') as HTMLInputElement;
+    const phoneInput = view.getByLabelText('Main phone') as HTMLInputElement;
 
     expect(form).not.toBeNull();
     expect(siteNameInput.disabled).toBe(false);
@@ -70,6 +69,7 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
 
     expect(db.getState().facility.siteName).toBe('Real Facility');
     expect(db.getState().facility.street).toBe('1 Main Street');
+    expect(db.getState().facility.mainPhone).toBe('(780) 555-0100');
   });
 
   it('loads the Demo Mode workspace only after an explicit Settings action', () => {

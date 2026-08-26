@@ -73,7 +73,7 @@ npm version: ${npmVersion}
 Typecheck command: npm run typecheck
 Typecheck result: PASS - 0 errors
 Test command: npm test
-Test result: PASS - 104/104
+Test result: PASS - 109/109
 Build command: npm run build
 Build result: PASS
 Installer command: electron-builder --win nsis --x64

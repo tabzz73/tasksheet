@@ -4,7 +4,7 @@ TaskSheet turns resident care assignments, unit responsibilities, and important 
 
 ## Release status
 
-**TaskSheet 1.0.0-rc.9 — Pilot Artifact Ready**
+**TaskSheet 1.0.0-rc.10 — Pilot Artifact Ready**
 
 The operational feature set is frozen. The tagged Windows x64 pilot artifact is ready for clean-machine validation. Production approval still requires a completed controlled pilot with zero open P0/P1 defects and a successful clean-Windows validation.
 

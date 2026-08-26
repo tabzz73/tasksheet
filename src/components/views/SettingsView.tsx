@@ -30,17 +30,72 @@ import { QuickAddPresetsTab } from './QuickAddPresetsTab';
 import { AttentionRulesTab } from './AttentionRulesTab';
 import { Play, Printer, Sparkles, ShieldAlert } from 'lucide-react';
 import { formatShiftHeader } from '../../services/print';
+import {
+  CANADIAN_CITIES_BY_PROVINCE,
+  CANADIAN_PROVINCES,
+  formatCanadianPhone,
+  formatCanadianPostalCode,
+  formatContactNumber,
+  isValidCanadianPhone,
+} from '../../services/facilityFormatting';
 
 interface SettingsViewProps {
   onNavigateToWelcome?: (presentationMode?: boolean) => void;
 }
 
+type SettingsTab = 'facility' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup';
+
+const SETTINGS_NAV_GROUPS: Array<{
+  label: string;
+  items: Array<{
+    id: SettingsTab;
+    label: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
+}> = [
+  {
+    label: 'Facility',
+    items: [
+      { id: 'facility', label: 'Facility Setup', description: 'Identity, address and print branding', icon: Building2 },
+      { id: 'shifts', label: 'Roles & Shifts', description: 'Operational schedules and coverage', icon: Users },
+      { id: 'preferences', label: 'Preferences', description: 'Clock, display and startup behavior', icon: Clock },
+    ],
+  },
+  {
+    label: 'TaskSheet Workflow',
+    items: [
+      { id: 'print_profiles', label: 'Print Profiles', description: 'HCA and LPN layout preferences', icon: Printer },
+      { id: 'quick_presets', label: 'Quick Add Presets', description: 'Common resident-care shortcuts', icon: Sparkles },
+      { id: 'attention_rules', label: 'Attention & Safety', description: 'Visibility and alert rules', icon: ShieldAlert },
+      { id: 'catalog', label: 'Care Task Catalog', description: 'Standardized task definitions', icon: BookOpen },
+    ],
+  },
+  {
+    label: 'Data & Support',
+    items: [
+      { id: 'backup', label: 'Backup & Restore', description: 'Protect and recover local data', icon: Database },
+      { id: 'demo', label: 'Demo Workspace', description: 'Optional fictional practice data', icon: Layers },
+    ],
+  },
+];
+
+function prepareFacilityForEditing(facility: Facility): Facility {
+  return {
+    ...facility,
+    postalCode: formatCanadianPostalCode(facility.postalCode),
+    mainPhone: formatCanadianPhone(facility.mainPhone),
+    unitPhone: formatCanadianPhone(facility.unitPhone),
+    fax: formatCanadianPhone(facility.fax),
+  };
+}
+
 export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome }) => {
   const state = db.getState();
-  const [activeTab, setActiveTab] = useState<'facility' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup'>('facility');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('facility');
   
   // Facility Form State
-  const [facility, setFacility] = useState<Facility>(state.facility);
+  const [facility, setFacility] = useState<Facility>(() => prepareFacilityForEditing(state.facility));
   const [branding, setBranding] = useState<FacilityBrandingSettings>(
     state.settings.branding || {
       headerStyle: 'standard',
@@ -180,12 +235,43 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
 
   const handleSaveFacility = (e: React.FormEvent) => {
     e.preventDefault();
-    db.updateFacility(facility);
+    const normalizedFacility: Facility = {
+      ...facility,
+      siteName: facility.siteName.trim(),
+      street: facility.street.trim(),
+      addressLine2: facility.addressLine2?.trim(),
+      city: facility.city.trim(),
+      province: facility.province.toUpperCase(),
+      postalCode: formatCanadianPostalCode(facility.postalCode),
+      mainPhone: formatCanadianPhone(facility.mainPhone),
+      unitPhone: formatCanadianPhone(facility.unitPhone),
+      fax: formatCanadianPhone(facility.fax),
+    };
+    if (!isValidCanadianPhone(normalizedFacility.mainPhone)) {
+      showFeedback('error', 'Enter a complete 10-digit main phone number.');
+      return;
+    }
+    if (normalizedFacility.unitPhone && !isValidCanadianPhone(normalizedFacility.unitPhone)) {
+      showFeedback('error', 'Enter a complete 10-digit unit phone number or leave it blank.');
+      return;
+    }
+    if (normalizedFacility.fax && !isValidCanadianPhone(normalizedFacility.fax)) {
+      showFeedback('error', 'Enter a complete 10-digit fax number or leave it blank.');
+      return;
+    }
+    if (!/^[A-Z]\d[A-Z] \d[A-Z]\d$/.test(normalizedFacility.postalCode)) {
+      showFeedback('error', 'Enter a valid Canadian postal code, for example T6W 2P3.');
+      return;
+    }
+    setFacility(normalizedFacility);
+    db.updateFacility(normalizedFacility);
     db.updateFacilitySettings({ branding });
     setFacilitySaved(true);
     showFeedback('success', 'Facility profile & branding updated. All print headers reflect new details.');
     setTimeout(() => setFacilitySaved(false), 3000);
   };
+
+  const citySuggestions = CANADIAN_CITIES_BY_PROVINCE[facility.province] || [];
 
   const handleSaveSettings = (updates: Partial<FacilitySettings>) => {
     const newSettings = { ...settings, ...updates };
@@ -266,7 +352,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
   const handleLoadDemo = () => {
     if (window.confirm('Load the fictional Cedar Grove demo workspace? Manual facility data and records will be preserved. If setup is still blank, Cedar Grove will be used until you clear the demo.')) {
       db.loadDemoData();
-      setFacility(db.getState().facility);
+      setFacility(prepareFacilityForEditing(db.getState().facility));
       setSettings(db.getState().settings);
       showFeedback('success', 'Demo workspace loaded. Demo records and shifts are visibly identified and can be cleared here.');
     }
@@ -276,7 +362,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
     if (settings.dataMode === 'demo') {
       if (window.confirm('Clear the fictional Cedar Grove facility, demo shifts, residents, tasks, FYIs, and wounds, then begin real facility setup? The built-in task catalog will remain.')) {
         db.startRealSetup();
-        setFacility(db.getState().facility);
+        setFacility(prepareFacilityForEditing(db.getState().facility));
         setSettings(db.getState().settings);
         setActiveTab('facility');
         showFeedback('success', 'Demo configuration cleared. Enter your real facility details and create HCA/LPN shifts.');
@@ -308,7 +394,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
   });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Settings & Facility Management</h1>
@@ -327,98 +413,71 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
         </div>
       )}
 
-      {/* Tab Navigation */}
-      <div className="flex border-b border-slate-200 space-x-1 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('facility')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'facility' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>Facility Profile</span>
-        </button>
+      <div className="grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)] gap-6 items-start">
+        <aside className="hidden lg:block sticky top-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-3" aria-label="Settings sections">
+          <div className="px-3 pt-2 pb-3 border-b border-slate-100 mb-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-teal-700">Administration</p>
+            <p className="text-xs text-slate-500 mt-1">Choose an area to configure</p>
+          </div>
+          <nav className="space-y-4">
+            {SETTINGS_NAV_GROUPS.map(group => (
+              <div key={group.label}>
+                <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{group.label}</p>
+                <div className="space-y-1">
+                  {group.items.map(item => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                          isActive
+                            ? 'bg-teal-50 text-teal-950 ring-1 ring-teal-200'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className={`mt-0.5 p-1.5 rounded-lg ${isActive ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-xs font-bold leading-5">
+                            {item.label}
+                            {item.id === 'catalog' && <span className="ml-1 text-[10px] text-slate-400">({state.catalogTaskTemplates.length})</span>}
+                          </span>
+                          <span className="block text-[10px] leading-4 text-slate-500">{item.description}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </aside>
 
-        <button
-          onClick={() => setActiveTab('print_profiles')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'print_profiles' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Printer className="w-4 h-4" />
-          <span>Print Profiles & Layout</span>
-        </button>
+        <div className="min-w-0 space-y-4">
+          <div className="lg:hidden bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+            <label htmlFor="settings-section-select" className="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+              Settings section
+            </label>
+            <select
+              id="settings-section-select"
+              value={activeTab}
+              onChange={(event) => setActiveTab(event.target.value as SettingsTab)}
+              className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-teal-500"
+            >
+              {SETTINGS_NAV_GROUPS.map(group => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
 
-        <button
-          onClick={() => setActiveTab('quick_presets')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'quick_presets' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>Quick Add Presets</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('attention_rules')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'attention_rules' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <ShieldAlert className="w-4 h-4" />
-          <span>Attention & Safety Rules</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('catalog')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'catalog' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <BookOpen className="w-4 h-4" />
-          <span>Care Task Catalog ({state.catalogTaskTemplates.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('shifts')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'shifts' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Roles & Shifts</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('preferences')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'preferences' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Clock & Preferences</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('demo')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'demo' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>Demo Data Manager</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('backup')}
-          className={`px-4 py-2.5 text-xs font-bold border-b-2 flex items-center space-x-2 whitespace-nowrap ${
-            activeTab === 'backup' ? 'border-teal-600 text-teal-900 bg-teal-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Database className="w-4 h-4" />
-          <span>Backup & Restore</span>
-        </button>
-      </div>
+          <main className="min-w-0">
 
       {/* 1. FACILITY PROFILE */}
       {activeTab === 'facility' && (
@@ -440,6 +499,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 value={facility.siteName}
                 onChange={(e) => setFacility({ ...facility, siteName: e.target.value })}
                 required
+                autoComplete="organization"
+                aria-label="Facility or site name"
+                placeholder="e.g. Heritage Valley Care Centre"
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -453,6 +515,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 value={facility.street}
                 onChange={(e) => setFacility({ ...facility, street: e.target.value })}
                 required
+                autoComplete="address-line1"
+                aria-label="Street address"
+                placeholder="Street number and name"
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -466,6 +531,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 value={facility.addressLine2 || ''}
                 onChange={(e) => setFacility({ ...facility, addressLine2: e.target.value })}
                 placeholder="Suite / Wing / Floor"
+                autoComplete="address-line2"
+                aria-label="Address line 2"
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -479,8 +546,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 value={facility.city}
                 onChange={(e) => setFacility({ ...facility, city: e.target.value })}
                 required
+                list="facility-city-suggestions"
+                autoComplete="address-level2"
+                aria-label="City"
+                placeholder="Start typing or choose a suggestion"
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               />
+              <datalist id="facility-city-suggestions">
+                {citySuggestions.map(city => <option key={city} value={city} />)}
+              </datalist>
+              <p className="text-[10px] text-slate-500 mt-1">Suggestions follow the selected province; other municipalities can still be typed.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -488,13 +563,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Province <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   value={facility.province}
                   onChange={(e) => setFacility({ ...facility, province: e.target.value })}
                   required
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
-                />
+                  autoComplete="address-level1"
+                  aria-label="Province or territory"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 bg-white"
+                >
+                  {!CANADIAN_PROVINCES.some(province => province.code === facility.province) && facility.province && (
+                    <option value={facility.province}>{facility.province}</option>
+                  )}
+                  {CANADIAN_PROVINCES.map(province => (
+                    <option key={province.code} value={province.code}>{province.name} ({province.code})</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
@@ -503,9 +586,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 <input
                   type="text"
                   value={facility.postalCode}
-                  onChange={(e) => setFacility({ ...facility, postalCode: e.target.value })}
+                  onChange={(e) => setFacility({ ...facility, postalCode: formatCanadianPostalCode(e.target.value) })}
                   required
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                  autoComplete="postal-code"
+                  aria-label="Postal code"
+                  placeholder="A1A 1A1"
+                  maxLength={7}
+                  pattern="[A-Za-z][0-9][A-Za-z] [0-9][A-Za-z][0-9]"
+                  title="Enter a Canadian postal code such as T6W 2P3"
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm font-mono uppercase tracking-wider focus:ring-2 focus:ring-teal-500"
                 />
               </div>
             </div>
@@ -515,12 +604,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 Main Phone <span className="text-red-500">*</span>
               </label>
               <input
-                type="text"
+                type="tel"
                 value={facility.mainPhone}
-                onChange={(e) => setFacility({ ...facility, mainPhone: e.target.value })}
+                onChange={(e) => setFacility({ ...facility, mainPhone: formatCanadianPhone(e.target.value) })}
                 required
+                inputMode="tel"
+                autoComplete="tel"
+                aria-label="Main phone"
+                placeholder="(780) 555-0100"
+                maxLength={18}
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               />
+              <p className="text-[10px] text-slate-500 mt-1">Formatting is added automatically as you type.</p>
             </div>
 
             <div>
@@ -528,9 +623,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 Nursing / Unit Desk Phone
               </label>
               <input
-                type="text"
+                type="tel"
                 value={facility.unitPhone}
-                onChange={(e) => setFacility({ ...facility, unitPhone: e.target.value })}
+                onChange={(e) => setFacility({ ...facility, unitPhone: formatCanadianPhone(e.target.value) })}
+                inputMode="tel"
+                autoComplete="tel"
+                aria-label="Nursing or unit desk phone"
+                placeholder="(780) 555-0112"
+                maxLength={18}
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -540,9 +640,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 Fax
               </label>
               <input
-                type="text"
+                type="tel"
                 value={facility.fax}
-                onChange={(e) => setFacility({ ...facility, fax: e.target.value })}
+                onChange={(e) => setFacility({ ...facility, fax: formatCanadianPhone(e.target.value) })}
+                inputMode="tel"
+                aria-label="Fax"
+                placeholder="(780) 555-0113"
+                maxLength={18}
                 className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
               />
             </div>
@@ -605,7 +709,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                       <input
                         type="text"
                         value={ext.number}
-                        onChange={(e) => handleUpdateExtension(ext.id, { number: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          handleUpdateExtension(ext.id, {
+                            number: /^[a-z]/i.test(value.trim()) ? value : formatContactNumber(value),
+                          });
+                        }}
+                        onBlur={(e) => handleUpdateExtension(ext.id, { number: formatContactNumber(e.target.value) })}
                         placeholder="Extension / Number (e.g. ext 4021, 403-555-0155)"
                         className="px-3 py-1.5 border border-slate-300 rounded-md text-xs font-medium focus:ring-2 focus:ring-teal-500 bg-white"
                       />
@@ -1411,6 +1521,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
           </div>
         </div>
       )}
+          </main>
+        </div>
+      </div>
     </div>
   );
 };
