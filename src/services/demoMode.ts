@@ -9,13 +9,13 @@ export interface DemoState {
 }
 
 export function getDemoState(state: AppDatabaseState): DemoState {
-  const collections = [state.residents, state.residentTasks, state.unitTasks, state.fyis, state.wounds];
+  const collections = [state.shifts, state.residents, state.residentTasks, state.unitTasks, state.fyis, state.wounds];
   const demoRecordCount = collections.reduce(
     (count, items) => count + items.filter(item => item.source === 'demo').length,
     0,
   );
   const configurationMode = state.settings.dataMode || 'operational';
-  const demoConfigurationActive = configurationMode === 'demo' || state.shifts.some(shift => shift.source === 'demo');
+  const demoConfigurationActive = configurationMode === 'demo';
   const demoRecordsActive = demoRecordCount > 0;
 
   return {

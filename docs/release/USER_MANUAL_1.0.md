@@ -10,7 +10,7 @@ The optional Welcome page offers **Watch 60-Second Demo** and **Start Using Task
 
 In Settings, confirm facility identity, HCA/LPN roles, shift codes and start/end times, task catalog, schedules, FYIs, print preferences, and backup practices before live use.
 
-Fresh RC2 installations open in **Demo Mode** with an application-wide banner. Cedar Grove, its shifts, residents, and tasks are fictional. Select **Start Real Setup** before operational use. This removes demo-provenance data and shifts, resets the sample facility, and retains the built-in standardized task catalog. If demo records are later loaded from Settings, the **Demo Data Active** banner remains visible and clearing them preserves manually entered production records.
+Fresh RC3 installations open with an empty, editable real facility setup. No Cedar Grove facility, demo shifts, residents, tasks, FYIs, or wounds are installed. The built-in standardized task catalog remains available. To practice with fictional content, open **Settings → Demo Data → Load Demo Workspace**. Demo content is visibly identified and can be cleared without removing manually entered production records.
 
 ## Prepare a shift
 

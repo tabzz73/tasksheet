@@ -267,8 +267,8 @@ export const DEFAULT_SETTINGS: FacilitySettings = {
   timezone: 'America/Edmonton',
   timeFormat: '24h',
   developerFooterEnabled: false,
-  firstRunCompleted: true,
-  dataMode: 'demo',
+  firstRunCompleted: false,
+  dataMode: 'setup_required',
   printProfiles: [DEFAULT_HCA_PRINT_PROFILE, DEFAULT_LPN_PRINT_PROFILE],
   branding: {
     headerStyle: 'standard',

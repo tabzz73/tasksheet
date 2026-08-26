@@ -47,18 +47,17 @@ function migrateCategoryName(cat: string, title?: string): string {
 }
 
 function getInitialState(): AppDatabaseState {
-  const demo = generateDemoData();
   return {
-    facility: DEFAULT_FACILITY,
+    facility: { ...EMPTY_FACILITY },
     settings: DEFAULT_SETTINGS,
     roles: DEFAULT_ROLES,
-    shifts: DEFAULT_SHIFTS,
-    residents: demo.residents,
-    residentTasks: demo.residentTasks,
-    unitTasks: demo.unitTasks,
-    fyis: demo.fyis,
-    wounds: demo.wounds,
-    legacyCompletions: [], // ADR-001: initial state does not include demo completion records
+    shifts: [],
+    residents: [],
+    residentTasks: [],
+    unitTasks: [],
+    fyis: [],
+    wounds: [],
+    legacyCompletions: [],
     binderState: DEFAULT_BINDER_STATE,
     catalogCategories: ALBERTA_STARTER_CATEGORIES,
     catalogTaskTemplates: ALBERTA_TASK_TEMPLATES,
@@ -850,14 +849,37 @@ class DatabaseService {
   // Demo Data Management (Safe separation from Standard Catalog)
   public loadDemoData(): void {
     const demo = generateDemoData();
+    const manualShifts = this.state.shifts.filter(shift => shift.source !== 'demo');
+    const manualShiftIds = new Set(manualShifts.map(shift => shift.id));
+    const demoShifts = DEFAULT_SHIFTS.filter(shift => !manualShiftIds.has(shift.id));
     const cleanResidents = this.state.residents.filter(r => r.source !== 'demo');
     const cleanResidentTasks = this.state.residentTasks.filter(t => t.source !== 'demo');
     const cleanUnitTasks = this.state.unitTasks.filter(u => u.source !== 'demo');
     const cleanFYIs = this.state.fyis.filter(f => f.source !== 'demo');
     const cleanWounds = this.state.wounds.filter(w => w.source !== 'demo');
+    const isBlankFacility =
+      this.state.facility.siteName.trim() === '' &&
+      this.state.facility.street.trim() === '' &&
+      this.state.facility.city.trim() === '' &&
+      this.state.facility.postalCode.trim() === '' &&
+      this.state.facility.mainPhone.trim() === '';
+    const activatesDemoWorkspace =
+      this.state.settings.dataMode === 'setup_required' &&
+      isBlankFacility &&
+      manualShifts.length === 0 &&
+      cleanResidents.length === 0 &&
+      cleanResidentTasks.length === 0 &&
+      cleanUnitTasks.length === 0 &&
+      cleanFYIs.length === 0 &&
+      cleanWounds.length === 0;
 
     this.saveToStorage({
       ...this.state,
+      facility: activatesDemoWorkspace ? { ...DEFAULT_FACILITY } : this.state.facility,
+      settings: activatesDemoWorkspace
+        ? { ...this.state.settings, dataMode: 'demo', firstRunCompleted: true }
+        : this.state.settings,
+      shifts: [...manualShifts, ...demoShifts.map(shift => ({ ...shift }))],
       residents: [...cleanResidents, ...demo.residents],
       residentTasks: [...cleanResidentTasks, ...demo.residentTasks],
       unitTasks: [...cleanUnitTasks, ...demo.unitTasks],
@@ -873,11 +895,15 @@ class DatabaseService {
       this.startRealSetup();
       return;
     }
+    const demoShiftIds = new Set(
+      this.state.shifts.filter(shift => shift.source === 'demo').map(shift => shift.id)
+    );
     this.saveToStorage({
       ...this.state,
+      shifts: this.state.shifts.filter(shift => shift.source !== 'demo'),
       residents: this.state.residents.filter(r => r.source !== 'demo'),
-      residentTasks: this.state.residentTasks.filter(t => t.source !== 'demo'),
-      unitTasks: this.state.unitTasks.filter(u => u.source !== 'demo'),
+      residentTasks: this.state.residentTasks.filter(t => t.source !== 'demo' && !demoShiftIds.has(t.shiftId)),
+      unitTasks: this.state.unitTasks.filter(u => u.source !== 'demo' && !demoShiftIds.has(u.shiftId)),
       fyis: this.state.fyis.filter(f => f.source !== 'demo'),
       wounds: this.state.wounds.filter(w => w.source !== 'demo')
     });
@@ -943,6 +969,11 @@ class DatabaseService {
 
   public resetToInitialState(): void {
     this.saveToStorage(getInitialState());
+  }
+
+  public resetToDemoState(): void {
+    this.saveToStorage(getInitialState());
+    this.loadDemoData();
   }
 
   // Backup & Restore

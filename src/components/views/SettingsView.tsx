@@ -264,9 +264,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
   };
 
   const handleLoadDemo = () => {
-    if (window.confirm('Load 16 fictional residents and sample shift tasks? (Standard catalog is strictly preserved)')) {
+    if (window.confirm('Load the fictional Cedar Grove demo workspace? Manual facility data and records will be preserved. If setup is still blank, Cedar Grove will be used until you clear the demo.')) {
       db.loadDemoData();
-      showFeedback('success', 'Demo data loaded.');
+      setFacility(db.getState().facility);
+      setSettings(db.getState().settings);
+      showFeedback('success', 'Demo workspace loaded. Demo records and shifts are visibly identified and can be cleared here.');
     }
   };
 
@@ -1333,7 +1335,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
           <div>
             <h3 className="text-base font-bold text-slate-900">Demo Data Manager</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Safely load fictional records into a manual setup or convert the bundled sample configuration into a real facility setup.
+              Demo content is optional and is never included in a fresh production setup. Load it here only when you want a fictional practice workspace.
             </p>
           </div>
 
@@ -1343,7 +1345,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
               <span>Catalog Isolation Guarantee</span>
             </h4>
             <p className="text-xs text-teal-900">
-              Demo operational records are isolated by source tag (`source: 'demo'`). Loading or clearing demo records never overwrites manual production entries. Starting Real Setup also removes the bundled Cedar Grove facility and demo-provenance shifts while retaining the Alberta Standard Task Catalog.
+              Demo shifts and operational records are isolated by source tag (`source: 'demo'`). Loading or clearing them never overwrites manual production entries. The Alberta Standard Task Catalog remains available in both real and demo setups.
             </p>
             <div className="pt-2 flex items-center space-x-3">
               <button
@@ -1351,7 +1353,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                 onClick={handleLoadDemo}
                 className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
               >
-                Load Demo Data (16 Residents)
+                Load Demo Workspace
               </button>
               <button
                 type="button"

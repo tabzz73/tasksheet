@@ -13,7 +13,7 @@ import { isTimeWithinShift } from '../services/scheduling/timeWindow';
 describe('TaskSheet Generator & Domain Core Tests', () => {
   beforeEach(() => {
     // Reset database to fresh clean default state
-    db.resetToInitialState();
+    db.resetToDemoState();
   });
 
   it('uses end-exclusive shift windows for normal and overnight shifts', () => {

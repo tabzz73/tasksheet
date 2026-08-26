@@ -1,8 +1,11 @@
+// @vitest-environment jsdom
 import React from 'react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { cleanup, fireEvent, render } from '@testing-library/react';
 import { db } from '../db';
 import { DemoModeBanner } from '../components/layout/DemoModeBanner';
+import { SettingsView } from '../components/views/SettingsView';
 import { getDemoState } from '../services/demoMode';
 import { ROLE_HCA_ID } from '../data/defaultData';
 
@@ -11,7 +14,55 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
     db.resetToInitialState();
   });
 
-  it('shows an obvious persistent Demo Mode banner for a fresh RC2 state', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('starts fresh with editable real setup and no demo facility, shifts, or operational data', () => {
+    const state = db.getState();
+    const setupState = getDemoState(state);
+
+    expect(state.settings.dataMode).toBe('setup_required');
+    expect(state.facility.siteName).toBe('');
+    expect(state.shifts).toHaveLength(0);
+    expect(state.residents).toHaveLength(0);
+    expect(state.residentTasks).toHaveLength(0);
+    expect(state.unitTasks).toHaveLength(0);
+    expect(state.fyis).toHaveLength(0);
+    expect(state.wounds).toHaveLength(0);
+    expect(setupState.demoRecordsActive).toBe(false);
+    expect(setupState.demoConfigurationActive).toBe(false);
+  });
+
+  it('allows a fresh blank facility profile to be edited and saved', () => {
+    const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    const form = view.container.querySelector('form');
+    const inputs = view.container.querySelectorAll<HTMLInputElement>('form input[type="text"]');
+    const siteNameInput = inputs[0];
+    const streetInput = inputs[1];
+    const cityInput = inputs[3];
+    const provinceInput = inputs[4];
+    const postalInput = inputs[5];
+    const phoneInput = inputs[6];
+
+    expect(form).not.toBeNull();
+    expect(siteNameInput.disabled).toBe(false);
+    expect(siteNameInput.readOnly).toBe(false);
+
+    fireEvent.change(siteNameInput, { target: { value: 'Real Facility' } });
+    fireEvent.change(streetInput, { target: { value: '1 Main Street' } });
+    fireEvent.change(cityInput, { target: { value: 'Edmonton' } });
+    fireEvent.change(provinceInput, { target: { value: 'AB' } });
+    fireEvent.change(postalInput, { target: { value: 'T1A 1A1' } });
+    fireEvent.change(phoneInput, { target: { value: '780-555-0100' } });
+    fireEvent.submit(form!);
+
+    expect(db.getState().facility.siteName).toBe('Real Facility');
+    expect(db.getState().facility.street).toBe('1 Main Street');
+  });
+
+  it('loads the Demo Mode workspace only after an explicit Settings action', () => {
+    db.loadDemoData();
     const demoState = getDemoState(db.getState());
     const markup = renderToStaticMarkup(
       <DemoModeBanner
@@ -22,6 +73,8 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
       />,
     );
 
+    expect(db.getState().facility.siteName).toContain('Cedar Grove');
+    expect(db.getState().shifts.some(shift => shift.source === 'demo')).toBe(true);
     expect(demoState.configurationMode).toBe('demo');
     expect(demoState.demoConfigurationActive).toBe(true);
     expect(demoState.demoRecordsActive).toBe(true);
@@ -30,7 +83,21 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
     expect(markup).toContain('Start Real Setup');
   });
 
+  it('does not overwrite a partially entered real facility when demo is loaded', () => {
+    db.updateFacility({ siteName: 'Facility Setup In Progress' });
+
+    db.loadDemoData();
+
+    const state = db.getState();
+    expect(state.facility.siteName).toBe('Facility Setup In Progress');
+    expect(state.settings.dataMode).toBe('setup_required');
+    expect(state.shifts.some(shift => shift.source === 'demo')).toBe(true);
+    expect(getDemoState(state).demoConfigurationActive).toBe(false);
+    expect(getDemoState(state).demoRecordsActive).toBe(true);
+  });
+
   it('clears Cedar Grove and demo shifts, completes real setup, and does not restore demo state', () => {
+    db.loadDemoData();
     const catalogCount = db.getState().catalogTaskTemplates.length;
 
     db.startRealSetup();
@@ -78,7 +145,6 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
   });
 
   it('reloads and clears demo records without overwriting manual production records', () => {
-    db.startRealSetup();
     db.updateFacility({
       siteName: 'Manual Production Facility',
       street: '2 Production Way',
@@ -131,6 +197,7 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
   });
 
   it('migrates an RC1 backup with Cedar Grove demo data into explicit Demo Mode', () => {
+    db.loadDemoData();
     const legacyBackup = JSON.parse(db.backupDatabase());
     delete legacyBackup.settings.dataMode;
     legacyBackup.shifts = legacyBackup.shifts.map((shift: Record<string, unknown>) => {

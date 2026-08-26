@@ -13,7 +13,7 @@ import {
 
 describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () => {
   beforeEach(() => {
-    db.resetToInitialState();
+    db.resetToDemoState();
   });
 
   // ════════════════════════════════════════════════════════════════════════════
