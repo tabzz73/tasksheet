@@ -406,7 +406,7 @@ export const WelcomeHeroView: React.FC<WelcomeHeroViewProps> = ({
           TaskSheet is a shift-focused task and print workflow designed to turn resident care assignments, unit responsibilities, and important information into clear, organized, print-ready working sheets for care teams.
         </p>
         <p className="font-semibold text-slate-500">
-          SoftVibeSolutions · TaskSheet v1.0.0-rc.3
+          SoftVibeSolutions · TaskSheet v1.0.0-rc.4
         </p>
       </footer>
     </div>

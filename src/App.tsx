@@ -131,7 +131,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#F6F8FA] text-[#0F172A]">
+    <div className="h-screen overflow-hidden flex bg-[#F6F8FA] text-[#0F172A]">
       {/* 1. PERMANENT SIDEBAR */}
       <Sidebar
         currentTab={currentTab}
@@ -144,7 +144,7 @@ export function App() {
       />
 
       {/* 2. MAIN APPLICATION CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 pb-16 md:pb-0">
         {/* Top Sticky Navbar */}
         <Navbar
           currentDate={currentDate}
@@ -162,7 +162,7 @@ export function App() {
         />
 
         {/* Dynamic Page Views */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="relative z-0 isolate flex-1 min-h-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {/* DASHBOARD */}
           {currentTab === 'dashboard' && (
             <DashboardView

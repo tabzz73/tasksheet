@@ -17,7 +17,7 @@ export const DemoModeBanner: React.FC<DemoModeBannerProps> = ({
 }) => {
   if (state.configurationMode === 'setup_required') {
     return (
-      <section className="border-b border-sky-300 bg-sky-50 px-4 py-3 text-sky-950" role="status" aria-label="Real setup required">
+      <section className="relative z-20 shrink-0 border-b border-sky-300 bg-sky-50 px-4 py-3 text-sky-950" role="status" aria-label="Real setup required">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5">
             <Settings2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" />
@@ -38,7 +38,7 @@ export const DemoModeBanner: React.FC<DemoModeBannerProps> = ({
 
   if (state.demoConfigurationActive) {
     return (
-      <section className="border-b-2 border-amber-400 bg-amber-100 px-4 py-3 text-amber-950" role="alert" aria-label="Demo Mode active">
+      <section className="relative z-20 shrink-0 border-b-2 border-amber-400 bg-amber-100 px-4 py-3 text-amber-950" role="alert" aria-label="Demo Mode active">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5">
             <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
@@ -56,7 +56,7 @@ export const DemoModeBanner: React.FC<DemoModeBannerProps> = ({
   }
 
   return (
-    <section className="border-b border-violet-300 bg-violet-50 px-4 py-3 text-violet-950" role="alert" aria-label="Demo data active">
+    <section className="relative z-20 shrink-0 border-b border-violet-300 bg-violet-50 px-4 py-3 text-violet-950" role="alert" aria-label="Demo data active">
       <div className="mx-auto flex max-w-7xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-2.5">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-violet-700" />

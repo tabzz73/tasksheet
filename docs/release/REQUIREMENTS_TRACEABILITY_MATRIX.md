@@ -32,7 +32,8 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | REL-01 | Clean Windows install has no local-path/assets dependency | CM-01 through CM-03 | Pending |
 | REL-02 | Upgrade preserves supported data | CM-09 | Pending |
 | REL-03 | Production web artifact builds reproducibly | `npm run build`; build evidence record | Verified |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.3` | Git SHA/tag in generated build evidence | Verified |
+| UX-02 | Welcome/Overview cards remain below fixed application bars during scroll | `layout.e2e.spec.ts` | Verified |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.4` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

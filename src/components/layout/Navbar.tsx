@@ -19,7 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200/90 px-6 flex items-center justify-between no-print z-10 sticky top-0">
+    <header className="relative z-30 h-16 shrink-0 bg-white border-b border-slate-200/90 px-6 flex items-center justify-between no-print shadow-xs">
       {/* Left: Facility & Current Context */}
       <div className="flex items-center space-x-3">
         <div>
