@@ -29,7 +29,9 @@ import { PrintProfileEditorTab } from './PrintProfileEditorTab';
 import { QuickAddPresetsTab } from './QuickAddPresetsTab';
 import { AttentionRulesTab } from './AttentionRulesTab';
 import { CareTimingSettingsTab } from './CareTimingSettingsTab';
-import { Play, Printer, Sparkles, ShieldAlert } from 'lucide-react';
+import { AppInformationTab } from './AppInformationTab';
+import { DeveloperInformationTab } from './DeveloperInformationTab';
+import { Code2, Printer, Sparkles, ShieldAlert } from 'lucide-react';
 import { formatShiftHeader } from '../../services/print';
 import {
   CANADIAN_CITIES_BY_PROVINCE,
@@ -44,7 +46,7 @@ interface SettingsViewProps {
   onNavigateToWelcome?: (presentationMode?: boolean) => void;
 }
 
-type SettingsTab = 'facility' | 'care_timings' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup';
+type SettingsTab = 'facility' | 'care_timings' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup' | 'app_info' | 'developer_info';
 
 const SETTINGS_NAV_GROUPS: Array<{
   label: string;
@@ -78,6 +80,13 @@ const SETTINGS_NAV_GROUPS: Array<{
     items: [
       { id: 'backup', label: 'Backup & Restore', description: 'Protect and recover local data', icon: Database },
       { id: 'demo', label: 'Demo Workspace', description: 'Optional fictional practice data', icon: Layers },
+    ],
+  },
+  {
+    label: 'Application',
+    items: [
+      { id: 'app_info', label: 'App Information', description: 'Version, welcome and presentation', icon: Info },
+      { id: 'developer_info', label: 'Developer Information', description: 'Publisher and technical identity', icon: Code2 },
     ],
   },
 ];
@@ -1361,89 +1370,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
               />
             </div>
 
-            {/* App Experience / Welcome & Hero Section */}
-            <div className="pt-6 border-t border-slate-200 space-y-4">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-teal-600" />
-                  <h4 className="text-sm font-bold text-slate-900">App Experience · Welcome & Presentation</h4>
-                </div>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Control startup separately from the presentation experience. Neither option changes operational or demo data.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Welcome Page Behavior
-                </label>
-                <select
-                  value={settings.welcomeHero?.showWelcomePage || 'on_first_launch'}
-                  onChange={(e) => handleSaveSettings({
-                    welcomeHero: {
-                      ...settings.welcomeHero,
-                      showWelcomePage: e.target.value as any,
-                    }
-                  })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
-                >
-                  <option value="on_first_launch">First launch only (Default)</option>
-                  <option value="always">Always show on startup</option>
-                  <option value="never">Never show</option>
-                </select>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  This preference controls startup navigation only.
-                </p>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2.5 text-xs font-semibold text-slate-700 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={settings.welcomeHero?.showWhyTaskSheetContent !== false}
-                    onChange={(e) => handleSaveSettings({
-                      welcomeHero: {
-                        ...settings.welcomeHero,
-                        showWhyTaskSheetContent: e.target.checked,
-                      }
-                    })}
-                    className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"
-                  />
-                  <span>Show "Why TaskSheet" 6-card clinical selling points</span>
-                </label>
-              </div>
-
-              {onNavigateToWelcome && (
-                <div className="pt-2 space-y-3 border-t border-slate-100">
-                  <div className="pt-3">
-                    <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700">Presentation Mode</h5>
-                    <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-                      Opens the Welcome Hero with the 60-second demo prominent. Your current facility, resident, task, and demo-data state is not changed.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onNavigateToWelcome(true)}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-[#081D3A] hover:bg-[#0D2A54] text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-teal-400 text-teal-400" />
-                    <span>Launch Presentation Mode</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onNavigateToWelcome(false)}
-                    className="inline-flex items-center space-x-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-teal-600" />
-                    <span>Open Welcome Page</span>
-                  </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'app_info' && (
+        <AppInformationTab
+          settings={settings}
+          onUpdateSettings={handleSaveSettings}
+          onNavigateToWelcome={onNavigateToWelcome}
+        />
+      )}
+
+      {activeTab === 'developer_info' && (
+        <DeveloperInformationTab />
       )}
 
       {/* 5. DEMO DATA MANAGER */}

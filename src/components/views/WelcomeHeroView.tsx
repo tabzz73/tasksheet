@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import { db } from '../../db';
+import packageJson from '../../../package.json';
 
 interface WelcomeHeroViewProps {
   onStartWork: () => void;
@@ -406,7 +407,7 @@ export const WelcomeHeroView: React.FC<WelcomeHeroViewProps> = ({
           TaskSheet is a shift-focused task and print workflow designed to turn resident care assignments, unit responsibilities, and important information into clear, organized, print-ready working sheets for care teams.
         </p>
         <p className="font-semibold text-slate-500">
-          SoftVibeSolutions · TaskSheet v1.0.0-rc.11
+          SoftVibeSolutions · TaskSheet v{packageJson.version}
         </p>
       </footer>
     </div>

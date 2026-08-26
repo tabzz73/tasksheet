@@ -39,7 +39,9 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | UX-06 | Catalog task instructions are pre-filled and remain editable | Catalog/default-instruction regressions; Add Care Task UI | Verified |
 | CFG-01 | Facility medication and meal timing presets persist and drive Add Care Task choices | Care timing and Settings regressions | Verified |
 | CFG-02 | Timing preset choices remain constrained to the selected shift window | Normal/overnight care timing regressions | Verified |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.11` | Git SHA/tag in generated build evidence | Verified |
+| UX-07 | Welcome & Overview is absent from primary navigation and accessible under App Information | Settings/navigation regression | Verified |
+| UX-08 | App and developer identity have dedicated Settings pages | Settings/navigation regression | Verified |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.12` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render } from '@testing-library/react';
 import { db } from '../db';
 import { SettingsView } from '../components/views/SettingsView';
 import { CareTimingSettingsTab } from '../components/views/CareTimingSettingsTab';
+import { Sidebar } from '../components/layout/Sidebar';
 
 describe('modern Settings navigation and smart facility entry', () => {
   beforeEach(() => {
@@ -39,6 +40,27 @@ describe('modern Settings navigation and smart facility entry', () => {
     fireEvent.change(mobileSelector, { target: { value: 'quick_presets' } });
     expect((mobileSelector as HTMLSelectElement).value).toBe('quick_presets');
     expect(view.getByText('Facility Quick Add Presets Manager')).not.toBeNull();
+  });
+
+  it('keeps Welcome & Overview out of primary navigation and under App Information', () => {
+    const sidebar = render(
+      <Sidebar
+        currentTab="dashboard"
+        onTabChange={() => undefined}
+        onOpenQuickAdd={() => undefined}
+      />,
+    );
+    expect(sidebar.queryByText('Welcome & Overview')).toBeNull();
+    sidebar.unmount();
+
+    const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    fireEvent.click(view.getByRole('button', { name: /App Information/ }));
+    expect(view.getByRole('button', { name: /Open Welcome & Overview/ })).not.toBeNull();
+    expect(view.getByText('1.0.0-rc.12')).not.toBeNull();
+
+    fireEvent.click(view.getByRole('button', { name: /Developer Information/ }));
+    expect(view.getByText('SoftVibeSolutions')).not.toBeNull();
+    expect(view.getByText(/Local-first application storage/)).not.toBeNull();
   });
 
   it('formats contact and postal fields and provides province-aware city suggestions with free entry', () => {

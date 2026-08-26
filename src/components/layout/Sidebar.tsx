@@ -6,7 +6,6 @@ import {
   BookOpen, 
   Printer, 
   Settings,
-  Sparkles,
   Menu,
   X
 } from 'lucide-react';
@@ -101,19 +100,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Divider & Settings */}
         <div className="p-4 border-t border-[#152E52] space-y-2">
-          <button
-            type="button"
-            onClick={() => onTabChange('welcome')}
-            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-              currentTab === 'welcome'
-                ? 'bg-[#0E3D4D] text-teal-300 shadow-xs'
-                : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-5 h-5 text-teal-400" />
-            <span>Welcome & Overview</span>
-          </button>
-
           <button
             type="button"
             onClick={() => onTabChange('settings')}
