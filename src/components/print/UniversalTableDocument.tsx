@@ -21,11 +21,13 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   const density = model.density || 'standard';
   const isLargePrint = model.largePrint || false;
 
-  // Exact clinical print font sizes (Hard Readability Floor: Body ≥ 8.5pt, Instructions ≥ 8pt)
-  const fontSizeBase = isLargePrint ? '9.5pt' : density === 'compact' ? '8.5pt' : '8.5pt';
-  const fontSizeHeader = isLargePrint ? '9.5pt' : '8.5pt';
+  // Compact mode uses a conservative 8pt body floor; it saves height mainly
+  // through padding and line-height, rather than making the sheet hard to read.
+  const fontSizeBase = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : '8.5pt';
+  const fontSizeHeader = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : '8.5pt';
   const fontSizeInfo = isLargePrint ? '8.5pt' : '8.0pt';
-  const fontSizeTags = '7.5pt';
+  const fontSizeTags = density === 'compact' ? '7pt' : '7.5pt';
+  const headerPaddingY = density === 'compact' ? '2pt' : density === 'spacious' ? '4.5pt' : '3pt';
 
   // Group table rows by workflow section (only non-empty sections will render)
   const startRows = tableRows.filter(r => r.workflowSection === 'start');
@@ -55,10 +57,10 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
 
     // Variable row padding based on row type
     const paddingY = isCompact 
-      ? '2.5pt' 
+      ? density === 'compact' ? '1.75pt' : '2.5pt'
       : isExpanded 
-        ? '5pt' 
-        : density === 'compact' ? '3pt' : '3.5pt';
+        ? density === 'compact' ? '3.25pt' : '5pt'
+        : density === 'compact' ? '2pt' : density === 'spacious' ? '4.5pt' : '3pt';
 
     // Subtle, clean row backgrounds
     const rowBg = row.priority === 'urgent' 
@@ -160,7 +162,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
             fontFamily: 'Arial, sans-serif',
             fontSize: fontSizeInfo,
             color: '#334155',
-            lineHeight: 1.25,
+            lineHeight: density === 'compact' ? 1.15 : 1.25,
             width: isClinical ? '22%' : '28%',
             borderBottom: '0.5pt solid #cbd5e1',
           }}
@@ -236,13 +238,14 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   return (
     <div
       className="tasksheet-universal-document"
+      data-print-density={density}
       style={{
         position: 'relative',
         fontFamily: 'Arial, sans-serif',
         fontSize: fontSizeBase,
         color: '#0f172a',
         backgroundColor: '#ffffff',
-        lineHeight: 1.3,
+        lineHeight: density === 'compact' ? 1.2 : 1.3,
       }}
     >
       {/* ── OPTIONAL WATERMARK OVERLAY ── */}
@@ -446,18 +449,18 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
       >
         <thead>
           <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1.5pt solid #94a3b8', textAlign: 'left' }}>
-            <th style={{ padding: '3.5pt 2pt', width: isClinical ? '3%' : '4%', textAlign: 'center', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>☐</th>
-            <th style={{ padding: '3.5pt 3pt', width: isClinical ? '6%' : '8%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Time</th>
-            <th style={{ padding: '3.5pt 3pt', width: isClinical ? '6%' : '8%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Room</th>
-            <th style={{ padding: '3.5pt 4pt', width: isClinical ? '13%' : '18%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Resident</th>
-            <th style={{ padding: '3.5pt 4pt', width: '24%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Task Description</th>
-            <th style={{ padding: '3.5pt 4pt', width: isClinical ? '22%' : '28%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Important Information</th>
+            <th style={{ padding: `${headerPaddingY} 2pt`, width: isClinical ? '3%' : '4%', textAlign: 'center', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>☐</th>
+            <th style={{ padding: `${headerPaddingY} 3pt`, width: isClinical ? '6%' : '8%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Time</th>
+            <th style={{ padding: `${headerPaddingY} 3pt`, width: isClinical ? '6%' : '8%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Room</th>
+            <th style={{ padding: `${headerPaddingY} 4pt`, width: isClinical ? '13%' : '18%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Resident</th>
+            <th style={{ padding: `${headerPaddingY} 4pt`, width: '24%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Task Description</th>
+            <th style={{ padding: `${headerPaddingY} 4pt`, width: isClinical ? '22%' : '28%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>Important Information</th>
             {isClinical && (
-              <th style={{ padding: '3.5pt 4pt', width: '14%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>
+              <th style={{ padding: `${headerPaddingY} 4pt`, width: '14%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>
                 Vitals / Results
               </th>
             )}
-            <th style={{ padding: '3.5pt 4pt', width: isClinical ? '12%' : '10%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>
+            <th style={{ padding: `${headerPaddingY} 4pt`, width: isClinical ? '12%' : '10%', fontSize: fontSizeHeader, fontWeight: 800, color: '#0f172a' }}>
               {isClinical ? 'Notes / Follow-up' : 'Notes'}
             </th>
           </tr>

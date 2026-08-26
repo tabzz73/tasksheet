@@ -193,6 +193,60 @@ export interface PrintDocumentModel {
   };
 }
 
+export interface AdaptivePrintLayout {
+  density: PrintDensity;
+  handoffLines: number;
+  estimatedPages: number;
+}
+
+/**
+ * Keeps busy worksheets compact without sacrificing the readable low-volume
+ * layout. Explicit spacious/large-print choices are never auto-compacted.
+ * Handoff lines yield to operational rows before another page is introduced.
+ */
+export function calculateAdaptivePrintLayout(options: {
+  isClinical: boolean;
+  requestedDensity: PrintDensity;
+  largePrint: boolean;
+  taskRowCount: number;
+  sectionCount: number;
+  alertCount: number;
+  requestedHandoffLines: number;
+}): AdaptivePrintLayout {
+  const {
+    isClinical,
+    requestedDensity,
+    largePrint,
+    taskRowCount,
+    sectionCount,
+    alertCount,
+    requestedHandoffLines,
+  } = options;
+
+  const density: PrintDensity = isClinical && requestedDensity === 'standard' && !largePrint && taskRowCount >= 9
+    ? 'compact'
+    : requestedDensity;
+
+  const rowsPerPage = isClinical
+    ? density === 'compact' ? 16 : density === 'spacious' || largePrint ? 11 : 14
+    : density === 'compact' ? 24 : density === 'spacious' || largePrint ? 17 : 21;
+
+  // Section dividers, alerts, and ruled notes consume fractions of a normal row.
+  const fixedRowUnits = sectionCount * 0.55 + alertCount * 0.65;
+  const availableNoteUnits = Math.max(0, rowsPerPage - taskRowCount - fixedRowUnits);
+  const maxHandoffLinesOnFirstPage = Math.floor(availableNoteUnits / 0.65);
+  const canYieldHandoffSpace = density === 'compact' && !largePrint;
+  const handoffLines = requestedHandoffLines > 0
+    ? canYieldHandoffSpace
+      ? Math.min(requestedHandoffLines, Math.max(1, maxHandoffLinesOnFirstPage))
+      : requestedHandoffLines
+    : 0;
+  const totalRowUnits = taskRowCount + fixedRowUnits + handoffLines * 0.65;
+  const estimatedPages = Math.max(1, Math.ceil(totalRowUnits / rowsPerPage));
+
+  return { density, handoffLines, estimatedPages };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function formatDatePretty(dateStr: string): string {
@@ -913,21 +967,37 @@ return {
     const importantFyiCount = importantSharedFYIs.length +
       residentGroups.reduce((s, g) => s + g.importantInfoItems.filter(i => i.priority !== 'normal').length, 0);
 
-    // Compact table capacity: HCA ~22 rows/page, LPN ~16 rows/page
-    const rowsPerPage = isClinical ? 16 : 22;
     const totalRowsCount = tableRows.length;
-    const estimatedPages = Math.max(1, Math.ceil(totalRowsCount / rowsPerPage));
+    const requestedDensity = activeConfig?.density || 'standard';
+    const largePrint = activeConfig?.largePrint || false;
+    const requestedHandoffLines = activeConfig?.showHandoffLines !== false
+      ? (activeConfig?.handoffLinesCount ?? (isClinical ? 3 : 2))
+      : 0;
+    const sectionCount = [
+      tableRows.some(row => row.workflowSection === 'start'),
+      tableRows.some(row => row.workflowSection === 'resident_care'),
+      tableRows.some(row => row.workflowSection === 'untimed_prn'),
+      tableRows.some(row => row.workflowSection === 'end'),
+    ].filter(Boolean).length;
+    const adaptiveLayout = calculateAdaptivePrintLayout({
+      isClinical,
+      requestedDensity,
+      largePrint,
+      taskRowCount: totalRowsCount,
+      sectionCount,
+      alertCount: conciseShiftAlerts.length,
+      requestedHandoffLines,
+    });
+    const estimatedPages = adaptiveLayout.estimatedPages;
     const paperEfficiencyNote = `✓ Optimized for minimal paper (${estimatedPages} page${estimatedPages !== 1 ? 's' : ''})`;
 
     const vitalsRows = isClinical ? (activeConfig?.quickVitalsRowsCount ?? 8) : undefined;
     const vitalsCols = isClinical ? (activeConfig?.quickVitalsColumns?.filter(c => c.enabled) ?? DEFAULT_VITALS_COLUMNS) : undefined;
-    const handoffLines = activeConfig?.showHandoffLines !== false ? (activeConfig?.handoffLinesCount ?? (isClinical ? 3 : 2)) : 0;
-
     return {
       header,
       profile,
-      density: activeConfig?.density || 'standard',
-      largePrint: activeConfig?.largePrint || false,
+      density: adaptiveLayout.density,
+      largePrint,
       tableRows,
       conciseShiftAlerts,
       startUnitTasks: activeConfig?.showStartUnitTasks !== false ? startUnitTasks : [],
@@ -940,7 +1010,7 @@ return {
       quickVitalsResidents,
       quickVitalsRowsCount: vitalsRows,
       quickVitalsColumns: vitalsCols,
-      handoffNotesLinesCount: handoffLines,
+      handoffNotesLinesCount: adaptiveLayout.handoffLines,
       confidentialityNotice: state.settings.branding?.showConfidentialityNotice !== false 
         ? (state.settings.branding?.confidentialityNotice || 'CONFIDENTIAL HEALTHCARE RECORD — FOR AUTHORIZED FACILITY USE ONLY. DISPOSE VIA SECURE SHREDDING AT END OF SHIFT.')
         : undefined,

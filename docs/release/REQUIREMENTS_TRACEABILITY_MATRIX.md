@@ -35,7 +35,7 @@ Status values: Verified = automated evidence exists; Pilot = requires operationa
 | UX-02 | Welcome/Overview cards remain below fixed application bars during scroll | `layout.e2e.spec.ts` | Verified |
 | UX-03 | Clean first launch does not claim demo data was cleared | first-run banner regression | Verified |
 | UX-04 | MAP1/MAP2/MAP3 are discoverable in resident Common Quick Add and search for HCA/LPN | catalog-discovery regressions | Verified |
-| REL-04 | Exact source is committed and tagged `v1.0.0-rc.6` | Git SHA/tag in generated build evidence | Verified |
+| REL-04 | Exact source is committed and tagged `v1.0.0-rc.7` | Git SHA/tag in generated build evidence | Verified |
 | REL-05 | Pilot installer is built and checksummed from tag | Installer metadata/evidence | Verified |
 | PRE-01 | Welcome hero is optional and remains accessible | Welcome/settings implementation | Verified |
 | PRE-02 | Presentation Mode does not imply demo data | Welcome/settings implementation; manual | Verified |

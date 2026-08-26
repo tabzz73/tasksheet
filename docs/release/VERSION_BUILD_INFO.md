@@ -3,7 +3,7 @@
 ## Candidate identity
 
 - Product: TaskSheet
-- Version: `1.0.0-rc.6`
+- Version: `1.0.0-rc.7`
 - Release state: Pilot Artifact Ready; clean-machine validation pending
 - Production approval: **Not granted**
 - Package metadata: `package.json` and `package-lock.json`
@@ -29,20 +29,20 @@ The clean-machine validator must record the exact supported release environment 
 
 ## Current build disposition
 
-RC6 preserves RC5 behavior and restores Medication Assistance discovery in resident Quick Add/search for HCA and LPN. Final RC6 verification is recorded in the generated build evidence:
+RC7 preserves RC6 operational behavior and makes the universal LPN print layout workload-aware. Busy sheets compact row padding and reclaim optional handoff space before continuing onto a page with repeated headers. Final RC7 verification is recorded in the generated build evidence:
 
 - `npx tsc --noEmit`: PASS, 0 errors.
-- `npm test`: PASS, 100/100 tests.
+- `npm test`: PASS, 101/101 tests.
 - `npm run build`: PASS.
 
 The build emitted non-failing warnings for a `.print-landscape @page` CSS selector and a JavaScript chunk over 500 kB. These remain visible in build evidence and clean-machine print validation.
 
-The authoritative source is maintained in Git and tagged `v1.0.0-rc.6`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
+The authoritative source is maintained in Git and tagged `v1.0.0-rc.7`. The guarded NSIS pipeline requires a clean tagged `HEAD`, reruns every release gate, builds the Windows x64 installer, and writes the exact commit SHA and installer checksum to the external build-evidence record beside the artifact.
 
 Build output: `dist/`  
-Build ID: See generated RC6 build evidence
-Build date: See generated RC6 build evidence
-Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.6.txt`
-Git tag: `v1.0.0-rc.6`
-Pilot installer: `TaskSheet-Setup-1.0.0-rc.6-x64.exe`
+Build ID: See generated RC7 build evidence
+Build date: See generated RC7 build evidence
+Source identifier: See `release/TaskSheet-Build-Evidence-1.0.0-rc.7.txt`
+Git tag: `v1.0.0-rc.7`
+Pilot installer: `TaskSheet-Setup-1.0.0-rc.7-x64.exe`
 Installer SHA-256: See generated artifact evidence

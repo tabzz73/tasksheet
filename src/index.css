@@ -107,6 +107,17 @@
     padding: 3pt 4pt !important;
   }
 
+  /* Preserve the workload-driven density in the physical printout. */
+  .tasksheet-universal-document[data-print-density="compact"] th,
+  .tasksheet-universal-document[data-print-density="compact"] td {
+    padding: 2pt 3pt !important;
+  }
+
+  .tasksheet-universal-document[data-print-density="spacious"] th,
+  .tasksheet-universal-document[data-print-density="spacious"] td {
+    padding: 4.5pt 5pt !important;
+  }
+
   th {
     background-color: #f1f5f9 !important;
     font-weight: 700 !important;
@@ -127,4 +138,3 @@
     display: none !important;
   }
 }
-

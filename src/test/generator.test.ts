@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../db';
 import { generateShiftSheet, isDateDue, sortRoomNumbers } from '../services/generator';
-import { PrintService } from '../services/print';
+import { PrintService, calculateAdaptivePrintLayout } from '../services/print';
 import { ROLE_HCA_ID, ROLE_LPN_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID } from '../data/defaultData';
 import { ALBERTA_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { recordPrint, detectChanges, buildWhatChangedModel } from '../services/printHistory';
@@ -1149,6 +1149,44 @@ describe('Alberta Standard Starter Catalog Tests', () => {
         t => t.residentId === testResId && t.title === 'AM Care — Complete'
       );
       expect(updatedTask?.instructions).toBe('Updated instructions without duplicating task');
+    });
+
+    it('adapts busy LPN print density and yields handoff space without violating explicit accessibility settings', () => {
+      const lowVolume = calculateAdaptivePrintLayout({
+        isClinical: true,
+        requestedDensity: 'standard',
+        largePrint: false,
+        taskRowCount: 4,
+        sectionCount: 2,
+        alertCount: 0,
+        requestedHandoffLines: 5,
+      });
+      expect(lowVolume).toMatchObject({ density: 'standard', handoffLines: 5, estimatedPages: 1 });
+
+      const busyShift = calculateAdaptivePrintLayout({
+        isClinical: true,
+        requestedDensity: 'standard',
+        largePrint: false,
+        taskRowCount: 14,
+        sectionCount: 2,
+        alertCount: 0,
+        requestedHandoffLines: 5,
+      });
+      expect(busyShift.density).toBe('compact');
+      expect(busyShift.handoffLines).toBe(1);
+      expect(busyShift.estimatedPages).toBe(1);
+
+      const accessibleShift = calculateAdaptivePrintLayout({
+        isClinical: true,
+        requestedDensity: 'spacious',
+        largePrint: true,
+        taskRowCount: 14,
+        sectionCount: 2,
+        alertCount: 0,
+        requestedHandoffLines: 5,
+      });
+      expect(accessibleShift.density).toBe('spacious');
+      expect(accessibleShift.estimatedPages).toBeGreaterThan(1);
     });
 
     it('generates Universal Compact Table TaskSheet with inline structured results and minimal paper estimation', () => {
