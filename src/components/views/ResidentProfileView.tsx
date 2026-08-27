@@ -28,6 +28,7 @@ import { TaskDetailsDrawer } from '../modals/TaskDetailsDrawer';
 import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
+import { formatRecurrenceHuman } from '../../services/recurrence';
 
 interface ResidentProfileViewProps {
   residentId: string;
@@ -683,7 +684,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                         <span className="text-xs text-slate-500 capitalize">({w.firstAction})</span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1">
-                        <strong>Frequency:</strong> {w.frequency.replace('_', ' ')} · <strong>Bathing:</strong> {w.bathingRelation}
+                        <strong>Frequency:</strong> {formatRecurrenceHuman(w.recurrenceRule, w.frequency)} · <strong>Bathing:</strong> {w.bathingRelation}
                       </p>
                       <p className={`text-xs mt-1 ${needsSchedulingReview ? 'text-rose-700 font-bold' : 'text-slate-600'}`}>
                         <strong>Clinical shift:</strong>{' '}

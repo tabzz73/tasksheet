@@ -1,6 +1,7 @@
 import { db } from '../../db';
 import { Facility, Resident, ResidentTask, Shift, Role } from '../../types';
 import { isDateDue, sortRoomNumbers } from '../generator';
+import { formatRecurrenceHuman } from '../recurrence';
 
 // ─── 1. Bathing Schedule Types & Builder ─────────────────────────────────────
 
@@ -215,7 +216,7 @@ export function buildWoundScheduleModel(currentDateStr: string): WoundScheduleMo
         : w.firstAction === 'dressing_change'
           ? 'Dressing Change'
           : 'Assessment & Staging',
-      frequency: w.frequency.replace(/_/g, ' '),
+      frequency: formatRecurrenceHuman(w.recurrenceRule, w.frequency),
       bathingRelation: w.bathingRelation === 'after_bath' ? 'After scheduled shower/bath' : w.bathingRelation === 'before_bath' ? 'Before shower' : 'Independent of bathing',
       instructions: w.instructions,
       scheduledTime: w.time || '—',
@@ -336,7 +337,7 @@ export function buildResidentCareSummaryModel(residentId: string, currentDateStr
         id: w.id,
         siteLocation: w.siteLocation,
         firstAction: w.firstAction === 'treatment' ? 'Wound Treatment' : w.firstAction === 'dressing_change' ? 'Dressing Change' : 'Assessment',
-        frequency: w.frequency.replace(/_/g, ' '),
+        frequency: formatRecurrenceHuman(w.recurrenceRule, w.frequency),
         bathingRelation: w.bathingRelation === 'after_bath' ? 'After Shower' : 'Independent',
         shiftCode: assignedShift ? `${assignedShift.shortCode} — ${assignedShift.name}` : 'Needs clinical shift assignment',
         scheduledTime: w.time || 'Time required',

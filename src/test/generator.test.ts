@@ -96,6 +96,39 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
     expect(scheduledWound?.configurationWarning).toMatch(/shift assignment/i);
   });
 
+  it('prints human-readable wound recurrence instead of the storage value custom', () => {
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'Readable', lastName: 'Recurrence', roomNumber: '213', status: 'active' });
+    const baseWound = {
+      residentId: resident.id,
+      shiftId: SHIFT_LPN_DAY_ID,
+      time: '1000',
+      status: 'active' as const,
+      firstAction: 'treatment' as const,
+      bathingRelation: 'independent' as const,
+    };
+    const everyTwoDays = db.addWound({
+      ...baseWound,
+      siteLocation: 'Every two days site',
+      frequency: 'custom',
+      recurrenceRule: { type: 'EVERY_N_DAYS', basis: 'interval_days', interval: 2, startDate: '2026-08-26' },
+    });
+    const selectedDays = db.addWound({
+      ...baseWound,
+      siteLocation: 'Selected weekdays site',
+      frequency: 'selected_days',
+      recurrenceRule: { type: 'SELECTED_WEEKDAYS', basis: 'selected_weekdays', weekdays: [4, 6], selectedDays: [4, 6], startDate: '2026-08-26' },
+    });
+    const daily = db.addWound({ ...baseWound, siteLocation: 'Daily site', frequency: 'daily' });
+
+    const fridayModel = buildWoundScheduleModel('2026-08-28');
+    expect(fridayModel.wounds.find(item => item.id === everyTwoDays.id)?.frequency).toBe('Every 2 Days');
+    expect(fridayModel.wounds.find(item => item.id === daily.id)?.frequency).toBe('Daily');
+
+    const saturdayModel = buildWoundScheduleModel('2026-08-29');
+    expect(saturdayModel.wounds.find(item => item.id === selectedDays.id)?.frequency).toBe('Every Thu / Sat');
+  });
+
   it('prevents deletion of a clinical shift assigned to an active wound protocol', () => {
     db.clearAllOperationalData();
     const resident = db.addResident({ firstName: 'Shift', lastName: 'Dependency', roomNumber: '212', status: 'active' });

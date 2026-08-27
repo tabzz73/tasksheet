@@ -249,7 +249,13 @@ export function formatRecurrenceHuman(rule?: RecurrenceRule, frequency?: string)
   if (!rule) {
     if (frequency === 'daily') return 'Daily';
     if (frequency === 'prn') return 'PRN / If Required';
-    return frequency ? frequency.replace('_', ' ') : 'Daily';
+    if (frequency === 'every_2_weeks') return 'Every Other Week';
+    if (frequency === 'weekly') return 'Weekly';
+    if (frequency === 'monthly') return 'Monthly';
+    if (frequency === 'once') return 'One Time';
+    if (frequency === 'selected_days') return 'Selected Days';
+    if (frequency === 'custom') return 'Custom Schedule';
+    return frequency ? frequency.replace(/_/g, ' ') : 'Daily';
   }
 
   const type: RecurrenceType = (rule.type ||
@@ -270,7 +276,7 @@ export function formatRecurrenceHuman(rule?: RecurrenceRule, frequency?: string)
 
     case 'EVERY_N_DAYS': {
       const n = rule.interval || 2;
-      if (n === 2) return 'Every Other Day';
+      if (n === 2) return 'Every 2 Days';
       if (n === 28) return 'Every 28 Days';
       return `Every ${n} Days`;
     }
@@ -278,15 +284,15 @@ export function formatRecurrenceHuman(rule?: RecurrenceRule, frequency?: string)
     case 'SELECTED_WEEKDAYS': {
       const wks = rule.weekdays || rule.selectedDays || [];
       if (wks.length === 3 && wks.includes(1) && wks.includes(3) && wks.includes(5)) {
-        return 'Mon / Wed / Fri';
+        return 'Every Mon / Wed / Fri';
       }
       if (wks.length === 5 && !wks.includes(0) && !wks.includes(6)) {
-        return 'Weekdays (Mon–Fri)';
+        return 'Every Weekday (Mon–Fri)';
       }
       if (wks.length === 2 && wks.includes(0) && wks.includes(6)) {
-        return 'Weekends (Sat & Sun)';
+        return 'Every Sat / Sun';
       }
-      return wks.map(d => WEEKDAY_NAMES_SHORT[d]).join(', ') || 'Selected Days';
+      return wks.length > 0 ? `Every ${wks.map(d => WEEKDAY_NAMES_SHORT[d]).join(' / ')}` : 'Selected Days';
     }
 
     case 'WEEKLY': {
