@@ -106,6 +106,7 @@ interface PrintCenterProps {
   onPrintShiftSheet: (sheet: GeneratedShiftSheet) => void;
   onPrintSpecializedDoc: (doc: SpecializedPrintDoc) => void;
   onPrintPackage: (packageModel: PrintPackageModel) => void;
+  navigationResetToken?: number;
 }
 
 // ─── Change badge ─────────────────────────────────────────────────────────────
@@ -134,11 +135,18 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   onPrintShiftSheet,
   onPrintSpecializedDoc,
   onPrintPackage,
+  navigationResetToken = 0,
 }) => {
   const [selectedDate, setSelectedDate] = useState(currentDate);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
   const [packageConfigurationError, setPackageConfigurationError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setSelectedDate(currentDate);
+    setSelectedShiftIds(new Set());
+    setPackageConfigurationError(null);
+  }, [navigationResetToken]);
 
   const state = db.getState();
   const today = new Date().toISOString().split('T')[0];

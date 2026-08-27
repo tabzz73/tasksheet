@@ -36,6 +36,7 @@ export function App() {
   });
   const [currentDate, setCurrentDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [navigationResetToken, setNavigationResetToken] = useState(0);
 
   // Active sub-views
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null);
@@ -81,8 +82,17 @@ export function App() {
 
   const handleTabChange = (tab: NavigationTab) => {
     setCurrentTab(tab);
-    if (tab !== 'shifts') setActiveShiftId(null);
-    if (tab !== 'residents') setActiveResidentId(null);
+    // Sidebar/tab navigation always targets the section root. Detail views are
+    // opened explicitly through handleOpenShift/handleOpenResident, so clicking
+    // Shifts or Residents again should work as a reliable parent-navigation action.
+    setActiveShiftId(null);
+    setActiveResidentId(null);
+  };
+
+  const handleSidebarTabChange = (tab: NavigationTab) => {
+    if (tab === 'welcome') setIsPresentationMode(false);
+    setNavigationResetToken(token => token + 1);
+    handleTabChange(tab);
   };
 
   const currentActiveShift = activeShiftId ? dbState.shifts.find(s => s.id === activeShiftId) : undefined;
@@ -135,10 +145,7 @@ export function App() {
       {/* 1. PERMANENT SIDEBAR */}
       <Sidebar
         currentTab={currentTab}
-        onTabChange={(tab) => {
-          if (tab === 'welcome') setIsPresentationMode(false);
-          handleTabChange(tab);
-        }}
+        onTabChange={handleSidebarTabChange}
         onOpenQuickAdd={() => handleOpenQuickAdd()}
         binderUpdateRequired={dbState.binderState.status === 'update_required'}
       />
@@ -233,6 +240,7 @@ export function App() {
           {currentTab === 'fyi-binder' && (
             <FYIBinderView
               onOpenAddFYI={() => handleOpenQuickAdd('fyi')}
+              navigationResetToken={navigationResetToken}
             />
           )}
 
@@ -244,6 +252,7 @@ export function App() {
               onPrintShiftSheet={setPrintShiftSheet}
               onPrintSpecializedDoc={setSpecializedPrintDoc}
               onPrintPackage={setPackagePrintModel}
+              navigationResetToken={navigationResetToken}
             />
           )}
 
@@ -251,6 +260,7 @@ export function App() {
           {currentTab === 'settings' && (
             <SettingsView
               key={dbState.settings.dataMode || 'operational'}
+              navigationResetToken={navigationResetToken}
               onNavigateToWelcome={(presentationMode = false) => {
                 handleTabChange('welcome');
                 setIsPresentationMode(presentationMode);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BookOpen, 
   CheckCircle2, 
@@ -17,10 +17,12 @@ import { FyiBinderPrintModal } from '../modals/FyiBinderPrintModal';
 
 interface FYIBinderViewProps {
   onOpenAddFYI: () => void;
+  navigationResetToken?: number;
 }
 
 export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
-  onOpenAddFYI
+  onOpenAddFYI,
+  navigationResetToken = 0,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [scopeFilter, setScopeFilter] = useState<'all' | 'shared' | 'role-hca-0001' | 'role-lpn-0002' | 'role-rn-0003'>('all');
@@ -30,6 +32,14 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
     isOpen: false,
     fyi: null
   });
+
+  useEffect(() => {
+    setSearchQuery('');
+    setScopeFilter('all');
+    setEditFyi(null);
+    setIsPrintModalOpen(false);
+    setConfirmModal({ isOpen: false, fyi: null });
+  }, [navigationResetToken]);
 
   const state = db.getState();
   const fyis = state.fyis.filter(f => f.status === 'active');

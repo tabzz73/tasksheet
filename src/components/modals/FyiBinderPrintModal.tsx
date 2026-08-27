@@ -1,5 +1,6 @@
 ﻿import React, { useState, useRef } from 'react';
 import { Printer, X, BookOpen, ChevronDown } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { db } from '../../db';
 import { PrintService } from '../../services/print';
 import { FyiBinderPrintDocument } from '../print/FyiBinderPrintDocument';
@@ -30,11 +31,14 @@ export const FyiBinderPrintModal: React.FC<FyiBinderPrintModalProps> = ({ isOpen
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <>
       {/* Screen overlay / modal */}
       <div
-        className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm no-print"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Print FYI Binder"
+        className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm no-print"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-4 mt-6 mb-6 flex flex-col max-h-[92vh] overflow-hidden">
@@ -133,4 +137,10 @@ export const FyiBinderPrintModal: React.FC<FyiBinderPrintModalProps> = ({ isOpen
       </div>
     </>
   );
+
+  // The main application view creates an isolated stacking context. Render the
+  // print dialog at document level so it stays above navigation and view cards.
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };

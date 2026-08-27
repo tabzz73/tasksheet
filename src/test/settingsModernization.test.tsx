@@ -22,7 +22,6 @@ describe('modern Settings navigation and smart facility entry', () => {
     const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
     const sidebar = view.getByLabelText('Settings sections');
     const facilityButton = view.getByRole('button', { name: /Facility Setup/ });
-    const printButton = view.getByRole('button', { name: /Print Profiles/ });
     const timingButton = view.getByRole('button', { name: /Care Timing Presets/ });
     const mobileSelector = view.getByLabelText('Settings section');
 
@@ -30,14 +29,19 @@ describe('modern Settings navigation and smart facility entry', () => {
     expect(view.container.querySelector('.overflow-x-auto')).toBeNull();
     expect(facilityButton.getAttribute('aria-current')).toBe('page');
     expect(mobileSelector.tagName).toBe('SELECT');
+    expect(view.getByRole('button', { name: 'Facility' }).getAttribute('aria-expanded')).toBe('true');
+    expect(view.getByRole('button', { name: 'TaskSheet Workflow' }).getAttribute('aria-expanded')).toBe('false');
+    expect(view.queryByRole('button', { name: /Print Profiles/ })).toBeNull();
 
     fireEvent.click(timingButton);
     expect(view.getByText('Facility Care Timing Presets')).not.toBeNull();
     expect(view.getAllByDisplayValue('0800').length).toBeGreaterThan(0);
 
+    fireEvent.click(view.getByRole('button', { name: 'TaskSheet Workflow' }));
+    const printButton = view.getByRole('button', { name: /Print Profiles/ });
     fireEvent.click(printButton);
     expect(printButton.getAttribute('aria-current')).toBe('page');
-    expect(facilityButton.getAttribute('aria-current')).toBeNull();
+    expect(view.queryByRole('button', { name: /Facility Setup/ })).toBeNull();
 
     fireEvent.change(mobileSelector, { target: { value: 'quick_presets' } });
     expect((mobileSelector as HTMLSelectElement).value).toBe('quick_presets');
@@ -57,6 +61,7 @@ describe('modern Settings navigation and smart facility entry', () => {
     sidebar.unmount();
 
     const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    fireEvent.click(view.getByRole('button', { name: 'Application' }));
     fireEvent.click(view.getByRole('button', { name: /App Information/ }));
     expect(view.getByRole('button', { name: /Open Welcome & Overview/ })).not.toBeNull();
     expect(view.getByText(packageJson.version)).not.toBeNull();

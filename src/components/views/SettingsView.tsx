@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Building2, 
   Clock, 
@@ -31,7 +31,7 @@ import { AttentionRulesTab } from './AttentionRulesTab';
 import { CareTimingSettingsTab } from './CareTimingSettingsTab';
 import { AppInformationTab } from './AppInformationTab';
 import { DeveloperInformationTab } from './DeveloperInformationTab';
-import { Code2, Printer, Sparkles, ShieldAlert } from 'lucide-react';
+import { ChevronDown, Code2, Printer, Sparkles, ShieldAlert } from 'lucide-react';
 import { formatShiftHeader } from '../../services/print';
 import {
   CANADIAN_CITIES_BY_PROVINCE,
@@ -44,6 +44,7 @@ import {
 
 interface SettingsViewProps {
   onNavigateToWelcome?: (presentationMode?: boolean) => void;
+  navigationResetToken?: number;
 }
 
 type SettingsTab = 'facility' | 'care_timings' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup' | 'app_info' | 'developer_info';
@@ -101,9 +102,10 @@ function prepareFacilityForEditing(facility: Facility): Facility {
   };
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome, navigationResetToken = 0 }) => {
   const state = db.getState();
   const [activeTab, setActiveTab] = useState<SettingsTab>('facility');
+  const [expandedNavGroup, setExpandedNavGroup] = useState('Facility');
   
   // Facility Form State
   const [facility, setFacility] = useState<Facility>(() => prepareFacilityForEditing(state.facility));
@@ -144,6 +146,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
 
   // Messages
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    setActiveTab('facility');
+    setExpandedNavGroup('Facility');
+    setShiftModalState(prev => ({ ...prev, isOpen: false }));
+    setFeedbackMessage(null);
+  }, [navigationResetToken]);
+
+  const handleSelectSettingsTab = (tab: SettingsTab) => {
+    const ownerGroup = SETTINGS_NAV_GROUPS.find(group => group.items.some(item => item.id === tab));
+    if (ownerGroup) setExpandedNavGroup(ownerGroup.label);
+    setActiveTab(tab);
+  };
 
   const showFeedback = (type: 'success' | 'error', text: string) => {
     setFeedbackMessage({ type, text });
@@ -425,16 +440,39 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)] gap-6 items-start">
-        <aside className="hidden lg:block sticky top-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-3" aria-label="Settings sections">
+        <aside className="hidden lg:block sticky top-5 max-h-[calc(100vh-7.5rem)] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-3" aria-label="Settings sections">
           <div className="px-3 pt-2 pb-3 border-b border-slate-100 mb-2">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-teal-700">Administration</p>
             <p className="text-xs text-slate-500 mt-1">Choose an area to configure</p>
           </div>
-          <nav className="space-y-4">
-            {SETTINGS_NAV_GROUPS.map(group => (
-              <div key={group.label}>
-                <p className="px-3 mb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{group.label}</p>
-                <div className="space-y-1">
+          <nav className="space-y-1" aria-label="Settings category accordion">
+            {SETTINGS_NAV_GROUPS.map(group => {
+              const isExpanded = expandedNavGroup === group.label;
+              const containsActiveTab = group.items.some(item => item.id === activeTab);
+              const panelId = `settings-group-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+              return (
+              <div key={group.label} className="rounded-xl border border-transparent data-[open=true]:border-slate-200" data-open={isExpanded}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedNavGroup(current => current === group.label ? '' : group.label)}
+                  aria-expanded={isExpanded}
+                  aria-controls={panelId}
+                  className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-left transition-colors ${
+                    isExpanded || containsActiveTab ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  <span>
+                    <span className="block text-[11px] font-black uppercase tracking-[0.12em]">{group.label}</span>
+                    {!isExpanded && containsActiveTab && (
+                      <span className="mt-0.5 block text-[10px] font-semibold normal-case tracking-normal text-teal-700">
+                        {group.items.find(item => item.id === activeTab)?.label}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {isExpanded && (
+                <div id={panelId} className="space-y-1 px-1 pb-1 pt-1">
                   {group.items.map(item => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id;
@@ -442,7 +480,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => handleSelectSettingsTab(item.id)}
                         aria-current={isActive ? 'page' : undefined}
                         className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                           isActive
@@ -464,8 +502,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
                     );
                   })}
                 </div>
+                )}
               </div>
-            ))}
+            );})}
           </nav>
         </aside>
 
@@ -477,7 +516,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome 
             <select
               id="settings-section-select"
               value={activeTab}
-              onChange={(event) => setActiveTab(event.target.value as SettingsTab)}
+              onChange={(event) => handleSelectSettingsTab(event.target.value as SettingsTab)}
               className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-teal-500"
             >
               {SETTINGS_NAV_GROUPS.map(group => (
