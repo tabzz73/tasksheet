@@ -385,22 +385,17 @@ export function compressTaskInstruction(raw: string): string {
 }
 
 /**
- * Filter & prioritize task attention tags for print to keep rows uncluttered:
- * Priority: [HA] > [TC] > [BM] > [AM] > [2P] > [EQ] > [FU] > [MON] > [OB] > [CR]
- * Filters out [DOC] to avoid repetitive visual noise.
- * Max 2-3 tags per row.
+ * Deduplicate and prioritize attention tags for consistent print ordering.
+ * All configured indicators are retained by default so print preview cannot
+ * silently disagree with the operational shift view.
  */
-export function filterPrioritizedAttentionTags(tags?: string[], maxTags: number = 3): string[] {
+export function filterPrioritizedAttentionTags(tags?: string[], maxTags: number = Number.POSITIVE_INFINITY): string[] {
   if (!tags || tags.length === 0) return [];
   
-  const priorityOrder = ['[HA]', '[TC]', '[BM]', '[AM]', '[2P]', '[EQ]', '[FU]', '[MON]', '[OB]', '[CR]'];
-  
-  // Filter out [DOC] unless it's the only tag
-  const filtered = tags.filter(t => t !== '[DOC]');
-  const usable = filtered.length > 0 ? filtered : tags;
+  const priorityOrder = ['[HA]', '[TC]', '[BM]', '[AM]', '[2P]', '[EQ]', '[FU]', '[MON]', '[OB]', '[CR]', '[DOC]'];
 
   // Sort by priority order
-  const sorted = [...usable].sort((a, b) => {
+  const sorted = [...new Set(tags)].sort((a, b) => {
     const idxA = priorityOrder.indexOf(a);
     const idxB = priorityOrder.indexOf(b);
     const pA = idxA === -1 ? 99 : idxA;
@@ -827,7 +822,7 @@ return {
           structuredResult = { type: 'generic', label: 'Result: ____________' };
         }
 
-        const filteredTags = filterPrioritizedAttentionTags(t.attentionTags, 3);
+        const filteredTags = filterPrioritizedAttentionTags(t.attentionTags);
 
         rawResidentItems.push({
           id: `row_task_${t.id}`,
@@ -912,7 +907,7 @@ return {
 
     (prnResidentGroups || []).forEach(g => {
       g.tasks.forEach(t => {
-        const filteredTags = filterPrioritizedAttentionTags(t.attentionTags, 2);
+        const filteredTags = filterPrioritizedAttentionTags(t.attentionTags);
         tableRows.push({
           id: `row_prn_${t.id}`,
           workflowSection: 'untimed_prn',

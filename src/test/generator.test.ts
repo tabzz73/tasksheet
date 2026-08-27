@@ -18,6 +18,28 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
     db.resetToDemoState();
   });
 
+  it('preserves every configured attention indicator in print preview rows', () => {
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'Alert', lastName: 'Consistency', roomNumber: '303', status: 'active' });
+    const task = db.addResidentTask({
+      residentId: resident.id,
+      shiftId: SHIFT_HCA_DAY_ID,
+      title: 'Four Indicator Care',
+      category: 'Safety',
+      time: '0800',
+      frequency: 'daily',
+      attentionConfig: { indicators: ['HIGH_ALERT', 'TIME_CRITICAL', 'OBSERVE', 'DOC_REF'] },
+    });
+
+    const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
+    const model = PrintService.generateDocumentModel(sheet);
+    const row = model.tableRows.find(item => item.id === `row_task_${task.id}`);
+
+    expect(row?.attentionTags).toEqual(['[HA]', '[TC]', '[OB]', '[DOC]']);
+    expect(row?.attentionTags).toHaveLength(4);
+    expect(model.attentionLegend.map(item => item.code)).toEqual(expect.arrayContaining(['[HA]', '[TC]', '[OB]', '[DOC]']));
+  });
+
   it('prints a wound protocol only on its assigned LPN shift and due date', () => {
     db.clearAllOperationalData();
     const resident = db.addResident({ firstName: 'Wound', lastName: 'Schedule', roomNumber: '210', status: 'active' });
