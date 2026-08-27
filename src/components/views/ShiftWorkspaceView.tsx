@@ -34,6 +34,7 @@ import {
   TaskSnapshotItem 
 } from '../../services/printHistory';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
+import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule } from '../../services/recurrence';
 
 type WorkspaceTab = 'timeline' | 'residents' | 'preview';
 
@@ -138,6 +139,12 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   const { shift, role, startUnitTasks, duringUnitTasks, endUnitTasks, residentAssignments, prnTasks, importantFYIs, metrics } = sheet;
   const clinicalRoleText = `${role.code || ''} ${role.name || ''}`.toLowerCase();
   const isClinicalShift = clinicalRoleText.includes('lpn') || clinicalRoleText.includes('rn') || clinicalRoleText.includes('nurse');
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const endedUnitTasks = db.getState().unitTasks
+    .filter(task => task.isActive !== false)
+    .filter(task => task.shiftId ? task.shiftId === shiftId : task.roleId === role.id)
+    .filter(task => isRecurrenceScheduleEnded(task.recurrenceRule, task.frequency, todayDateStr, task.createdAt))
+    .sort((a, b) => (a.time || '9999').localeCompare(b.time || '9999'));
 
   // Build structured task snapshots for delta tracking
   const structuredTasks: TaskSnapshotItem[] = [];
@@ -194,6 +201,17 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     });
   };
 
+  const handleRestartCareTask = (task: ResidentTask) => {
+    if (!task.recurrenceRule) return;
+    if (!window.confirm(`Restart "${task.title}" beginning today (${todayDateStr})? The existing care-task record and recurrence pattern will be preserved.`)) return;
+    db.updateResidentTask(task.id, {
+      recurrenceRule: restartRecurrenceRule(task.recurrenceRule, todayDateStr),
+      isActive: true,
+      stoppedAt: undefined,
+    });
+    showToast(`Restarted "${task.title}" beginning ${todayDateStr}.`);
+  };
+
   const handleDeleteCareTask = (task: ResidentTask) => {
     const res = db.getState().residents.find(r => r.id === task.residentId);
     const hasHistory = db.hasTaskHistory(task.id);
@@ -226,6 +244,17 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
       hasHistory: db.hasTaskHistory(task.id),
       onConfirm: () => { db.stopUnitTask(task.id); showToast(`Stopped "${task.title}".`); },
     });
+  };
+
+  const handleRestartUnitTask = (task: UnitTask) => {
+    if (!task.recurrenceRule) return;
+    if (!window.confirm(`Restart "${task.title}" beginning today (${todayDateStr})? The existing unit-routine record and recurrence pattern will be preserved.`)) return;
+    db.updateUnitTask(task.id, {
+      recurrenceRule: restartRecurrenceRule(task.recurrenceRule, todayDateStr),
+      isActive: true,
+      stoppedAt: undefined,
+    });
+    showToast(`Restarted "${task.title}" beginning ${todayDateStr}.`);
   };
 
   const handleDeleteUnitTask = (task: UnitTask) => {
@@ -290,6 +319,34 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
         hasHistory={db.hasTaskHistory(u.id)}
         itemType="unit_task"
         ariaLabel={`Actions for ${u.title}`}
+      />
+    </div>
+  );
+
+  const renderEndedUnitTaskRow = (u: UnitTask) => (
+    <div key={u.id} className="flex items-start justify-between px-5 py-3.5 bg-violet-50/50 hover:bg-violet-50 transition-colors">
+      <div className="flex items-start space-x-3 flex-1 mr-3">
+        <CheckSquare className="w-4 h-4 text-violet-600 mt-0.5 shrink-0" />
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-violet-950">{u.title}</span>
+            {u.time && <span className="text-xs px-2 py-0.5 rounded font-mono bg-white text-slate-600">{u.time}</span>}
+            <span className="text-[10px] bg-violet-100 text-violet-900 font-bold px-1.5 py-0.5 rounded">Schedule Ended</span>
+          </div>
+          <p className="text-xs text-violet-800 mt-0.5">{formatRecurrenceHuman(u.recurrenceRule, u.frequency)}</p>
+        </div>
+      </div>
+      <TaskActionMenu
+        onViewDetails={() => setDrawerTask({ unitTask: u })}
+        onEdit={() => handleEditUnitTask(u)}
+        onDuplicate={() => handleDuplicateUnitTask(u)}
+        onRestart={() => handleRestartUnitTask(u)}
+        onStop={() => handleStopUnitTask(u)}
+        onDelete={() => handleDeleteUnitTask(u)}
+        isEnded
+        hasHistory={db.hasTaskHistory(u.id)}
+        itemType="unit_task"
+        ariaLabel={`Actions for ended ${u.title}`}
       />
     </div>
   );
@@ -551,6 +608,18 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
               </div>
             ))}
           </>
+        )}
+
+        {endedUnitTasks.length > 0 && (
+          <details className="group bg-violet-50/20">
+            <summary className="cursor-pointer list-none px-5 py-3 border-t border-violet-200 flex items-center justify-between text-violet-950">
+              <span className="text-[11px] font-black uppercase tracking-widest">Ended Unit Routines</span>
+              <span className="text-[11px] font-bold bg-violet-100 px-2 py-0.5 rounded-full">{endedUnitTasks.length}</span>
+            </summary>
+            <div className="border-t border-violet-100">
+              {endedUnitTasks.map(renderEndedUnitTaskRow)}
+            </div>
+          </details>
         )}
       </div>
     );
@@ -950,6 +1019,13 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
             } else if (drawerTask.unitTask) {
               db.reactivateUnitTask(drawerTask.unitTask.id);
               showToast(`Reactivated "${drawerTask.unitTask.title}".`);
+            }
+          }}
+          onRestart={() => {
+            if (drawerTask.careTask) {
+              handleRestartCareTask(drawerTask.careTask);
+            } else if (drawerTask.unitTask) {
+              handleRestartUnitTask(drawerTask.unitTask);
             }
           }}
           onDelete={() => {

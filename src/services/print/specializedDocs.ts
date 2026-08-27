@@ -1,7 +1,7 @@
 import { db } from '../../db';
 import { Facility, Resident, ResidentTask, Shift, Role } from '../../types';
 import { isDateDue, sortRoomNumbers } from '../generator';
-import { formatRecurrenceHuman } from '../recurrence';
+import { formatRecurrenceHuman, isRecurrenceScheduleEnded } from '../recurrence';
 
 // ─── 1. Bathing Schedule Types & Builder ─────────────────────────────────────
 
@@ -282,8 +282,16 @@ export function buildResidentCareSummaryModel(residentId: string, currentDateStr
   if (!resident) return null;
 
   const facility = state.facility;
-  const tasks = state.residentTasks.filter(t => t.residentId === resident.id && t.isActive !== false);
-  const wounds = (state.wounds || []).filter(w => w.residentId === resident.id && w.status !== 'resolved');
+  const tasks = state.residentTasks.filter(t =>
+    t.residentId === resident.id &&
+    t.isActive !== false &&
+    !isRecurrenceScheduleEnded(t.recurrenceRule, t.frequency, currentDateStr, t.createdAt)
+  );
+  const wounds = (state.wounds || []).filter(w =>
+    w.residentId === resident.id &&
+    w.status !== 'resolved' &&
+    !isRecurrenceScheduleEnded(w.recurrenceRule, w.frequency, currentDateStr, w.createdAt)
+  );
   const fyis = state.fyis.filter(f => f.residentId === resident.id && f.status === 'active');
   const shifts = state.shifts;
   const roles = state.roles;
@@ -309,7 +317,7 @@ export function buildResidentCareSummaryModel(residentId: string, currentDateStr
         title: t.title,
         category: t.category,
         time: t.time,
-        frequency: t.frequency.replace(/_/g, ' '),
+        frequency: formatRecurrenceHuman(t.recurrenceRule, t.frequency),
         instructions: t.instructions,
         priority: t.priority,
       })),

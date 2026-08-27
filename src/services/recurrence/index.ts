@@ -239,13 +239,94 @@ export function isTaskDueOnDate(
   }
 }
 
+/**
+ * True only after the final scheduled date has passed. The retained task can
+ * still be reviewed or edited, but it is no longer eligible for generation.
+ */
+export function isRecurrenceScheduleEnded(
+  rule: RecurrenceRule | undefined,
+  frequency: string | undefined,
+  referenceDateStr: string,
+  createdAtStr?: string,
+): boolean {
+  if (!rule) return false;
+
+  const type: RecurrenceType = (rule.type ||
+    (rule.basis === 'specific_date' ? 'ONE_TIME' :
+     rule.basis === 'prn' || frequency?.toLowerCase() === 'prn' ? 'PRN' :
+     'DAILY')) as RecurrenceType;
+
+  if (type === 'PRN') return false;
+  if (rule.endDate && referenceDateStr > rule.endDate) return true;
+
+  if (type === 'ONE_TIME') {
+    const occurrenceDate = rule.specificDate || rule.startDate || rule.anchorDate;
+    return !!occurrenceDate && referenceDateStr > occurrenceDate;
+  }
+
+  if (rule.endType !== 'after_occurrences' || !rule.endOccurrencesCount || rule.endOccurrencesCount < 1) {
+    return false;
+  }
+
+  const anchorDateStr = rule.startDate || rule.anchorDate || (createdAtStr ? createdAtStr.split('T')[0] : referenceDateStr);
+  if (referenceDateStr <= anchorDateStr) return false;
+
+  const baseRule: RecurrenceRule = {
+    ...rule,
+    endType: 'never',
+    endDate: undefined,
+    endOccurrencesCount: undefined,
+  };
+  let occurrenceCount = 0;
+  let cursor = parseDateUTC(anchorDateStr);
+  const referenceTime = parseDateUTC(referenceDateStr).getTime();
+
+  while (cursor.getTime() <= referenceTime) {
+    const cursorDateStr = formatDateUTC(cursor);
+    if (isTaskDueOnDate(baseRule, frequency, cursorDateStr, createdAtStr)) {
+      occurrenceCount++;
+      if (occurrenceCount === rule.endOccurrencesCount) {
+        return referenceDateStr > cursorDateStr;
+      }
+    }
+    cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  return false;
+}
+
+/** Re-anchor a retained ended schedule while preserving its recurrence shape. */
+export function restartRecurrenceRule(rule: RecurrenceRule, newStartDate: string): RecurrenceRule {
+  const previousStart = rule.startDate || rule.anchorDate || rule.specificDate;
+  const restarted: RecurrenceRule = {
+    ...rule,
+    startDate: newStartDate,
+    anchorDate: newStartDate,
+    lastPerformedDate: undefined,
+  };
+
+  if (rule.type === 'ONE_TIME' || rule.basis === 'specific_date') {
+    restarted.specificDate = newStartDate;
+  }
+
+  if (rule.endType === 'after_occurrences') {
+    restarted.endDate = undefined;
+  } else if (rule.endDate && previousStart) {
+    const durationDays = Math.max(0, getDaysDifference(previousStart, rule.endDate));
+    const newEnd = new Date(parseDateUTC(newStartDate).getTime() + durationDays * 24 * 60 * 60 * 1000);
+    restarted.endDate = formatDateUTC(newEnd);
+  }
+
+  return restarted;
+}
+
 const WEEKDAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
  * Returns a human-friendly clinical description of the recurrence rule.
  */
-export function formatRecurrenceHuman(rule?: RecurrenceRule, frequency?: string): string {
+function formatRecurrenceBaseHuman(rule?: RecurrenceRule, frequency?: string): string {
   if (!rule) {
     if (frequency === 'daily') return 'Daily';
     if (frequency === 'prn') return 'PRN / If Required';
@@ -339,4 +420,26 @@ export function formatRecurrenceHuman(rule?: RecurrenceRule, frequency?: string)
     default:
       return 'Daily';
   }
+}
+
+/** Adds finite-course wording consistently across every recurrence pattern. */
+export function formatRecurrenceHuman(rule?: RecurrenceRule, frequency?: string): string {
+  const base = formatRecurrenceBaseHuman(rule, frequency);
+  if (!rule || base.startsWith('One Time') || base.startsWith('Date Range') || base.startsWith('PRN')) {
+    return base;
+  }
+
+  if (rule.endType === 'after_occurrences' && rule.endOccurrencesCount) {
+    const isDaily = rule.type === 'DAILY' || rule.basis === 'daily' || frequency?.toLowerCase() === 'daily';
+    const unit = isDaily
+      ? (rule.endOccurrencesCount === 1 ? 'day' : 'days')
+      : (rule.endOccurrencesCount === 1 ? 'occurrence' : 'occurrences');
+    return `${base} for ${rule.endOccurrencesCount} ${unit}`;
+  }
+
+  if (rule.endDate && !base.toLowerCase().includes('until')) {
+    return `${base} until ${rule.endDate}`;
+  }
+
+  return base;
 }

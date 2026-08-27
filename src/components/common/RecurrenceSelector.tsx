@@ -25,6 +25,7 @@ export interface RecurrenceSelectorProps {
   frequency?: RecurrenceFrequency;
   onChange: (rule: RecurrenceRule, frequency: RecurrenceFrequency) => void;
   defaultAnchorDate?: string;
+  allowPrn?: boolean;
 }
 
 const WEEKDAYS = [
@@ -48,7 +49,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
   value,
   frequency: initialFreq,
   onChange,
-  defaultAnchorDate = new Date().toISOString().split('T')[0]
+  defaultAnchorDate = new Date().toISOString().split('T')[0],
+  allowPrn = true,
 }) => {
   const [activeType, setActiveType] = useState<RecurrenceType>(
     value?.type || (initialFreq === 'prn' ? 'PRN' : 'DAILY')
@@ -196,7 +198,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           How often?
         </label>
         <div className="flex flex-wrap gap-1.5">
-          <button
+          {allowPrn && <button
             type="button"
             onClick={() => applyPreset('daily')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -204,7 +206,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
             }`}
           >
             Daily
-          </button>
+          </button>}
 
           <button
             type="button"
@@ -315,7 +317,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
               { id: 'SELECTED_MONTHS', label: 'Selected Months' },
               { id: 'DATE_RANGE', label: 'Date Range' },
               { id: 'PRN', label: 'PRN / If Required' },
-            ].map(item => (
+            ].filter(item => allowPrn || item.id !== 'PRN').map(item => (
               <label
                 key={item.id}
                 className={`flex items-center space-x-2 p-2 rounded-lg border cursor-pointer ${

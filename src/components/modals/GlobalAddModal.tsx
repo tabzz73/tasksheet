@@ -122,6 +122,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [unitShiftPhase, setUnitShiftPhase] = useState<'start' | 'during' | 'end'>('start');
   const [unitTime, setUnitTime] = useState('0715');
   const [unitFrequency, setUnitFrequency] = useState<RecurrenceFrequency>('daily');
+  const [unitRecurrenceRule, setUnitRecurrenceRule] = useState<RecurrenceRule | undefined>(undefined);
   const [unitResultType, setUnitResultType] = useState<any>('confirmation');
   const [unitInstructions, setUnitInstructions] = useState('');
 
@@ -200,6 +201,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setUnitShiftPhase(initialUnitTask.shiftPhase);
         setUnitTime(initialUnitTask.time || '0715');
         setUnitFrequency(initialUnitTask.frequency);
+        setUnitRecurrenceRule(initialUnitTask.recurrenceRule);
         setUnitResultType(initialUnitTask.resultType);
         setUnitInstructions(initialUnitTask.instructions || '');
       } else if (initialWound) {
@@ -439,6 +441,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         shiftPhase: unitShiftPhase,
         time: unitTime,
         frequency: unitFrequency,
+        recurrenceRule: unitRecurrenceRule,
         resultType: unitResultType,
         instructions: unitInstructions.trim() || undefined
       });
@@ -451,6 +454,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         shiftPhase: unitShiftPhase,
         time: unitTime,
         frequency: unitFrequency,
+        recurrenceRule: unitRecurrenceRule,
         resultType: unitResultType,
         instructions: unitInstructions.trim() || undefined
       });
@@ -1279,20 +1283,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             </p>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              How often?
-            </label>
-            <select
-              value={unitFrequency}
-              onChange={(e) => setUnitFrequency(e.target.value as RecurrenceFrequency)}
-              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
-            >
-              <option value="daily">Daily</option>
-              <option value="selected_days">Selected Days of Week</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
+          <div className="pt-2 border-t border-slate-100">
+            <RecurrenceSelector
+              value={unitRecurrenceRule}
+              frequency={unitFrequency}
+              allowPrn={false}
+              onChange={(newRule, newFrequency) => {
+                setUnitRecurrenceRule(newRule);
+                setUnitFrequency(newFrequency);
+              }}
+            />
           </div>
 
           <div>

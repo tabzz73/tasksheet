@@ -28,7 +28,7 @@ import { TaskDetailsDrawer } from '../modals/TaskDetailsDrawer';
 import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
-import { formatRecurrenceHuman } from '../../services/recurrence';
+import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule } from '../../services/recurrence';
 
 interface ResidentProfileViewProps {
   residentId: string;
@@ -50,7 +50,8 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
   onPrintCareSummary
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'care' | 'wounds' | 'fyis' | 'history'>('overview');
-  const [careTaskFilter, setCareTaskFilter] = useState<'active' | 'stopped' | 'all'>('active');
+  const [careTaskFilter, setCareTaskFilter] = useState<'active' | 'ended' | 'stopped' | 'all'>('active');
+  const [woundFilter, setWoundFilter] = useState<'current' | 'ended' | 'resolved' | 'all'>('current');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
 
@@ -108,15 +109,35 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
 
   // Safe Isolation: Query ONLY by immutable resident UUID (zero bleed on room reuse)
   const allResidentTasks = state.residentTasks.filter(t => t.residentId === resident.id);
-  const activeTasks = allResidentTasks.filter(t => t.isActive !== false);
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const endedTasks = allResidentTasks.filter(t =>
+    t.isActive !== false && isRecurrenceScheduleEnded(t.recurrenceRule, t.frequency, todayDateStr, t.createdAt)
+  );
+  const endedTaskIds = new Set(endedTasks.map(t => t.id));
+  const activeTasks = allResidentTasks.filter(t => t.isActive !== false && !endedTaskIds.has(t.id));
   const stoppedTasks = allResidentTasks.filter(t => t.isActive === false);
   const displayedTasks = careTaskFilter === 'active' 
     ? activeTasks 
+    : careTaskFilter === 'ended'
+    ? endedTasks
     : careTaskFilter === 'stopped' 
     ? stoppedTasks 
     : allResidentTasks;
 
   const wounds = state.wounds.filter(w => w.residentId === resident.id);
+  const endedWounds = wounds.filter(w =>
+    w.status !== 'resolved' && isRecurrenceScheduleEnded(w.recurrenceRule, w.frequency, todayDateStr, w.createdAt)
+  );
+  const endedWoundIds = new Set(endedWounds.map(w => w.id));
+  const currentWounds = wounds.filter(w => w.status !== 'resolved' && !endedWoundIds.has(w.id));
+  const resolvedWounds = wounds.filter(w => w.status === 'resolved');
+  const displayedWounds = woundFilter === 'current'
+    ? currentWounds
+    : woundFilter === 'ended'
+    ? endedWounds
+    : woundFilter === 'resolved'
+    ? resolvedWounds
+    : wounds;
   const fyis = state.fyis.filter(f => f.residentId === resident.id && f.status === 'active');
   const shifts = state.shifts;
   const roles = state.roles;
@@ -163,6 +184,18 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
     setTimeout(() => setToastMessage(null), 4000);
   };
 
+  const handleRestartCareTask = (task: ResidentTask) => {
+    if (!task.recurrenceRule) return;
+    if (!window.confirm(`Restart "${task.title}" beginning today (${todayDateStr})? The existing task record and recurrence pattern will be preserved.`)) return;
+    db.updateResidentTask(task.id, {
+      recurrenceRule: restartRecurrenceRule(task.recurrenceRule, todayDateStr),
+      isActive: true,
+      stoppedAt: undefined,
+    });
+    setToastMessage(`Restarted "${task.title}" beginning ${todayDateStr}.`);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
   const handleDeleteCareTask = (task: ResidentTask) => {
     const hasHistory = db.hasTaskHistory(task.id);
     setConfirmModalState({
@@ -192,6 +225,25 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
       wound: w,
       fyi: null
     });
+  };
+
+  const handleDuplicateWound = (w: Wound) => {
+    setEditTaskState({ isOpen: true, mode: 'duplicate', careTask: null, wound: w, fyi: null });
+  };
+
+  const handleRestartWound = (w: Wound) => {
+    if (!w.recurrenceRule) return;
+    if (!window.confirm(`Restart the ${w.siteLocation} wound protocol schedule beginning today (${todayDateStr})? This does not change the clinical wound status.`)) return;
+    db.updateWound(w.id, { recurrenceRule: restartRecurrenceRule(w.recurrenceRule, todayDateStr) });
+    setToastMessage(`Restarted the ${w.siteLocation} wound schedule beginning ${todayDateStr}.`);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleResolveWound = (w: Wound) => {
+    if (!window.confirm(`Mark the ${w.siteLocation} wound protocol as resolved? Confirm this matches the current clinical record and facility process.`)) return;
+    db.updateWound(w.id, { status: 'resolved', updatedAt: new Date().toISOString() });
+    setToastMessage(`Marked the ${w.siteLocation} wound protocol resolved.`);
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleDeleteWound = (w: Wound) => {
@@ -508,7 +560,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                            <span className="text-slate-900 font-bold text-xs">{t.title}</span>
                           </span>
                           {t.time && <span className="font-mono text-slate-500 font-medium text-xs">{t.time}</span>}
-                          <span className="text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-semibold">{t.frequency}</span>
+                          <span className="text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-semibold">{formatRecurrenceHuman(t.recurrenceRule, t.frequency)}</span>
                           <TaskAttentionBadges attentionConfig={t.attentionConfig} />
                         </div>
                         {t.instructions && <p className="text-slate-500 text-[11px] mt-0.5">{t.instructions}</p>}
@@ -555,6 +607,17 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                 </button>
                 <button
                   type="button"
+                  onClick={() => setCareTaskFilter('ended')}
+                  className={`px-2.5 py-0.5 rounded-full font-medium ${
+                    careTaskFilter === 'ended'
+                      ? 'bg-violet-700 text-white font-bold'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Ended ({endedTasks.length})
+                </button>
+                <button
+                  type="button"
                   onClick={() => setCareTaskFilter('stopped')}
                   className={`px-2.5 py-0.5 rounded-full font-medium ${
                     careTaskFilter === 'stopped'
@@ -591,33 +654,42 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
           <div className="divide-y divide-slate-100">
             {displayedTasks.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs">
-                {careTaskFilter === 'stopped' 
-                  ? 'No stopped or inactive care tasks.' 
+                {careTaskFilter === 'stopped'
+                  ? 'No stopped or inactive care tasks.'
+                  : careTaskFilter === 'ended'
+                  ? 'No ended care schedules.'
                   : 'No care tasks assigned. Click above to add.'}
               </div>
             ) : (
               displayedTasks.map(t => {
                 const isStopped = t.isActive === false;
+                const isEnded = !isStopped && endedTaskIds.has(t.id);
                 const s = shifts.find(item => item.id === t.shiftId);
                 return (
-                  <div key={t.id} className={`p-4 flex items-start justify-between hover:bg-slate-50 transition-colors ${isStopped ? 'bg-slate-50/70 opacity-80' : ''}`}>
+                  <div key={t.id} className={`p-4 flex items-start justify-between hover:bg-slate-50 transition-colors ${isStopped ? 'bg-slate-50/70 opacity-80' : isEnded ? 'bg-violet-50/50' : ''}`}>
                     <div className="flex-1 mr-3">
                       <div className="flex items-center space-x-2">
                         <span 
                           onClick={() => setDrawerTask(t)}
-                          className={`font-bold text-sm cursor-pointer hover:underline ${isStopped ? 'text-slate-600 line-through' : 'text-slate-900'}`}
+                          className={`font-bold text-sm cursor-pointer hover:underline ${isStopped ? 'text-slate-600 line-through' : isEnded ? 'text-violet-950' : 'text-slate-900'}`}
                         >
                           {t.title}
                         </span>
                         {t.time && <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">{t.time}</span>}
-                        <span className="text-xs text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded capitalize">
-                          {t.frequency}
+                        <span className="text-xs text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded">
+                          {formatRecurrenceHuman(t.recurrenceRule, t.frequency)}
                         </span>
                         <TaskAttentionBadges attentionConfig={t.attentionConfig} />
                         {isStopped && (
                           <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5">
                             <PauseCircle className="w-3 h-3" />
                             <span>Stopped</span>
+                          </span>
+                        )}
+                        {isEnded && (
+                          <span className="text-[10px] bg-violet-100 text-violet-900 font-bold px-1.5 py-0.5 rounded flex items-center space-x-0.5">
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Schedule Ended</span>
                           </span>
                         )}
                       </div>
@@ -634,8 +706,10 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                         onDuplicate={() => handleDuplicateCareTask(t)}
                         onStop={() => handleStopCareTask(t)}
                         onReactivate={() => handleReactivateCareTask(t)}
+                        onRestart={() => handleRestartCareTask(t)}
                         onDelete={() => handleDeleteCareTask(t)}
                         isStopped={isStopped}
+                        isEnded={isEnded}
                         hasHistory={db.hasTaskHistory(t.id)}
                         itemType="care_task"
                         ariaLabel={`Actions for ${t.title}`}
@@ -652,8 +726,29 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
       {/* Wounds Tab */}
       {activeTab === 'wounds' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 rounded-t-xl flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Wound Protocols & Dressings</h3>
+          <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 rounded-t-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mr-1">Wound Protocols & Dressings</h3>
+              {([
+                ['current', `Current (${currentWounds.length})`],
+                ['ended', `Ended (${endedWounds.length})`],
+                ['resolved', `Resolved (${resolvedWounds.length})`],
+                ['all', `All (${wounds.length})`],
+              ] as const).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setWoundFilter(id)}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    woundFilter === id
+                      ? id === 'ended' ? 'bg-violet-700 text-white font-bold' : id === 'resolved' ? 'bg-emerald-700 text-white font-bold' : 'bg-slate-800 text-white font-bold'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => onOpenAddWound(resident.id)}
@@ -665,16 +760,17 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
           </div>
 
           <div className="divide-y divide-slate-100">
-            {wounds.length === 0 ? (
+            {displayedWounds.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs">
-                No active wound protocols for this resident.
+                {woundFilter === 'ended' ? 'No ended wound schedules.' : woundFilter === 'resolved' ? 'No resolved wound protocols.' : 'No current wound protocols for this resident.'}
               </div>
             ) : (
-              wounds.map(w => {
+              displayedWounds.map(w => {
                 const assignedShift = shifts.find(shift => shift.id === w.shiftId);
                 const needsSchedulingReview = !assignedShift || !w.time;
+                const isEnded = endedWoundIds.has(w.id);
                 return (
-                <div key={w.id} className="p-4 flex items-start justify-between hover:bg-slate-50 transition-colors">
+                <div key={w.id} className={`p-4 flex items-start justify-between hover:bg-slate-50 transition-colors ${isEnded ? 'bg-violet-50/50' : w.status === 'resolved' ? 'bg-emerald-50/40 opacity-80' : ''}`}>
                   <div className="flex items-start space-x-3 flex-1 mr-3">
                     <Bandage className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
                     <div>
@@ -682,6 +778,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                         <span className="font-bold text-slate-900 text-sm">{w.siteLocation}</span>
                         <span className="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded capitalize">{w.status}</span>
                         <span className="text-xs text-slate-500 capitalize">({w.firstAction})</span>
+                        {isEnded && <span className="text-[10px] bg-violet-100 text-violet-900 font-bold px-1.5 py-0.5 rounded">Schedule Ended</span>}
                       </div>
                       <p className="text-xs text-slate-600 mt-1">
                         <strong>Frequency:</strong> {formatRecurrenceHuman(w.recurrenceRule, w.frequency)} · <strong>Bathing:</strong> {w.bathingRelation}
@@ -698,7 +795,11 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                   <div className="flex items-center space-x-2 shrink-0">
                     <TaskActionMenu
                       onEdit={() => handleEditWound(w)}
+                      onDuplicate={() => handleDuplicateWound(w)}
+                      onRestart={() => handleRestartWound(w)}
+                      onResolve={w.status !== 'resolved' ? () => handleResolveWound(w) : undefined}
                       onDelete={() => handleDeleteWound(w)}
+                      isEnded={isEnded}
                       itemType="wound"
                       ariaLabel={`Actions for Wound ${w.siteLocation}`}
                     />
@@ -789,6 +890,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
           onDuplicate={() => handleDuplicateCareTask(drawerTask)}
           onStop={() => handleStopCareTask(drawerTask)}
           onReactivate={() => handleReactivateCareTask(drawerTask)}
+          onRestart={() => handleRestartCareTask(drawerTask)}
           onDelete={() => handleDeleteCareTask(drawerTask)}
         />
       )}

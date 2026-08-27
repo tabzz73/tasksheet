@@ -4,7 +4,7 @@
 
 - Format: NSIS `.exe`
 - Architecture: Windows x64
-- Filename: `TaskSheet-Setup-1.0.0-rc.23-x64.exe`
+- Filename: `TaskSheet-Setup-1.0.0-rc.24-x64.exe`
 - Desktop runtime: Electron
 - Builder: electron-builder
 - Installation mode: assisted installer; current-user by default; installation directory may be selected
@@ -23,16 +23,16 @@ The command performs typecheck, all regression tests, and the production web bui
 
 1. The workspace is a Git work tree.
 2. `git status --porcelain` is empty.
-3. `HEAD` is tagged exactly `v1.0.0-rc.23`.
+3. `HEAD` is tagged exactly `v1.0.0-rc.24`.
 
-On success it writes the installer and `TaskSheet-Build-Evidence-1.0.0-rc.23.txt` under the ignored `release/` directory. The evidence record contains commit SHA, tag, clean-tree status, UTC build time, Node/npm versions, command results, installer filename/checksum, and hashes for every `dist/` file.
+On success it writes the installer and `TaskSheet-Build-Evidence-1.0.0-rc.24.txt` under the ignored `release/` directory. The evidence record contains commit SHA, tag, clean-tree status, UTC build time, Node/npm versions, command results, installer filename/checksum, and hashes for every `dist/` file.
 
 ## Reproduction
 
 From the authoritative source repository:
 
 ```powershell
-git checkout v1.0.0-rc.23
+git checkout v1.0.0-rc.24
 npm ci
 npm run dist:win
 ```

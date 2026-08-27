@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical, Edit3, Copy, PauseCircle, PlayCircle, Trash2 } from 'lucide-react';
+import { CheckCircle2, MoreVertical, Edit3, Copy, PauseCircle, PlayCircle, RotateCcw, Trash2 } from 'lucide-react';
 
 interface TaskActionMenuProps {
   onViewDetails?: () => void;
@@ -8,8 +8,11 @@ interface TaskActionMenuProps {
   onDuplicate?: () => void;
   onStop?: () => void;
   onReactivate?: () => void;
+  onRestart?: () => void;
+  onResolve?: () => void;
   onDelete: () => void;
   isStopped?: boolean;
+  isEnded?: boolean;
   hasHistory?: boolean;
   itemType?: 'care_task' | 'unit_task' | 'fyi' | 'wound';
   align?: 'left' | 'right';
@@ -22,8 +25,11 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
   onDuplicate,
   onStop,
   onReactivate,
+  onRestart,
+  onResolve,
   onDelete,
   isStopped = false,
+  isEnded = false,
   hasHistory = false,
   itemType = 'care_task',
   align = 'right',
@@ -72,7 +78,7 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
     if (!isOpen) {
       const rect = e.currentTarget.getBoundingClientRect();
       const width = 192;
-      const estimatedHeight = 260;
+      const estimatedHeight = isEnded ? 330 : 260;
       const gap = 4;
       const padding = 8;
       const spaceBelow = window.innerHeight - rect.bottom - padding;
@@ -139,8 +145,26 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
             role="menuitem"
           >
             <Edit3 className="w-3.5 h-3.5 text-slate-500" />
-            <span className="font-medium">Edit {typeLabel}</span>
+            <span className="font-medium">{isEnded ? 'Edit / Extend Schedule' : `Edit ${typeLabel}`}</span>
           </button>
+
+          {isEnded && onRestart && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onRestart();
+              }}
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-teal-50 text-teal-900 transition-colors"
+              role="menuitem"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-teal-600" />
+              <div>
+                <span className="font-medium">Restart Schedule Today</span>
+                <p className="text-[10px] text-teal-700 font-normal">Preserves the recurrence pattern</p>
+              </div>
+            </button>
+          )}
 
           {/* 2. Duplicate */}
           {onDuplicate && (
@@ -189,6 +213,24 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
             >
               <PlayCircle className="w-3.5 h-3.5 text-teal-600" />
               <span className="font-medium">Resume / Reactivate</span>
+            </button>
+          )}
+
+          {itemType === 'wound' && onResolve && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onResolve();
+              }}
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-emerald-50 text-emerald-900 transition-colors"
+              role="menuitem"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <div>
+                <span className="font-medium">Mark Protocol Resolved</span>
+                <p className="text-[10px] text-emerald-700 font-normal">Clinical confirmation required</p>
+              </div>
             </button>
           )}
 
