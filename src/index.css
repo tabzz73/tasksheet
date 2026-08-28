@@ -80,7 +80,28 @@
 @media print {
   @page {
     size: letter portrait;
-    margin: 12mm 12mm 14mm 12mm;
+    margin: 5mm 5mm 8mm 5mm;
+
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 7.5pt;
+      font-weight: 700;
+      color: #475569;
+    }
+  }
+
+  @page tasksheet-landscape {
+    size: letter landscape;
+    margin: 5mm 5mm 8mm 5mm;
+
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 7.5pt;
+      font-weight: 700;
+      color: #475569;
+    }
   }
 
   body {
@@ -93,10 +114,14 @@
     print-color-adjust: exact;
   }
 
-  /* Clinical worksheet overrides to landscape */
-  .print-landscape @page {
-    size: letter landscape;
-    margin: 10mm 12mm 12mm 12mm;
+  /* Named pages are valid CSS; descendant @page rules are not. */
+  .print-landscape {
+    page: tasksheet-landscape;
+  }
+
+  /* @page owns the physical margins. Do not add a second inner margin. */
+  .print-only.tasksheet-print-document {
+    padding: 0 !important;
   }
 
   .no-print {

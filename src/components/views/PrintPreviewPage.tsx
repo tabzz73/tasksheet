@@ -229,7 +229,10 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       </div>
 
       {/* ── PRINT-ONLY ZONE ── */}
-      <div className="print-only tasksheet-print-document" style={{ padding: packageModel ? 0 : paperPadding }}>
+      <div
+        className={`print-only tasksheet-print-document ${isLandscape ? 'print-landscape' : 'print-portrait'}`}
+        style={{ padding: 0 }}
+      >
         {renderDocumentContent()}
       </div>
     </>

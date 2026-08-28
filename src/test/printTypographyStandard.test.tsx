@@ -42,4 +42,11 @@ describe('TaskSheet print typography standard', () => {
     expect(binder).toContain('class="tasksheet-print-document"');
     expect(binder).toContain('font-family:Arial, Helvetica, sans-serif');
   });
+
+  it('does not add a second inline margin to the physical print document', () => {
+    const preview = renderToStaticMarkup(<PrintPreviewPage onBack={() => undefined} />);
+
+    expect(preview).toContain('print-only tasksheet-print-document print-portrait');
+    expect(preview).toContain('padding:0');
+  });
 });

@@ -1019,7 +1019,7 @@ return {
       requestedHandoffLines,
     });
     const estimatedPages = adaptiveLayout.estimatedPages;
-    const paperEfficiencyNote = `✓ Optimized for minimal paper (${estimatedPages} page${estimatedPages !== 1 ? 's' : ''})`;
+    const paperEfficiencyNote = `✓ Optimized for minimal paper · ~${estimatedPages} estimated page${estimatedPages !== 1 ? 's' : ''}`;
 
     const vitalsRows = isClinical ? (activeConfig?.quickVitalsRowsCount ?? 8) : undefined;
     const vitalsCols = isClinical ? (activeConfig?.quickVitalsColumns?.filter(c => c.enabled) ?? DEFAULT_VITALS_COLUMNS) : undefined;
