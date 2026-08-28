@@ -4,6 +4,7 @@ import { QuickVitalsColumnConfig, PrintDensity } from '../../types';
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
 import { ResidentStatusExceptions } from './ResidentStatusExceptions';
 import { PRINT_TYPOGRAPHY_STANDARD } from '../../constants/printTypography';
+import { printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface Props {
   model: PrintDocumentModel;
@@ -339,7 +340,8 @@ export const LpnClinicalDocument: React.FC<Props> = ({ model }) => {
   const f = header.facility;
 
   return (
-    <div className="tasksheet-print-document" style={{ fontFamily: FONT, color: COLOR_BLACK, background: 'white', fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight }}>
+    <div className="tasksheet-print-document" style={{ ...printPageStyle(`lpn-${model.header.shiftCode || model.header.shiftName}`), fontFamily: FONT, color: COLOR_BLACK, background: 'white', fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight }}>
+      <RepeatingPrintFooter pageName={`lpn-${model.header.shiftCode || model.header.shiftName}`} orientation="landscape" coverage={`${model.header.shiftCode || model.header.shiftName} · ${model.header.formattedDate} · ${model.header.shiftTime}`} generatedAt={model.generatedAt} />
 
       {/* ── HEADER ── */}
       <div style={{ borderBottom: '2.5pt solid #0f172a', paddingBottom: '7pt', marginBottom: '8pt' }}>

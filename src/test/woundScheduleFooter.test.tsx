@@ -16,7 +16,7 @@ describe('wound schedule print footer', () => {
     const printCss = view.container.querySelector('style')?.textContent || '';
 
     expect(model.generatedAt).toBeTruthy();
-    expect(printCss).toContain('@page wound-schedule');
+    expect(printCss).toContain('@page tasksheet-wound-schedule');
     expect(printCss).toContain(`Coverage: ${model.formattedDate}`);
     expect(printCss).toContain('Generated:');
     expect(printCss).toContain('counter(page) " / " counter(pages)');

@@ -1,5 +1,6 @@
 import React from 'react';
 import { WoundScheduleModel } from '../../services/print/specializedDocs';
+import { formatPrintTimestamp, printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface WoundScheduleDocumentProps {
   model: WoundScheduleModel;
@@ -7,51 +8,11 @@ interface WoundScheduleDocumentProps {
 
 export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ model }) => {
   const { facility, title, formattedDate, generatedAt, wounds, totalActiveWounds, totalResidentsWithWounds } = model;
-  const generatedLabel = new Date(generatedAt).toLocaleString('en-CA', {
-    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
-  });
-  const cssContent = (value: string) => value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ');
-  const coverageFooter = cssContent(`Coverage: ${formattedDate}`);
-  const generatedFooter = cssContent(`Generated: ${generatedLabel}`);
-  const repeatingFooterCss = `
-    @media print {
-      @page wound-schedule {
-        size: letter landscape;
-        margin: 5mm 5mm 10mm 5mm;
-        @bottom-left {
-          content: "${coverageFooter}";
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 7.5pt;
-          font-weight: 700;
-          color: #475569;
-          vertical-align: top;
-          padding-top: 0.5mm;
-        }
-        @bottom-center {
-          content: "${generatedFooter}";
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 7.5pt;
-          color: #475569;
-          vertical-align: top;
-          padding-top: 0.5mm;
-        }
-        @bottom-right {
-          content: counter(page) " / " counter(pages);
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 7.5pt;
-          font-weight: 700;
-          color: #475569;
-          vertical-align: top;
-          padding-top: 0.5mm;
-        }
-      }
-      .wound-schedule-document { page: wound-schedule; }
-    }
-  `;
+  const generatedLabel = formatPrintTimestamp(generatedAt);
 
   return (
-    <div className="wound-schedule-document tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs">
-      <style>{repeatingFooterCss}</style>
+    <div className="wound-schedule-document tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs" style={printPageStyle('wound-schedule')}>
+      <RepeatingPrintFooter pageName="wound-schedule" orientation="landscape" coverage={formattedDate} generatedAt={generatedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-2 mb-3 flex items-start justify-between">
         <div>

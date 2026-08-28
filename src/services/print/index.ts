@@ -175,6 +175,7 @@ export interface PrintTableRow {
 
 export interface PrintDocumentModel {
   header: PrintDocumentHeader;
+  generatedAt?: string;
   profile: 'simple_checklist' | 'clinical_worksheet';
   density?: PrintDensity;
   largePrint?: boolean;
@@ -1048,6 +1049,7 @@ return {
     const vitalsCols = isClinical ? (activeConfig?.quickVitalsColumns?.filter(c => c.enabled) ?? DEFAULT_VITALS_COLUMNS) : undefined;
     return {
       header,
+      generatedAt: new Date().toISOString(),
       profile,
       density: adaptiveLayout.density,
       largePrint,

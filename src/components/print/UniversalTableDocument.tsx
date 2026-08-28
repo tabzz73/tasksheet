@@ -2,6 +2,7 @@ import React from 'react';
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
 import { ResidentStatusExceptions } from './ResidentStatusExceptions';
 import { PrintDocumentModel, PrintTableRow, formatShiftHeader } from '../../services/print';
+import { printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface UniversalTableDocumentProps {
   model: PrintDocumentModel;
@@ -22,6 +23,8 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   } = model;
   
   const isClinical = model.profile === 'clinical_worksheet';
+  const pageName = `shift-${model.profile}-${header.shiftCode || header.shiftName}`;
+  const coverage = `${header.shiftCode || header.shiftName} · ${header.formattedDate} · ${header.shiftTime}`;
   const density = model.density || 'standard';
   const isLargePrint = model.largePrint || false;
 
@@ -242,6 +245,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
       className="tasksheet-print-document tasksheet-universal-document"
       data-print-density={density}
       style={{
+        ...printPageStyle(pageName),
         position: 'relative',
         fontFamily: 'var(--print-font-family)',
         fontSize: fontSizeBase,
@@ -250,6 +254,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
         lineHeight: 'var(--print-line-height)',
       }}
     >
+      <RepeatingPrintFooter pageName={pageName} orientation={isClinical ? 'landscape' : 'portrait'} coverage={coverage} generatedAt={model.generatedAt} />
       {/* ── OPTIONAL WATERMARK OVERLAY ── */}
       {header.watermarkStyle && header.watermarkStyle !== 'none' && (
         <div

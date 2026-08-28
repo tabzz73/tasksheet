@@ -1,5 +1,6 @@
 import React from 'react';
 import { WhatChangedModel, formatGeneratedAt } from '../../services/printHistory';
+import { printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface WhatChangedDocumentProps {
   model: WhatChangedModel;
@@ -22,7 +23,8 @@ export const WhatChangedDocument: React.FC<WhatChangedDocumentProps> = ({ model 
   } = model;
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4">
+    <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4" style={printPageStyle(`what-changed-${shiftCode || shiftName}`)}>
+      <RepeatingPrintFooter pageName={`what-changed-${shiftCode || shiftName}`} orientation="portrait" coverage={`${shiftCode || shiftName} · ${formattedDate}`} generatedAt={newGeneratedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>
@@ -219,9 +221,6 @@ export const WhatChangedDocument: React.FC<WhatChangedDocumentProps> = ({ model 
             <div className="border-b border-slate-400 h-6"></div>
           </div>
         </div>
-        <p className="text-[10px] text-slate-400 text-right">
-          Cedar Grove Continuing Care · Shift Task Update · Page 1 of 1
-        </p>
       </div>
     </div>
   );

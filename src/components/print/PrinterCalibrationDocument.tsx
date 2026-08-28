@@ -1,12 +1,15 @@
 import React from 'react';
 import { db } from '../../db';
+import { formatPrintDate, printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 export const PrinterCalibrationDocument: React.FC = () => {
+  const generatedAt = React.useRef(new Date().toISOString());
   const state = db.getState();
   const facility = state.facility;
 
   return (
-    <div className="bg-white text-slate-900 font-sans p-2 select-text text-xs relative">
+    <div className="tasksheet-print-document bg-white text-slate-900 font-sans p-2 select-text text-xs relative" style={printPageStyle('printer-calibration')}>
+      <RepeatingPrintFooter pageName="printer-calibration" orientation="portrait" coverage={`Calibration reference · ${formatPrintDate(generatedAt.current)}`} generatedAt={generatedAt.current} />
       {/* ── 4 CORNER 10MM REGISTRATION MARKS ── */}
       <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-slate-900 flex items-start justify-start p-0.5 text-[8px] font-mono font-bold text-slate-400">
         10mm

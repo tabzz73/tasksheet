@@ -30,6 +30,7 @@ export interface BathingScheduleModel {
   title: string;
   weekRange: string;
   dateStr: string;
+  generatedAt?: string;
   days: Array<{ dayNumber: number; label: string; shortDate: string }>;
   rows: BathingResidentRow[];
   dailyTotals: Record<number, number>; // dayNumber -> total baths
@@ -154,6 +155,7 @@ export function buildBathingScheduleModel(currentDateStr: string): BathingSchedu
     title: 'BATHING & HYGIENE MASTER SCHEDULE',
     weekRange,
     dateStr: currentDateStr,
+    generatedAt: new Date().toISOString(),
     days,
     rows,
     dailyTotals,
@@ -276,6 +278,7 @@ export interface WeeklyWoundOverviewModel {
   title: string;
   weekRange: string;
   anchorDate: string;
+  generatedAt?: string;
   days: WoundWeekDay[];
   rows: WeeklyWoundOverviewRow[];
   dailyTotals: number[];
@@ -308,6 +311,7 @@ export interface WoundSupplyReorderModel {
   activeWoundCount: number;
   activeResidentCount: number;
   generatedDate: string;
+  generatedAt?: string;
 }
 
 function toIsoDate(date: Date): string {
@@ -383,6 +387,7 @@ export function buildWeeklyWoundOverviewModel(anchorDate: string): WeeklyWoundOv
     title: 'WEEKLY WOUND CARE OVERVIEW',
     weekRange,
     anchorDate,
+    generatedAt: new Date().toISOString(),
     days,
     rows,
     dailyTotals,
@@ -438,6 +443,7 @@ export function buildWoundSupplyReorderModel(anchorDate: string, scope: 'current
     activeWoundCount: selected.length,
     activeResidentCount: new Set(selected.map(item => item.resident.id)).size,
     generatedDate: new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }),
+    generatedAt: new Date().toISOString(),
   };
 }
 
@@ -447,6 +453,7 @@ export interface ResidentCareSummaryModel {
   facility: Facility;
   resident: Resident;
   formattedDate: string;
+  generatedAt?: string;
   importantFYIs: Array<{ category: string; text: string; importance: string }>;
   tasksByShift: Array<{
     shift: Shift;
@@ -530,6 +537,7 @@ export function buildResidentCareSummaryModel(residentId: string, currentDateStr
     facility,
     resident,
     formattedDate,
+    generatedAt: new Date().toISOString(),
     importantFYIs: fyis.map(f => ({
       category: f.category,
       text: f.text,
@@ -557,6 +565,7 @@ export function buildResidentCareSummaryModel(residentId: string, currentDateStr
 export interface ShiftConfigReferenceModel {
   facility: Facility;
   formattedDate: string;
+  generatedAt?: string;
   shifts: Array<{
     shift: Shift;
     role: Role;
@@ -601,6 +610,7 @@ export function buildShiftConfigReferenceModel(currentDateStr: string): ShiftCon
   return {
     facility,
     formattedDate,
+    generatedAt: new Date().toISOString(),
     shifts,
   };
 }

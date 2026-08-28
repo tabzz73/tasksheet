@@ -1,12 +1,14 @@
 import React from 'react';
 import { db } from '../../db';
 import { sortRoomNumbers } from '../../services/generator';
+import { printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface UpcomingScheduleDocumentProps {
   currentDateStr: string;
 }
 
 export const UpcomingScheduleDocument: React.FC<UpcomingScheduleDocumentProps> = ({ currentDateStr }) => {
+  const generatedAt = React.useRef(new Date().toISOString());
   const state = db.getState();
   const facility = state.facility;
   const residents = [...state.residents]
@@ -35,7 +37,8 @@ export const UpcomingScheduleDocument: React.FC<UpcomingScheduleDocumentProps> =
   const weekRange = `${startDate.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} – ${endDate.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4">
+    <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4" style={printPageStyle('upcoming-seven-day')}>
+      <RepeatingPrintFooter pageName="upcoming-seven-day" orientation="landscape" coverage={weekRange} generatedAt={generatedAt.current} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-2 flex items-start justify-between">
         <div>
@@ -137,9 +140,6 @@ export const UpcomingScheduleDocument: React.FC<UpcomingScheduleDocumentProps> =
       <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
         <p>
           <strong>Planning Guideline:</strong> Review multi-day allocations for balanced staffing and equipment availability.
-        </p>
-        <p className="font-semibold text-slate-700">
-          Cedar Grove Continuing Care · Page 1 of 1
         </p>
       </div>
     </div>

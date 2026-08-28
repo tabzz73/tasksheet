@@ -1,6 +1,7 @@
 import React from 'react';
 import { ResidentCareSummaryModel } from '../../services/print/specializedDocs';
 import { getResidentStatusLabel } from '../../services/residentStatus';
+import { printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface ResidentCareSummaryDocumentProps {
   model: ResidentCareSummaryModel;
@@ -12,7 +13,8 @@ export const ResidentCareSummaryDocument: React.FC<ResidentCareSummaryDocumentPr
   const totalTasks = tasksByShift.reduce((acc, s) => acc + s.tasks.length, 0);
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4">
+    <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4" style={printPageStyle(`resident-care-${resident.id}`)}>
+      <RepeatingPrintFooter pageName={`resident-care-${resident.id}`} orientation="portrait" coverage={`As of ${formattedDate}`} generatedAt={model.generatedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>

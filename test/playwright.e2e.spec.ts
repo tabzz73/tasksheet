@@ -52,6 +52,11 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.locator('button').filter({ hasText: 'Simple Checklist' }).first().click();
     await page.getByRole('button', { name: /Open Full Preview/i }).click();
     await expect(page.getByRole('heading', { name: 'TASKSHEET' })).toBeVisible();
+    const hcaPrintFooter = page.locator('.print-only style[data-print-footer]').last();
+    const hcaFooterCss = await hcaPrintFooter.evaluate(element => element.textContent || '');
+    expect(hcaFooterCss).toContain('Coverage: D1');
+    expect(hcaFooterCss).toContain('counter(page) " / " counter(pages)');
+    await expect(page.locator('.print-only .tasksheet-universal-document').last()).toHaveCSS('page', 'tasksheet-shift-simple_checklist-d1');
   });
 
   test('Journey 2 — LPN: Open LPN Day, verify fridge monitoring, and search Blood Glucose Check', async ({ page }) => {
@@ -83,6 +88,11 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: /Clinical Worksheet/i }).first().click();
     await page.getByRole('button', { name: /Open Full Preview/i }).click();
     await expect(page.getByText(/CLINICAL SHIFT WORKSHEET/i).first()).toBeVisible();
+    const lpnPrintFooter = page.locator('.print-only style[data-print-footer]').last();
+    const lpnFooterCss = await lpnPrintFooter.evaluate(element => element.textContent || '');
+    expect(lpnFooterCss).toContain('size: letter landscape');
+    expect(lpnFooterCss).toContain('Coverage: LP1');
+    await expect(page.locator('.print-only .tasksheet-universal-document').last()).toHaveCSS('page', 'tasksheet-shift-clinical_worksheet-lp1');
   });
 
   test('Journey 3 — Resident: Open Care Setup and add a wound from the profile', async ({ page }) => {
@@ -208,6 +218,8 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
 
     await page.getByRole('button', { name: 'Preview' }).first().click();
     await expect(page.getByRole('heading', { name: 'WEEKLY WOUND CARE OVERVIEW' })).toBeVisible();
+    const weeklyFooterCss = await page.locator('.print-only style[data-print-footer]').last().evaluate(element => element.textContent || '');
+    expect(weeklyFooterCss).toContain('Coverage:');
     await page.getByRole('button', { name: 'Back' }).click();
 
     await page.getByLabel('Wound supply report scope').selectOption('all_active');

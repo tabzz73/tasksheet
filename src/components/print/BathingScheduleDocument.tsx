@@ -1,5 +1,6 @@
 import React from 'react';
 import { BathingScheduleModel } from '../../services/print/specializedDocs';
+import { formatPrintTimestamp, printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface BathingScheduleDocumentProps {
   model: BathingScheduleModel;
@@ -9,7 +10,8 @@ export const BathingScheduleDocument: React.FC<BathingScheduleDocumentProps> = (
   const { facility, title, weekRange, days, rows, dailyTotals, targetCapacityPerDay } = model;
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:p-0 select-text text-xs">
+    <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs" style={printPageStyle('bathing-schedule')}>
+      <RepeatingPrintFooter pageName="bathing-schedule" orientation="landscape" coverage={weekRange} generatedAt={model.generatedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-2 mb-3 flex items-start justify-between">
         <div>
@@ -32,7 +34,7 @@ export const BathingScheduleDocument: React.FC<BathingScheduleDocumentProps> = (
             {facility.street}, {facility.city} · Unit: {facility.unitPhone}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">
-            Printed {new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })} · TaskSheet V1
+            Generated {formatPrintTimestamp(model.generatedAt || new Date().toISOString())} · TaskSheet V1
           </p>
         </div>
       </div>
@@ -140,9 +142,6 @@ export const BathingScheduleDocument: React.FC<BathingScheduleDocumentProps> = (
       <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
         <p>
           <strong>Clinical Operations Note:</strong> Check off completed baths on this master sheet. If a resident refuses or is unwell, note reason on shift handoff sheet.
-        </p>
-        <p className="font-semibold text-slate-700">
-          Cedar Grove Continuing Care · Page 1 of 1
         </p>
       </div>
     </div>

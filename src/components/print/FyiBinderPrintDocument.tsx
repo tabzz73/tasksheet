@@ -1,5 +1,6 @@
 import React from 'react';
 import { PRINT_TYPOGRAPHY_STANDARD } from '../../constants/printTypography';
+import { formatPrintDate, printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 // --- Data Model ----------------------------------------------------------------
 
@@ -186,9 +187,11 @@ export const FyiBinderPrintDocument: React.FC<FyiBinderPrintDocumentProps> = ({ 
 
   return (
     <div className="tasksheet-print-document" style={{
+      ...printPageStyle('fyi-binder'),
       fontFamily: PRINT_TYPOGRAPHY_STANDARD.fontFamily,
       fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, color: '#111827', background: '#ffffff', lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight,
     }}>
+      <RepeatingPrintFooter pageName="fyi-binder" orientation="portrait" coverage={`${model.scopeLabel} · As of ${formatPrintDate(model.confirmedCurrentAt || model.generatedAt)}`} generatedAt={model.generatedAt} />
       {/* DOCUMENT HEADER */}
       <div style={{ borderBottom: '2pt solid #111827', paddingBottom: '10pt', marginBottom: '12pt' }}>
         <div style={{ marginBottom: '6pt' }}>

@@ -3,6 +3,7 @@ import { PrintDocumentModel, PrintResidentGroup, PrintTask, PrintWoundGroup, Pri
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
 import { ResidentStatusExceptions } from './ResidentStatusExceptions';
 import { PRINT_TYPOGRAPHY_STANDARD } from '../../constants/printTypography';
+import { printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 interface Props {
   model: PrintDocumentModel;
@@ -257,7 +258,8 @@ export const HcaChecklistDocument: React.FC<Props> = ({ model }) => {
   const f = header.facility;
 
   return (
-    <div className="tasksheet-print-document" style={{ fontFamily: PRINT_TYPOGRAPHY_STANDARD.fontFamily, color: '#0f172a', background: 'white', fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight }}>
+    <div className="tasksheet-print-document" style={{ ...printPageStyle(`hca-${model.header.shiftCode || model.header.shiftName}`), fontFamily: PRINT_TYPOGRAPHY_STANDARD.fontFamily, color: '#0f172a', background: 'white', fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight }}>
+      <RepeatingPrintFooter pageName={`hca-${model.header.shiftCode || model.header.shiftName}`} orientation="portrait" coverage={`${model.header.shiftCode || model.header.shiftName} · ${model.header.formattedDate} · ${model.header.shiftTime}`} generatedAt={model.generatedAt} />
 
       {/* ── HEADER ── */}
       <div style={{ borderBottom: '2pt solid #0f172a', paddingBottom: '6pt', marginBottom: '8pt' }}>
