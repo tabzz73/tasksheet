@@ -25,13 +25,8 @@ describe('sidebar parent navigation', () => {
     const shiftsNav = within(desktopSidebar).getByRole('button', { name: 'Shifts' });
 
     fireEvent.click(shiftsNav);
-    const shiftListItem = screen
-      .getAllByText(shift.name)
-      .map(node => node.closest('[role="button"]'))
-      .find((node): node is HTMLElement => node instanceof HTMLElement);
-
-    expect(shiftListItem).toBeDefined();
-    fireEvent.click(shiftListItem!);
+    const shiftNavigation = screen.getByRole('button', { name: `Open ${shift.shortCode || shift.name} shift` });
+    fireEvent.click(shiftNavigation);
     expect(screen.getByText(`Add to ${shift.shortCode || shift.name} ▾`)).not.toBeNull();
 
     fireEvent.click(shiftsNav);
@@ -47,13 +42,8 @@ describe('sidebar parent navigation', () => {
 
     fireEvent.click(residentsNav);
     const residentName = `${resident.firstName} ${resident.lastName}`;
-    const residentListItem = screen
-      .getAllByText(residentName)
-      .map(node => node.closest('[role="button"]'))
-      .find((node): node is HTMLElement => node instanceof HTMLElement);
-
-    expect(residentListItem).toBeDefined();
-    fireEvent.click(residentListItem!);
+    const residentNavigation = screen.getByRole('button', { name: `Open resident ${residentName}` });
+    fireEvent.click(residentNavigation);
     expect(screen.getByRole('heading', { name: residentName })).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Back to Residents Directory' })).not.toBeNull();
 

@@ -15,6 +15,7 @@ import {
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
 import { AddEntityType } from '../modals/GlobalAddModal';
+import { CardNavigationButton } from '../common/CardNavigationButton';
 
 interface DashboardViewProps {
   currentDate: string;
@@ -224,18 +225,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {shiftSheets.map(sheet => (
               <div
                 key={sheet.shift.id}
-                onClick={() => onOpenShift(sheet.shift.id)}
-                role="button"
-                tabIndex={0}
-                aria-label={`Open ${sheet.shift.shortCode || sheet.shift.name} shift`}
-                onKeyDown={event => {
-                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                    event.preventDefault();
-                    onOpenShift(sheet.shift.id);
-                  }
-                }}
-                className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-teal-300 hover:shadow-sm transition-all p-5 flex flex-col justify-between cursor-pointer group"
+                className="relative bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-teal-300 hover:shadow-sm transition-all p-5 flex flex-col justify-between group"
               >
+                <CardNavigationButton
+                  label={`Open ${sheet.shift.shortCode || sheet.shift.name} shift`}
+                  onActivate={() => onOpenShift(sheet.shift.id)}
+                  roundedClassName="rounded-2xl"
+                />
                 <div>
                   {/* Card Header: Code Badge + Name + Role + Time Pill */}
                   <div className="flex items-start justify-between">
@@ -284,7 +280,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       event.stopPropagation();
                       onPrintShift(sheet);
                     }}
-                    className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
+                    className="relative z-20 px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
                   >
                     <Printer className="w-3.5 h-3.5 text-slate-500" />
                     <span>Print</span>

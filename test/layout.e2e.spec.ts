@@ -3,7 +3,10 @@ import { test, expect } from '@playwright/test';
 test('Welcome cards remain below the top application bar while scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Welcome & Overview' }).click();
+  await page.getByRole('button', { name: 'Settings' }).first().click();
+  await page.getByRole('button', { name: /Application/ }).click();
+  await page.getByRole('button', { name: /App Information/ }).click();
+  await page.getByRole('button', { name: /Open Welcome & Overview/ }).click();
 
   const header = page.locator('header');
   const content = page.locator('main');

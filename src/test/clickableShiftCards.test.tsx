@@ -30,20 +30,23 @@ describe('clickable shift cards and rows', () => {
       />,
     );
 
-    const shiftCard = view.container.querySelector<HTMLElement>('[aria-label^="Open "][aria-label$=" shift"].cursor-pointer');
-    expect(shiftCard).not.toBeNull();
+    const shiftNavigation = view.container.querySelector<HTMLButtonElement>('[data-card-navigation="true"][aria-label^="Open "][aria-label$=" shift"]');
+    expect(shiftNavigation).not.toBeNull();
+    expect(shiftNavigation?.tagName).toBe('BUTTON');
+    expect(shiftNavigation?.className).toContain('focus-visible:ring-2');
+    expect(shiftNavigation?.querySelector('button, a, [role="button"]')).toBeNull();
     expect(screen.queryByText('Open Shift')).toBeNull();
 
-    const printButton = shiftCard!.querySelector<HTMLButtonElement>('button');
+    const printButton = shiftNavigation!.parentElement!.querySelector<HTMLButtonElement>('button:not([data-card-navigation])');
     fireEvent.click(printButton!);
     expect(onPrintShift).toHaveBeenCalledOnce();
     expect(onOpenShift).not.toHaveBeenCalled();
 
-    fireEvent.click(shiftCard!);
+    fireEvent.click(shiftNavigation!);
     expect(onOpenShift).toHaveBeenCalledOnce();
   });
 
-  it('opens a shift from the full list row without a redundant Open button', () => {
+  it('uses a native full-row navigation button without a redundant Open button', () => {
     const onOpenShift = vi.fn();
     const view = render(
       <ShiftsView
@@ -55,11 +58,13 @@ describe('clickable shift cards and rows', () => {
       />,
     );
 
-    const shiftRow = view.container.querySelector<HTMLElement>('[aria-label^="Open "][aria-label$=" shift"].cursor-pointer');
-    expect(shiftRow).not.toBeNull();
+    const shiftNavigation = view.container.querySelector<HTMLButtonElement>('[data-card-navigation="true"][aria-label^="Open "][aria-label$=" shift"]');
+    expect(shiftNavigation).not.toBeNull();
+    expect(shiftNavigation?.tagName).toBe('BUTTON');
+    expect(shiftNavigation?.querySelector('button, a, [role="button"]')).toBeNull();
     expect(screen.queryByText(/^Open$/)).toBeNull();
 
-    fireEvent.keyDown(shiftRow!, { key: 'Enter' });
+    fireEvent.click(shiftNavigation!);
     expect(onOpenShift).toHaveBeenCalledOnce();
   });
 });

@@ -27,6 +27,7 @@ import { db } from '../../db';
 import { Resident, ResidentStatus } from '../../types';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 import { sortRoomNumbers } from '../../services/generator';
+import { CardNavigationButton } from '../common/CardNavigationButton';
 
 type ResidentsViewMode = 'list' | 'cards' | 'rooms';
 const VIEW_MODE_KEY = 'tasksheet_residents_view_mode';
@@ -436,18 +437,13 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
               return (
                 <div
                   key={res.id}
-                  onClick={() => onOpenResidentProfile(res.id)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Open resident ${res.firstName} ${res.lastName}`}
-                  onKeyDown={event => {
-                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                      event.preventDefault();
-                      onOpenResidentProfile(res.id);
-                    }
-                  }}
-                  className="flex items-center px-5 py-3.5 hover:bg-slate-50 cursor-pointer transition-colors group"
+                  className="relative flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors group"
                 >
+                  <CardNavigationButton
+                    label={`Open resident ${res.firstName} ${res.lastName}`}
+                    onActivate={() => onOpenResidentProfile(res.id)}
+                    roundedClassName="rounded-none"
+                  />
                   {/* Room badge */}
                   <div className="w-16 shrink-0">
                     <span className="inline-block px-2.5 py-1 bg-slate-900 text-white rounded-md font-mono font-black text-xs tabular-nums group-hover:bg-teal-700 transition-colors">
@@ -495,7 +491,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                         e.stopPropagation();
                         onOpenQuickCareSetup(res);
                       }}
-                      className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-xs font-semibold transition-colors"
+                      className="relative z-20 hidden sm:flex items-center space-x-1 px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                       title="Set up routine care tasks"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-teal-600" />
@@ -503,11 +499,11 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                     </button>
 
                     {/* ⋯ Overflow Menu */}
-                    <div className="relative">
+                    <div className="relative z-20">
                       <button
                         type="button"
                         onClick={(e) => toggleResidentMenu(e, res.id)}
-                        className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
+                        className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                         aria-label={`Actions for ${res.firstName} ${res.lastName}`}
                         aria-expanded={activeMenuResidentId === res.id}
                         aria-haspopup="menu"
@@ -611,18 +607,12 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
             return (
               <div
                 key={res.id}
-                onClick={() => onOpenResidentProfile(res.id)}
-                role="button"
-                tabIndex={0}
-                aria-label={`Open resident ${res.firstName} ${res.lastName}`}
-                onKeyDown={event => {
-                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                    event.preventDefault();
-                    onOpenResidentProfile(res.id);
-                  }
-                }}
-                className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-teal-300 transition-all flex flex-col justify-between cursor-pointer group"
+                className="relative bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-teal-300 transition-all flex flex-col justify-between group"
               >
+                <CardNavigationButton
+                  label={`Open resident ${res.firstName} ${res.lastName}`}
+                  onActivate={() => onOpenResidentProfile(res.id)}
+                />
                 <div>
                   {/* Top Bar: Room & Status */}
                   <div className="flex items-start justify-between mb-2.5">
@@ -669,7 +659,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                       e.stopPropagation();
                       onOpenQuickCareSetup(res);
                     }}
-                    className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded text-xs font-semibold flex items-center space-x-1"
+                    className="relative z-20 px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded text-xs font-semibold flex items-center space-x-1 cursor-pointer"
                   >
                     <Sparkles className="w-3 h-3 text-teal-600" />
                     <span>Setup</span>
@@ -704,13 +694,12 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                   const fyisCount = fyis.filter(f => f.residentId === res.id && f.status === 'active').length;
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={res.id}
                       onClick={() => onOpenResidentProfile(res.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && onOpenResidentProfile(res.id)}
-                      className="flex items-center px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors group"
+                      aria-label={`Open resident ${res.firstName} ${res.lastName}`}
+                      className="w-full flex items-center px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600"
                     >
                       <div className="w-16 shrink-0">
                         <span className="inline-block px-2.5 py-1 bg-slate-900 text-white rounded font-mono font-bold text-xs tabular-nums group-hover:bg-teal-700 transition-colors">
@@ -735,7 +724,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                       </div>
 
                       <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-teal-600 transition-colors shrink-0" />
-                    </div>
+                    </button>
                   );
                 })}
               </div>

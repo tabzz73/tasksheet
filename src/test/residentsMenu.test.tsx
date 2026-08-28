@@ -81,11 +81,14 @@ describe('Residents list action menu', () => {
       />,
     );
 
-    const residentRow = view.container.querySelector<HTMLElement>('[aria-label^="Open resident "].cursor-pointer');
-    expect(residentRow).not.toBeNull();
+    const residentNavigation = view.container.querySelector<HTMLButtonElement>('[data-card-navigation="true"][aria-label^="Open resident "]');
+    expect(residentNavigation).not.toBeNull();
+    expect(residentNavigation?.tagName).toBe('BUTTON');
+    expect(residentNavigation?.className).toContain('focus-visible:ring-2');
+    expect(residentNavigation?.querySelector('button, a, [role="button"]')).toBeNull();
     expect(screen.queryByText(/^Open$/)).toBeNull();
 
-    fireEvent.click(residentRow!);
+    fireEvent.click(residentNavigation!);
     expect(onOpenResidentProfile).toHaveBeenCalledOnce();
   });
 });

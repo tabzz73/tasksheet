@@ -18,6 +18,7 @@ import {
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
 import { AddEntityType } from '../modals/GlobalAddModal';
+import { CardNavigationButton } from '../common/CardNavigationButton';
 
 interface ShiftsViewProps {
   currentDate: string;
@@ -288,18 +289,13 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
               return (
                 <div
                   key={shift.id}
-                  onClick={() => onOpenShift(shift.id)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Open ${shift.shortCode || shift.name} shift`}
-                  onKeyDown={event => {
-                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                      event.preventDefault();
-                      onOpenShift(shift.id);
-                    }
-                  }}
-                  className="flex items-center px-5 py-4 hover:bg-slate-50 cursor-pointer transition-colors group"
+                  className="relative flex items-center px-5 py-4 hover:bg-slate-50 transition-colors group"
                 >
+                  <CardNavigationButton
+                    label={`Open ${shift.shortCode || shift.name} shift`}
+                    onActivate={() => onOpenShift(shift.id)}
+                    roundedClassName="rounded-none"
+                  />
                   {/* Short code badge */}
                   <div className="w-14 shrink-0">
                     <span className="inline-block px-2 py-1 bg-slate-900 text-white rounded-md font-mono font-black text-xs tracking-wider group-hover:bg-teal-700 transition-colors">
@@ -342,7 +338,7 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                     <button
                       type="button"
                       onClick={e => handlePrintDirect(e, sheet)}
-                      className="p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
+                      className="relative z-20 p-2 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                       title={`Print ${shift.shortCode || shift.name}`}
                     >
                       <Printer className="w-4 h-4" />
@@ -365,18 +361,12 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
             return (
               <div
                 key={shift.id}
-                onClick={() => onOpenShift(shift.id)}
-                role="button"
-                tabIndex={0}
-                aria-label={`Open ${shift.shortCode || shift.name} shift`}
-                onKeyDown={event => {
-                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                    event.preventDefault();
-                    onOpenShift(shift.id);
-                  }
-                }}
-                className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all p-5 flex flex-col justify-between cursor-pointer group"
+                className="relative bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all p-5 flex flex-col justify-between group"
               >
+                <CardNavigationButton
+                  label={`Open ${shift.shortCode || shift.name} shift`}
+                  onActivate={() => onOpenShift(shift.id)}
+                />
                 <div>
                   {/* Code + Time */}
                   <div className="flex items-start justify-between mb-3">
@@ -416,7 +406,7 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                   <button
                     type="button"
                     onClick={e => handlePrintDirect(e, sheet)}
-                    className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors"
+                    className="relative z-20 p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                     title={`Print ${shift.shortCode || shift.name}`}
                   >
                     <Printer className="w-4 h-4" />

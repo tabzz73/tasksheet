@@ -19,6 +19,8 @@ No document in this folder authorizes production use by itself. Approval is reco
 
 ## Documents
 
+- [RC26 Candidate Validation](RC26_CANDIDATE_VALIDATION.md)
+- [RC26 Physical Print Certification](PRINT_CERTIFICATION_RC26.md)
 - [Controlled Pilot Plan](CONTROLLED_PILOT_PLAN.md)
 - [Clean-Machine Validation - RC25](CLEAN_MACHINE_VALIDATION_RC25.md)
 - [Physical Print Certification - RC25](PRINT_CERTIFICATION_RC25.md)
