@@ -7,6 +7,7 @@ import { SHIFT_LPN_DAY_ID, SHIFT_LPN_NIGHT_ID } from '../data/defaultData';
 import { matchesWoundProductSearch, WOUND_SUPPLY_CATALOG_SEED } from '../data/woundSupplyCatalog';
 import { buildWoundSupplyReorderModel } from '../services/print/specializedDocs';
 import { WoundSupplyCatalogTab } from '../components/views/WoundSupplyCatalogTab';
+import { WoundSupplyPicker } from '../components/common/WoundSupplyPicker';
 
 describe('brand-based wound supply catalog', () => {
   beforeEach(() => db.resetToDemoState());
@@ -43,6 +44,14 @@ describe('brand-based wound supply catalog', () => {
     fireEvent.change(view.getByLabelText('Size'), { target: { value: '8 × 8 cm' } });
     fireEvent.click(view.getByRole('button', { name: /Save Product/i }));
     expect(db.getState().woundSupplyCatalog.some(product => product.productName === 'Local Foam 8 × 8 cm' && product.provenance === 'user_created')).toBe(true);
+  });
+
+  it('shows the complete active catalog in the wound protocol supply picker', () => {
+    const view = render(<WoundSupplyPicker value={[]} onChange={() => undefined} />);
+    fireEvent.click(view.getByRole('button', { name: 'All Catalog Products' }));
+    expect(view.getByText(`${db.getState().woundSupplyCatalog.filter(product => product.isActive).length} matching active products`)).not.toBeNull();
+    expect(view.getByText('Conforming Gauze')).not.toBeNull();
+    expect(view.getByText('Tubular Retention Dressing')).not.toBeNull();
   });
 
   it('aggregates the same structured product while keeping sizes and families separate', () => {
