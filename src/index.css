@@ -31,6 +31,51 @@
 
 /* ─── Print CSS ─────────────────────────────────────────────────────────────── */
 
+:root {
+  --print-font-family: Arial, Helvetica, sans-serif;
+  --print-title-size: 16pt;
+  --print-section-size: 10pt;
+  --print-table-header-size: 8.5pt;
+  --print-body-size: 8.5pt;
+  --print-secondary-size: 8pt;
+  --print-footer-size: 7.5pt;
+  --print-line-height: 1.1;
+}
+
+/* One typography contract for TaskSheets, Binder pages, and specialized output. */
+.tasksheet-print-document {
+  font-family: var(--print-font-family) !important;
+  font-size: var(--print-body-size);
+  line-height: var(--print-line-height);
+}
+
+.tasksheet-print-document * {
+  font-family: var(--print-font-family) !important;
+}
+
+.tasksheet-print-title {
+  font-size: var(--print-title-size) !important;
+  font-weight: 700 !important;
+}
+
+.tasksheet-print-section-heading {
+  font-size: var(--print-section-size) !important;
+  font-weight: 700 !important;
+}
+
+.tasksheet-print-table-heading {
+  font-size: var(--print-table-header-size) !important;
+  font-weight: 700 !important;
+}
+
+.tasksheet-print-secondary {
+  font-size: var(--print-secondary-size) !important;
+}
+
+.tasksheet-print-footer {
+  font-size: var(--print-footer-size) !important;
+}
+
 /* Default: letter portrait (HCA Simple Checklist) */
 @media print {
   @page {
@@ -41,7 +86,9 @@
   body {
     background: #ffffff !important;
     color: #000000 !important;
-    font-size: 10pt;
+    font-family: var(--print-font-family);
+    font-size: var(--print-body-size);
+    line-height: var(--print-line-height);
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

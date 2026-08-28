@@ -1,4 +1,5 @@
 import React from 'react';
+import { PRINT_TYPOGRAPHY_STANDARD } from '../../constants/printTypography';
 
 // --- Data Model ----------------------------------------------------------------
 
@@ -119,7 +120,7 @@ const FyiBlock: React.FC<{ fyi: BinderFyiEntry }> = ({ fyi }) => {
           textTransform: 'uppercase' as const, color: '#374151',
         }}>{categoryLabel(fyi.category)}</span>
       </div>
-      <p style={{ fontSize: '9.5pt', lineHeight: '1.45', color: '#111827', marginBottom: '2pt' }}>
+      <p style={{ fontSize: '8.5pt', lineHeight: 'var(--print-line-height)', color: '#111827', marginBottom: '2pt' }}>
         {fyi.text}
       </p>
       <p style={{ fontSize: '8pt', color: '#6B7280', fontStyle: 'italic' }}>
@@ -149,7 +150,7 @@ const ResidentFyiGroup: React.FC<{ group: BinderResidentGroup }> = ({ group }) =
 const SectionDivider: React.FC<{ label: string; isRole?: boolean }> = ({ label, isRole }) => (
   <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginTop: isRole ? '18pt' : '12pt', marginBottom: '10pt' }}>
     <div style={{ borderBottom: `${isRole ? '2pt' : '1pt'} solid #111827`, paddingBottom: '4pt' }}>
-      <span style={{ fontSize: isRole ? '13pt' : '11pt', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: '#111827' }}>
+      <span style={{ fontSize: 'var(--print-section-size)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: '#111827' }}>
         {label}
       </span>
     </div>
@@ -184,14 +185,14 @@ export const FyiBinderPrintDocument: React.FC<FyiBinderPrintDocumentProps> = ({ 
   ].filter(Boolean).join(', ');
 
   return (
-    <div style={{
-      fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
-      fontSize: '10pt', color: '#111827', background: '#ffffff', lineHeight: '1.4',
+    <div className="tasksheet-print-document" style={{
+      fontFamily: PRINT_TYPOGRAPHY_STANDARD.fontFamily,
+      fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, color: '#111827', background: '#ffffff', lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight,
     }}>
       {/* DOCUMENT HEADER */}
       <div style={{ borderBottom: '2pt solid #111827', paddingBottom: '10pt', marginBottom: '12pt' }}>
         <div style={{ marginBottom: '6pt' }}>
-          <div style={{ fontSize: '16pt', fontWeight: 900, letterSpacing: '0.04em', textTransform: 'uppercase' as const }}>
+          <div className="tasksheet-print-title" style={{ fontSize: 'var(--print-title-size)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const }}>
             TASKSHEET
           </div>
           <div style={{ fontSize: '10pt', fontWeight: 700, letterSpacing: '0.06em', color: '#374151', textTransform: 'uppercase' as const, marginTop: '1pt' }}>
@@ -200,8 +201,8 @@ export const FyiBinderPrintDocument: React.FC<FyiBinderPrintDocumentProps> = ({ 
         </div>
 
         <div style={{ borderTop: '0.75pt solid #9CA3AF', paddingTop: '6pt', marginTop: '6pt' }}>
-          <div style={{ fontSize: '11pt', fontWeight: 700 }}>{f.siteName}</div>
-          <div style={{ fontSize: '9.5pt', color: '#374151', marginTop: '1pt' }}>{formattedAddress}</div>
+          <div style={{ fontSize: '9pt', fontWeight: 700 }}>{f.siteName}</div>
+          <div style={{ fontSize: '8.5pt', color: '#374151', marginTop: '1pt' }}>{formattedAddress}</div>
           {(f.mainPhone || f.unitPhone || f.fax) && (
             <div style={{ fontSize: '9pt', color: '#374151', marginTop: '2pt' }}>
               {f.mainPhone && <span>Main: {f.mainPhone}</span>}
@@ -228,7 +229,7 @@ export const FyiBinderPrintDocument: React.FC<FyiBinderPrintDocumentProps> = ({ 
 
       {/* EMPTY STATE */}
       {!hasAnyContent && (
-        <div style={{ padding: '24pt 0', textAlign: 'center' as const, color: '#6B7280', fontStyle: 'italic', fontSize: '10pt' }}>
+        <div style={{ padding: '24pt 0', textAlign: 'center' as const, color: '#6B7280', fontStyle: 'italic', fontSize: '8.5pt' }}>
           No active standing information is currently configured for this Binder scope.
         </div>
       )}
@@ -317,7 +318,7 @@ export const FyiBinderPrintDocument: React.FC<FyiBinderPrintDocumentProps> = ({ 
       {/* FOOTER */}
       <div style={{
         marginTop: '20pt', paddingTop: '6pt', borderTop: '0.75pt solid #9CA3AF',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '8pt', color: '#6B7280',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--print-footer-size)', color: '#6B7280',
       }}>
         <span>TaskSheet &#xB7; FYI Binder &#xB7; Version {model.binderVersion}</span>
         <span>Generated {formatGeneratedAt(model.generatedAt)}</span>

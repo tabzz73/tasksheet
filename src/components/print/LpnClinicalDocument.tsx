@@ -3,6 +3,7 @@ import { PrintDocumentModel, PrintResidentGroup, PrintTask, PrintWoundGroup, Pri
 import { QuickVitalsColumnConfig, PrintDensity } from '../../types';
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
 import { ResidentStatusExceptions } from './ResidentStatusExceptions';
+import { PRINT_TYPOGRAPHY_STANDARD } from '../../constants/printTypography';
 
 interface Props {
   model: PrintDocumentModel;
@@ -10,7 +11,7 @@ interface Props {
 
 // ─── Typography constants (inline for print safety) ───────────────────────────
 
-const FONT = 'Arial, sans-serif';
+const FONT = PRINT_TYPOGRAPHY_STANDARD.fontFamily;
 const COLOR_BLACK = '#0f172a';
 const COLOR_DARK = '#1e293b';
 const COLOR_MID = '#374151';
@@ -25,7 +26,7 @@ const COLOR_SECTION_BG = '#f8fafc';
 
 const SectionHeader: React.FC<{ children: React.ReactNode; sub?: boolean }> = ({ children, sub }) => (
   <div style={{
-    fontFamily: FONT, fontSize: sub ? '9pt' : '9.5pt', fontWeight: 900,
+    fontFamily: FONT, fontSize: 'var(--print-section-size)', fontWeight: 700,
     letterSpacing: '0.1em', textTransform: 'uppercase',
     color: COLOR_BLACK,
     background: sub ? '#e2e8f0' : '#cbd5e1',
@@ -338,13 +339,13 @@ export const LpnClinicalDocument: React.FC<Props> = ({ model }) => {
   const f = header.facility;
 
   return (
-    <div style={{ fontFamily: FONT, color: COLOR_BLACK, background: 'white', fontSize: '10pt', lineHeight: 1.4 }}>
+    <div className="tasksheet-print-document" style={{ fontFamily: FONT, color: COLOR_BLACK, background: 'white', fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight }}>
 
       {/* ── HEADER ── */}
       <div style={{ borderBottom: '2.5pt solid #0f172a', paddingBottom: '7pt', marginBottom: '8pt' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '18pt', fontWeight: 900, color: COLOR_BLACK, letterSpacing: '-0.02em', lineHeight: 1 }}>
+            <div className="tasksheet-print-title" style={{ fontSize: 'var(--print-title-size)', fontWeight: 700, color: COLOR_BLACK, letterSpacing: '-0.02em', lineHeight: 1 }}>
               {header.documentTitle}
             </div>
             <div style={{ fontSize: '9pt', fontWeight: 700, letterSpacing: '0.14em', color: COLOR_LIGHT, marginTop: '2pt', textTransform: 'uppercase' }}>
@@ -450,7 +451,7 @@ export const LpnClinicalDocument: React.FC<Props> = ({ model }) => {
           {developerFooter && <span>{developerFooter}</span>}
         </div>
         {model.confidentialityNotice && (
-          <div style={{ textAlign: 'center', marginTop: '3pt', fontSize: '6.5pt', color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase', fontStyle: 'italic' }}>
+          <div style={{ textAlign: 'center', marginTop: '3pt', fontSize: 'var(--print-footer-size)', color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase', fontStyle: 'italic' }}>
             {model.confidentialityNotice}
           </div>
         )}

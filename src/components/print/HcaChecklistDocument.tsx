@@ -2,6 +2,7 @@ import React from 'react';
 import { PrintDocumentModel, PrintResidentGroup, PrintTask, PrintWoundGroup, PrintUnitTask, PrintImportantInfo, formatShiftHeader } from '../../services/print';
 import { PrintAttentionIcons, PrintAttentionLegend } from './PrintAttentionIcons';
 import { ResidentStatusExceptions } from './ResidentStatusExceptions';
+import { PRINT_TYPOGRAPHY_STANDARD } from '../../constants/printTypography';
 
 interface Props {
   model: PrintDocumentModel;
@@ -12,7 +13,7 @@ interface Props {
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div style={{
     fontFamily: 'Arial, sans-serif',
-    fontSize: '9pt',
+    fontSize: '10pt',
     fontWeight: 900,
     letterSpacing: '0.08em',
     textTransform: 'uppercase',
@@ -256,13 +257,13 @@ export const HcaChecklistDocument: React.FC<Props> = ({ model }) => {
   const f = header.facility;
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', color: '#0f172a', background: 'white', fontSize: '10pt', lineHeight: 1.35 }}>
+    <div className="tasksheet-print-document" style={{ fontFamily: PRINT_TYPOGRAPHY_STANDARD.fontFamily, color: '#0f172a', background: 'white', fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight }}>
 
       {/* ── HEADER ── */}
       <div style={{ borderBottom: '2pt solid #0f172a', paddingBottom: '6pt', marginBottom: '8pt' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '16pt', fontWeight: 900, letterSpacing: '-0.02em', color: '#0f172a', lineHeight: 1 }}>
+            <div className="tasksheet-print-title" style={{ fontSize: 'var(--print-title-size)', fontWeight: 700, letterSpacing: '-0.02em', color: '#0f172a', lineHeight: 1 }}>
               {header.documentTitle}
             </div>
             <div style={{ fontSize: '9pt', fontWeight: 700, letterSpacing: '0.12em', color: '#475569', marginTop: '2pt', textTransform: 'uppercase' }}>
@@ -365,7 +366,7 @@ export const HcaChecklistDocument: React.FC<Props> = ({ model }) => {
           {developerFooter && <span>{developerFooter}</span>}
         </div>
         {model.confidentialityNotice && (
-          <div style={{ textAlign: 'center', marginTop: '3pt', fontSize: '6.5pt', color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase', fontStyle: 'italic' }}>
+          <div style={{ textAlign: 'center', marginTop: '3pt', fontSize: 'var(--print-footer-size)', color: '#64748b', letterSpacing: '0.04em', textTransform: 'uppercase', fontStyle: 'italic' }}>
             {model.confidentialityNotice}
           </div>
         )}

@@ -24,11 +24,10 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   const density = model.density || 'standard';
   const isLargePrint = model.largePrint || false;
 
-  // Compact mode uses a conservative 8pt body floor; it saves height mainly
-  // through padding and line-height, rather than making the sheet hard to read.
-  const fontSizeBase = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : '8.5pt';
-  const fontSizeHeader = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : '8.5pt';
-  const fontSizeInfo = isLargePrint ? '8.5pt' : '8.0pt';
+  // Density changes spacing first. Compact mode keeps an 8pt safety floor.
+  const fontSizeBase = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : 'var(--print-body-size)';
+  const fontSizeHeader = isLargePrint ? '9.5pt' : density === 'compact' ? '8pt' : 'var(--print-table-header-size)';
+  const fontSizeInfo = isLargePrint ? '8.5pt' : 'var(--print-secondary-size)';
   const headerPaddingY = density === 'compact' ? '2pt' : density === 'spacious' ? '4.5pt' : '3pt';
 
   // Group table rows by workflow section (only non-empty sections will render)
@@ -89,7 +88,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
         <td
           style={{
             padding: `${paddingY} 3pt`,
-            fontFamily: 'monospace, Arial, sans-serif',
+            fontFamily: 'Arial, Helvetica, sans-serif',
             fontVariantNumeric: 'tabular-nums',
             fontWeight: 800,
             fontSize: fontSizeBase,
@@ -154,7 +153,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
             fontFamily: 'Arial, sans-serif',
             fontSize: fontSizeInfo,
             color: '#334155',
-            lineHeight: density === 'compact' ? 1.15 : 1.25,
+            lineHeight: 'var(--print-line-height)',
             width: isClinical ? '22%' : '28%',
             borderBottom: '0.5pt solid #cbd5e1',
           }}
@@ -176,7 +175,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
             }}
           >
             {row.structuredResult ? (
-              <div style={{ fontWeight: 600, color: '#0f172a', whiteSpace: 'pre-line', lineHeight: 1.25 }}>
+              <div style={{ fontWeight: 600, color: '#0f172a', whiteSpace: 'pre-line', lineHeight: 'var(--print-line-height)' }}>
                 {row.structuredResult.label}
               </div>
             ) : (
@@ -190,7 +189,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           style={{
             padding: `${paddingY} 4pt`,
             fontFamily: 'Arial, sans-serif',
-            fontSize: '7.5pt',
+            fontSize: 'var(--print-secondary-size)',
             color: '#64748b',
             width: isClinical ? '12%' : '10%',
             borderBottom: '0.5pt solid #cbd5e1',
@@ -211,8 +210,8 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
         style={{
           padding: '2.5pt 6pt',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '8.5pt',
-          fontWeight: 900,
+          fontSize: 'var(--print-section-size)',
+          fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
         }}
@@ -229,15 +228,15 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
 
   return (
     <div
-      className="tasksheet-universal-document"
+      className="tasksheet-print-document tasksheet-universal-document"
       data-print-density={density}
       style={{
         position: 'relative',
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: 'var(--print-font-family)',
         fontSize: fontSizeBase,
         color: '#0f172a',
         backgroundColor: '#ffffff',
-        lineHeight: density === 'compact' ? 1.2 : 1.3,
+        lineHeight: 'var(--print-line-height)',
       }}
     >
       {/* ── OPTIONAL WATERMARK OVERLAY ── */}
@@ -271,7 +270,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
               {header.logoUrl && (
                 <img src={header.logoUrl} alt="Logo" style={{ maxHeight: '20pt', objectFit: 'contain' }} />
               )}
-              <span style={{ fontSize: '13pt', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a', lineHeight: 1 }}>
+              <span className="tasksheet-print-title" style={{ fontSize: 'var(--print-title-size)', fontWeight: 700, textTransform: 'uppercase', color: '#0f172a', lineHeight: 1 }}>
                 {header.documentTitle || 'TASKSHEET'}
               </span>
               <span style={{ fontSize: '8.5pt', fontWeight: 800, color: '#475569' }}>
@@ -311,7 +310,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
               <img src={header.logoUrl} alt="Logo" style={{ maxHeight: '28pt', objectFit: 'contain', margin: '0 auto' }} />
             </div>
           )}
-          <div style={{ fontSize: '11pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f172a' }}>
+          <div style={{ fontSize: '9pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0f172a' }}>
             {header.facility.siteName}
           </div>
           <div style={{ fontSize: '7.5pt', color: '#475569', marginTop: '1pt' }}>
@@ -329,7 +328,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           )}
 
           <div style={{ marginTop: '4pt', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8pt' }}>
-            <span style={{ fontSize: isClinical ? '14pt' : '13pt', fontWeight: 900, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.04em' }}>
+            <span className="tasksheet-print-title" style={{ fontSize: 'var(--print-title-size)', fontWeight: 700, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.04em' }}>
               {header.documentTitle || 'TASKSHEET'}
             </span>
             <span style={{ fontSize: '8pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#475569' }}>
@@ -339,7 +338,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
 
           <div style={{ marginTop: '4pt', padding: '3pt 6pt', background: '#f1f5f9', borderRadius: '3pt', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '8.5pt' }}>
             <div>
-              <span style={{ fontWeight: 900, fontSize: '10.5pt', color: '#0f172a' }}>
+              <span style={{ fontWeight: 700, fontSize: '9.5pt', color: '#0f172a' }}>
                 {formatShiftHeader(header, header.shiftHeaderFormat || 'short_code_only')}
               </span>
             </div>
@@ -355,7 +354,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
                 <img src={header.logoUrl} alt="Logo" style={{ maxHeight: '32pt', objectFit: 'contain' }} />
               )}
               <div>
-                <h1 style={{ fontSize: isClinical ? '15.5pt' : '14.5pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, color: '#0f172a', lineHeight: 1.1 }}>
+                <h1 className="tasksheet-print-title" style={{ fontSize: 'var(--print-title-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, color: '#0f172a', lineHeight: 1.1 }}>
                   {header.documentTitle || 'TASKSHEET'}
                 </h1>
                 <div style={{ fontSize: '8.5pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#475569', marginTop: '2pt' }}>
@@ -365,7 +364,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
             </div>
 
             <div style={{ textAlign: 'right', fontSize: '8pt', color: '#475569', lineHeight: 1.3 }}>
-              <div style={{ fontWeight: 800, fontSize: '10pt', color: '#0f172a' }}>
+              <div style={{ fontWeight: 700, fontSize: '9pt', color: '#0f172a' }}>
                 {header.facility.siteName}
               </div>
               <div>
@@ -392,7 +391,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           {/* Shift metadata bar */}
           <div style={{ marginTop: '5pt', padding: '3.5pt 6pt', background: '#f1f5f9', borderRadius: '3pt', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontWeight: 900, fontSize: '11pt', color: '#0f172a' }}>
+              <span style={{ fontWeight: 700, fontSize: '9.5pt', color: '#0f172a' }}>
                 {formatShiftHeader(header, header.shiftHeaderFormat || 'short_code_only')}
               </span>
             </div>
@@ -412,7 +411,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
             marginBottom: '6pt',
             breakInside: 'avoid',
             fontSize: '8.0pt',
-            lineHeight: 1.3,
+            lineHeight: 'var(--print-line-height)',
           }}
         >
           <div style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#92400e', marginBottom: '2pt', display: 'flex', alignItems: 'center', gap: '4pt' }}>
@@ -499,8 +498,8 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
         <div style={{ marginTop: '10pt', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
           <div
             style={{
-              fontSize: '8.5pt',
-              fontWeight: 900,
+              fontSize: 'var(--print-section-size)',
+              fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               color: '#0f172a',
@@ -526,7 +525,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
             backgroundColor: '#f8fafc',
             border: '0.5pt solid #cbd5e1',
             borderRadius: '2pt',
-            fontSize: '7.0pt',
+            fontSize: 'var(--print-footer-size)',
             color: '#475569',
             display: 'flex',
             alignItems: 'center',
@@ -548,7 +547,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           marginTop: '8pt',
           paddingTop: '3pt',
           borderTop: '0.5pt solid #cbd5e1',
-          fontSize: '7.0pt',
+          fontSize: 'var(--print-footer-size)',
           color: '#64748b',
           breakInside: 'avoid',
         }}
@@ -563,7 +562,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
             style={{
               textAlign: 'center',
               marginTop: '2pt',
-              fontSize: '6.5pt',
+              fontSize: 'var(--print-footer-size)',
               color: '#94a3b8',
               letterSpacing: '0.03em',
               fontStyle: 'italic',

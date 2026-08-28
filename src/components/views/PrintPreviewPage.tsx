@@ -210,11 +210,11 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
 
         {/* Paper preview card(s) */}
         {packageModel ? (
-          <div style={{ width: '100%', maxWidth: '1080px', padding: '0 12px' }}>
+          <div className="tasksheet-print-document" style={{ width: '100%', maxWidth: '1080px', padding: '0 12px' }}>
             <PrintPackageView packageModel={packageModel} />
           </div>
         ) : (
-          <div style={{
+          <div className="tasksheet-print-document" style={{
             width: `${paperW}px`,
             minHeight: `${paperH}px`,
             background: 'white',
@@ -229,7 +229,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       </div>
 
       {/* ── PRINT-ONLY ZONE ── */}
-      <div className="print-only" style={{ padding: packageModel ? 0 : paperPadding }}>
+      <div className="print-only tasksheet-print-document" style={{ padding: packageModel ? 0 : paperPadding }}>
         {renderDocumentContent()}
       </div>
     </>
