@@ -6,10 +6,52 @@ interface WoundScheduleDocumentProps {
 }
 
 export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ model }) => {
-  const { facility, title, formattedDate, wounds, totalActiveWounds, totalResidentsWithWounds } = model;
+  const { facility, title, formattedDate, generatedAt, wounds, totalActiveWounds, totalResidentsWithWounds } = model;
+  const generatedLabel = new Date(generatedAt).toLocaleString('en-CA', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
+  const cssContent = (value: string) => value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ');
+  const coverageFooter = cssContent(`Coverage: ${formattedDate}`);
+  const generatedFooter = cssContent(`Generated: ${generatedLabel}`);
+  const repeatingFooterCss = `
+    @media print {
+      @page wound-schedule {
+        size: letter landscape;
+        margin: 5mm 5mm 10mm 5mm;
+        @bottom-left {
+          content: "${coverageFooter}";
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 7.5pt;
+          font-weight: 700;
+          color: #475569;
+          vertical-align: top;
+          padding-top: 0.5mm;
+        }
+        @bottom-center {
+          content: "${generatedFooter}";
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 7.5pt;
+          color: #475569;
+          vertical-align: top;
+          padding-top: 0.5mm;
+        }
+        @bottom-right {
+          content: counter(page) " / " counter(pages);
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 7.5pt;
+          font-weight: 700;
+          color: #475569;
+          vertical-align: top;
+          padding-top: 0.5mm;
+        }
+      }
+      .wound-schedule-document { page: wound-schedule; }
+    }
+  `;
 
   return (
-    <div className="bg-white text-slate-900 font-sans print:p-0 select-text text-xs">
+    <div className="wound-schedule-document tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs">
+      <style>{repeatingFooterCss}</style>
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-2 mb-3 flex items-start justify-between">
         <div>
@@ -32,7 +74,7 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
             {facility.street}, {facility.city} · Main: {facility.mainPhone}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">
-            Printed {new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })} · TaskSheet V1
+            Generated {generatedLabel} · TaskSheet V1
           </p>
         </div>
       </div>
@@ -133,13 +175,15 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
       </table>
 
       {/* ── FOOTER ── */}
-      <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
+      <div className="mt-3 pt-2 border-t border-slate-200 text-[10px] text-slate-500">
         <p>
           <strong>LPN Operational Responsibility:</strong> Document formal wound assessments in clinical chart; use this sheet for physical shift coordination and supply staging.
         </p>
-        <p className="font-semibold text-slate-700">
-          Cedar Grove Continuing Care · Page 1 of 1
-        </p>
+      </div>
+      <div className="no-print mt-2 flex items-center justify-between gap-4 text-[10px] font-semibold text-slate-500">
+        <span>Coverage: {formattedDate}</span>
+        <span>Generated: {generatedLabel}</span>
+        <span>Page numbers print on every page</span>
       </div>
     </div>
   );

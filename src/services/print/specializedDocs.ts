@@ -185,6 +185,7 @@ export interface WoundScheduleModel {
   title: string;
   dateStr: string;
   formattedDate: string;
+  generatedAt: string;
   wounds: WoundScheduleItem[];
   totalActiveWounds: number;
   totalResidentsWithWounds: number;
@@ -243,6 +244,7 @@ export function buildWoundScheduleModel(currentDateStr: string): WoundScheduleMo
     title: 'WOUND & DRESSING TREATMENT SCHEDULE',
     dateStr: currentDateStr,
     formattedDate,
+    generatedAt: new Date().toISOString(),
     wounds,
     totalActiveWounds: wounds.length,
     totalResidentsWithWounds: uniqueResidentIds.size,
