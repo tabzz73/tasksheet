@@ -548,6 +548,41 @@ describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () =>
       // Verify existing data remained completely untouched
       expect(db.getState().residents.length).toBe(initialResidentCount);
     });
+
+    it('removes the known certification Pain tracker from non-pain tasks while preserving real pain tracking', () => {
+      const resident = db.addResident({ firstName: 'Tracking', lastName: 'Migration', roomNumber: '778', status: 'active' });
+      const nonPainTask = db.addResidentTask({
+        residentId: resident.id,
+        shiftId: SHIFT_LPN_DAY_ID,
+        title: 'Respiratory Status Review',
+        category: 'Health Monitoring',
+        frequency: 'daily',
+        time: '0900',
+      });
+      const painTask = db.addResidentTask({
+        residentId: resident.id,
+        shiftId: SHIFT_LPN_DAY_ID,
+        title: 'Pain Reassessment',
+        category: 'Pain / Symptom Management',
+        frequency: 'daily',
+        time: '1000',
+      });
+      const backup = JSON.parse(db.backupDatabase());
+      const legacyPrompt = 'Record clinical value, result, follow-up, and initials on paper.';
+      backup.residentTasks = backup.residentTasks.map((task: any) =>
+        task.id === nonPainTask.id || task.id === painTask.id
+          ? { ...task, trackingConfig: { kind: 'pain', prompt: legacyPrompt } }
+          : task
+      );
+
+      db.restoreDatabase(JSON.stringify(backup));
+
+      expect(db.getState().residentTasks.find(task => task.id === nonPainTask.id)?.trackingConfig).toBeUndefined();
+      expect(db.getState().residentTasks.find(task => task.id === painTask.id)?.trackingConfig).toEqual({
+        kind: 'pain',
+        prompt: legacyPrompt,
+      });
+    });
   });
 
   // ════════════════════════════════════════════════════════════════════════════

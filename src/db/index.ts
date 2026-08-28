@@ -6,6 +6,23 @@ import { generateDemoData } from '../data/demoSeed';
 
 const STORAGE_KEY = 'tasksheet_v1_db_state_v2';
 const LEGACY_STORAGE_KEY = 'tasksheet_v1_db_state';
+const LEGACY_CERTIFICATION_PAIN_PROMPT = 'record clinical value, result, follow-up, and initials on paper.';
+
+/**
+ * Removes a known RC26 print-certification seed defect without changing real
+ * pain tasks or any other user-selected tracking configuration.
+ */
+function sanitizeLegacyCertificationTracking(task: ResidentTask): ResidentTask {
+  const tracking = task.trackingConfig;
+  const isKnownBadPrompt = tracking?.kind === 'pain'
+    && tracking.prompt?.trim().toLowerCase() === LEGACY_CERTIFICATION_PAIN_PROMPT;
+  const taskContext = `${task.title || ''} ${task.category || ''} ${task.instructions || ''}`.toLowerCase();
+  const isPainTask = taskContext.includes('pain');
+
+  if (!isKnownBadPrompt || isPainTask) return task;
+  const { trackingConfig: _discardedTracking, ...sanitized } = task;
+  return sanitized as ResidentTask;
+}
 
 export function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -110,12 +127,12 @@ class DatabaseService {
               ? ALBERTA_TASK_TEMPLATES.find(template => template.slug === t.templateSlug)
               : undefined;
             const trackingConfig = t.trackingConfig || currentTemplate?.trackingConfig;
-            return {
+            return sanitizeLegacyCertificationTracking({
               ...t,
               category: migrateCategoryName(t.category, t.title),
               trackingConfig,
               attentionConfig: t.attentionConfig || currentTemplate?.attentionConfig,
-            };
+            });
           });
 
           // Migrate shifts with shortCode, isActive, and displayOrder
@@ -1034,6 +1051,9 @@ class DatabaseService {
           mealTimes: parsed.settings?.careTimingPresets?.mealTimes || DEFAULT_CARE_TIMING_PRESETS.mealTimes,
         },
       };
+      parsed.residentTasks = (parsed.residentTasks || []).map((task: ResidentTask) =>
+        sanitizeLegacyCertificationTracking(task)
+      );
       parsed.shifts = parsed.shifts.map((shift: Shift) => ({
         ...shift,
         source: shift.source || (restoredDataMode === 'demo' && defaultShiftIds.has(shift.id) ? 'demo' : 'manual'),
