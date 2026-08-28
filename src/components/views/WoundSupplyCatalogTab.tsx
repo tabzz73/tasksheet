@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Edit2, PackagePlus, Plus, Search } from 'lucide-react';
 import { db } from '../../db';
 import { WoundSupplyLocalStatus, WoundSupplyProduct } from '../../types';
@@ -16,7 +16,19 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
   const [showInactive, setShowInactive] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editor, setEditor] = useState(EMPTY_PRODUCT);
+  const editorRef = useRef<HTMLElement | null>(null);
+  const firstFieldRef = useRef<HTMLInputElement | null>(null);
+  const editorOpen = editingId !== null || editor !== EMPTY_PRODUCT;
   const refresh = () => setProducts([...db.getState().woundSupplyCatalog]);
+
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      firstFieldRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [editorOpen, editingId]);
 
   const filtered = useMemo(() => products
     .filter(product => showInactive || product.isActive)
@@ -70,7 +82,7 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
     <section className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div><h3 className="text-base font-black text-slate-900">{WOUND_SUPPLY_CATALOG_DESCRIPTION}</h3><p className="text-xs text-slate-600 mt-1 max-w-3xl">{WOUND_SUPPLY_CATALOG_DISCLAIMER}</p></div>
-        <button type="button" onClick={() => openNew()} className="inline-flex items-center gap-1.5 px-3 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold"><Plus className="w-3.5 h-3.5" />Add Product</button>
+        <button type="button" onClick={() => openNew()} aria-expanded={editorOpen && editingId === null} aria-controls="wound-product-editor" className="inline-flex items-center gap-1.5 px-3 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold"><Plus className="w-3.5 h-3.5" />Add Product</button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2">
         <label className="relative"><Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" /><input aria-label="Search wound supply catalog" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search product, family, brand, category or size (for example mep or 10x20)" className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm" /></label>
@@ -91,10 +103,10 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
       </div>
     </section>
 
-    {(editingId !== null || editor !== EMPTY_PRODUCT) && <section className="bg-white rounded-xl border-2 border-teal-200 p-5 shadow-sm space-y-4">
+    {editorOpen && <section ref={editorRef} id="wound-product-editor" className="bg-white rounded-xl border-2 border-teal-200 p-5 shadow-sm space-y-4 scroll-mt-6">
       <h4 className="text-sm font-black text-slate-900">{editingId ? 'Edit Wound Product' : 'Add Wound Product / Size'}</h4>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Field label="Product Family" value={editor.productFamily} onChange={value => setEditor({ ...editor, productFamily: value })} />
+        <Field inputRef={firstFieldRef} label="Product Family" value={editor.productFamily} onChange={value => setEditor({ ...editor, productFamily: value })} />
         <Field label="Product Name" value={editor.productName} onChange={value => setEditor({ ...editor, productName: value })} />
         <Field label="Manufacturer / Brand" value={editor.manufacturer} onChange={value => setEditor({ ...editor, manufacturer: value })} />
         <Field label="Dressing Category" value={editor.category} onChange={value => setEditor({ ...editor, category: value })} />
@@ -112,4 +124,4 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
   </div>;
 };
 
-const Field: React.FC<{ label: string; value: string; onChange: (value: string) => void; type?: string }> = ({ label, value, onChange, type = 'text' }) => <label className="text-xs font-bold text-slate-700">{label}<input type={type} value={value} onChange={event => onChange(event.target.value)} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></label>;
+const Field: React.FC<{ label: string; value: string; onChange: (value: string) => void; type?: string; inputRef?: React.Ref<HTMLInputElement> }> = ({ label, value, onChange, type = 'text', inputRef }) => <label className="text-xs font-bold text-slate-700">{label}<input ref={inputRef} type={type} value={value} onChange={event => onChange(event.target.value)} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></label>;

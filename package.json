@@ -57,6 +57,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "build/icon.png",
       "package.json"
     ],
     "asar": true,
@@ -69,7 +70,7 @@
           ]
         }
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon.ico",
       "artifactName": "TaskSheet-Setup-${version}-${arch}.${ext}"
     },
     "nsis": {

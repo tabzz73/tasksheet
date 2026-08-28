@@ -220,6 +220,10 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Settings' }).first().click();
     await page.getByRole('button', { name: /TaskSheet Workflow/i }).click();
     await page.getByRole('button', { name: /Wound Supply Catalog/i }).click();
+    await page.getByRole('button', { name: /Add Product/i }).click();
+    await expect(page.getByRole('heading', { name: 'Add Wound Product / Size' })).toBeVisible();
+    await expect(page.getByLabel('Product Family')).toBeFocused();
+    await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('heading', { name: /Common Wound Products/i })).toBeVisible();
     await page.getByLabel('Search wound supply catalog').fill('10x20');
     await expect(page.getByText('Mepilex Border Flex 10 × 20 cm')).toBeVisible();
