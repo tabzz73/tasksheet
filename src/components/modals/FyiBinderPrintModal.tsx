@@ -1,5 +1,6 @@
 ﻿import React, { useState, useRef } from 'react';
 import { Printer, X, BookOpen, ChevronDown } from 'lucide-react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { db } from '../../db';
 import { PrintService } from '../../services/print';
@@ -24,6 +25,12 @@ export const FyiBinderPrintModal: React.FC<FyiBinderPrintModalProps> = ({ isOpen
   );
 
   const printAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || typeof document === 'undefined') return;
+    document.body.classList.add('fyi-binder-printing');
+    return () => document.body.classList.remove('fyi-binder-printing');
+  }, [isOpen]);
 
   const handlePrint = () => {
     window.print();

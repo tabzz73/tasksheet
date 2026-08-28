@@ -34,9 +34,11 @@ describe('FYI Binder print dialog layering', () => {
 
     const printStream = document.body.querySelector('.fyi-binder-print-stream');
     expect(printStream).not.toBeNull();
+    expect(printStream?.parentElement).toBe(document.body);
     expect(printStream?.classList.contains('fixed')).toBe(false);
     expect(printStream?.classList.contains('inset-0')).toBe(false);
     expect(printStream?.querySelector('.fyi-resident-group')).not.toBeNull();
     expect(printStream?.querySelector('.fyi-block')).not.toBeNull();
+    expect(document.body.classList.contains('fyi-binder-printing')).toBe(true);
   });
 });
