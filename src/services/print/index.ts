@@ -802,14 +802,15 @@ return {
         let rowType: 'compact' | 'standard' | 'expanded' = 'standard';
         const titleL = (t.title || '').toLowerCase();
         const catL = (t.category || '').toLowerCase();
+        const isExplicitPainTask = titleL.includes('pain') || catL.includes('pain');
+        const usableTrackingConfig = t.trackingConfig
+          && (t.trackingConfig.kind !== 'pain' || isExplicitPainTask)
+          ? t.trackingConfig
+          : undefined;
 
-        if (t.trackingConfig) {
-          structuredResult = {
-            type: t.trackingConfig.kind === 'weight' ? 'weight' : 'generic',
-            label: buildResidentTrackingFields(t.trackingConfig).map(field => field.label).join('\n'),
-          };
-          if (t.trackingConfig.kind === 'behavior') rowType = 'expanded';
-        } else if (titleL.includes('bg') || titleL.includes('glucose') || titleL.includes('insulin')) {
+        // The task's clinical meaning is authoritative. Stored tracking metadata
+        // may enrich a task, but must never turn vitals/glucose/etc. into Pain.
+        if (titleL.includes('bg') || titleL.includes('glucose') || titleL.includes('insulin')) {
           structuredResult = { type: 'bg', label: 'BG: ______ mmol/L' };
         } else if (titleL.includes('vitals') || titleL.includes('vital signs') || titleL.includes('bp') || titleL.includes('blood pressure')) {
           structuredResult = { type: 'vitals', label: 'BP: ____/____  HR: ____\nRR: ____  Temp: ____\nSpO₂: ____%' };
@@ -824,6 +825,12 @@ return {
           structuredResult = { type: 'generic', label: 'Neuro / Result: ____________' };
         } else if (isClinical && (titleL.includes('edema') || titleL.includes('circulation'))) {
           structuredResult = { type: 'generic', label: 'Edema / Circulation: ____________' };
+        } else if (usableTrackingConfig) {
+          structuredResult = {
+            type: usableTrackingConfig.kind === 'weight' ? 'weight' : 'generic',
+            label: buildResidentTrackingFields(usableTrackingConfig).map(field => field.label).join('\n'),
+          };
+          if (usableTrackingConfig.kind === 'behavior') rowType = 'expanded';
         } else if (isClinical && titleL.includes('pain')) {
           structuredResult = { type: 'generic', label: 'Pain: ______/10   Location: __________' };
         } else if (isClinical && (catL.includes('assessment') || catL.includes('monitoring') || catL.includes('injection'))) {

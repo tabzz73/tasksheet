@@ -413,6 +413,7 @@ describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () =>
         ['Certification Post-Fall Neuro Check', 'Health Monitoring', 'Neuro / Result:'],
         ['Certification Edema and Circulation Check', 'Health Monitoring', 'Edema / Circulation:'],
         ['Certification Clinical Review', 'General', 'Result:'],
+        ['Certification Pain Reassessment', 'Pain / Symptom Management', 'Pain:'],
       ] as const;
 
       taskSpecs.forEach(([title, category], index) => {
@@ -423,6 +424,10 @@ describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () =>
           category,
           frequency: 'daily',
           time: `1${index}00`,
+          trackingConfig: {
+            kind: 'pain',
+            prompt: 'Record clinical value, result, follow-up, and initials on paper.',
+          },
         });
       });
 
