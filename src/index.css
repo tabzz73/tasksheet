@@ -143,10 +143,21 @@
   .wound-block,
   .unit-task-block,
   .fyi-block,
-  .fyi-resident-group,
   .fyi-section-divider {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* A resident may have enough FYIs to span pages. Keep each FYI intact, but
+     allow the resident group itself to continue onto the next page. */
+  .fyi-resident-group {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .fyi-resident-header {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   /* Prevent orphaned section headers */

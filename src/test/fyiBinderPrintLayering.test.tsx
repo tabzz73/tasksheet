@@ -28,4 +28,15 @@ describe('FYI Binder print dialog layering', () => {
     expect(dialog.classList.contains('fixed')).toBe(true);
     expect(dialog.classList.contains('z-[100]')).toBe(true);
   });
+
+  it('renders the physical Binder in normal paginated flow instead of a clipped fixed viewport', () => {
+    render(<FyiBinderPrintModal isOpen onClose={vi.fn()} />);
+
+    const printStream = document.body.querySelector('.fyi-binder-print-stream');
+    expect(printStream).not.toBeNull();
+    expect(printStream?.classList.contains('fixed')).toBe(false);
+    expect(printStream?.classList.contains('inset-0')).toBe(false);
+    expect(printStream?.querySelector('.fyi-resident-group')).not.toBeNull();
+    expect(printStream?.querySelector('.fyi-block')).not.toBeNull();
+  });
 });

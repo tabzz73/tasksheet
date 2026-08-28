@@ -107,7 +107,7 @@ function categoryLabel(cat: string): string {
 const FyiBlock: React.FC<{ fyi: BinderFyiEntry }> = ({ fyi }) => {
   const isImportant = fyi.importance === 'high' || fyi.importance === 'urgent';
   return (
-    <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginBottom: '10pt' }}>
+    <div className="fyi-block" style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginBottom: '10pt' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6pt', marginBottom: '3pt' }}>
         {isImportant && (
           <span style={{
@@ -131,8 +131,8 @@ const FyiBlock: React.FC<{ fyi: BinderFyiEntry }> = ({ fyi }) => {
 };
 
 const ResidentFyiGroup: React.FC<{ group: BinderResidentGroup }> = ({ group }) => (
-  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginBottom: '14pt' }}>
-    <div style={{
+  <div className="fyi-resident-group" style={{ marginBottom: '14pt' }}>
+    <div className="fyi-resident-header" style={{
       borderBottom: '1pt solid #9CA3AF', paddingBottom: '4pt', marginBottom: '7pt',
       display: 'flex', alignItems: 'baseline', gap: '10pt',
     }}>
@@ -148,7 +148,7 @@ const ResidentFyiGroup: React.FC<{ group: BinderResidentGroup }> = ({ group }) =
 );
 
 const SectionDivider: React.FC<{ label: string; isRole?: boolean }> = ({ label, isRole }) => (
-  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginTop: isRole ? '18pt' : '12pt', marginBottom: '10pt' }}>
+  <div className="fyi-section-divider" style={{ breakInside: 'avoid', pageBreakInside: 'avoid', marginTop: isRole ? '18pt' : '12pt', marginBottom: '10pt' }}>
     <div style={{ borderBottom: `${isRole ? '2pt' : '1pt'} solid #111827`, paddingBottom: '4pt' }}>
       <span style={{ fontSize: 'var(--print-section-size)', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' as const, color: '#111827' }}>
         {label}

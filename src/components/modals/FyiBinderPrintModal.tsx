@@ -130,10 +130,8 @@ export const FyiBinderPrintModal: React.FC<FyiBinderPrintModalProps> = ({ isOpen
       </div>
 
       {/* Print-only content: the actual document rendered outside the modal */}
-      <div className="print-only tasksheet-print-document fixed inset-0 bg-white z-[9999] p-0">
-        <div style={{ padding: '10mm 11mm' }}>
-          <FyiBinderPrintDocument model={model} />
-        </div>
+      <div className="print-only tasksheet-print-document fyi-binder-print-stream bg-white">
+        <FyiBinderPrintDocument model={model} />
       </div>
     </>
   );
