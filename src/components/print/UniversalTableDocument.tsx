@@ -204,7 +204,17 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   // Thin section divider row
   const colSpanCount = isClinical ? 8 : 7;
   const renderSectionHeader = (title: string, count: number) => (
-    <tr style={{ backgroundColor: '#0f172a', color: '#ffffff', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+    <tr
+      className="tasksheet-ink-saving-band"
+      style={{
+        backgroundColor: '#ffffff',
+        color: '#0f172a',
+        borderTop: '1.5pt solid #0f172a',
+        borderBottom: '1pt solid #0f172a',
+        breakInside: 'avoid',
+        pageBreakInside: 'avoid',
+      }}
+    >
       <td
         colSpan={colSpanCount}
         style={{
@@ -218,7 +228,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{title}</span>
-          <span style={{ fontSize: '7.5pt', opacity: 0.85 }}>({count} item{count !== 1 ? 's' : ''})</span>
+          <span style={{ fontSize: '7.5pt', color: '#475569' }}>({count} item{count !== 1 ? 's' : ''})</span>
         </div>
       </td>
     </tr>
