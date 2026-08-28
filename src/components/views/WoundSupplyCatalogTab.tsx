@@ -3,6 +3,7 @@ import { Check, Edit2, PackagePlus, Plus, Search } from 'lucide-react';
 import { db } from '../../db';
 import { WoundSupplyLocalStatus, WoundSupplyProduct } from '../../types';
 import { matchesWoundProductSearch, WOUND_SUPPLY_CATALOG_DESCRIPTION, WOUND_SUPPLY_CATALOG_DISCLAIMER } from '../../data/woundSupplyCatalog';
+import { Modal } from '../common/Modal';
 
 const EMPTY_PRODUCT: Omit<WoundSupplyProduct, 'id' | 'provenance'> = {
   productFamily: '', productName: '', manufacturer: '', category: '', size: '', unit: 'Each', packageSize: '', supplierItemNumber: '',
@@ -16,7 +17,6 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
   const [showInactive, setShowInactive] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editor, setEditor] = useState(EMPTY_PRODUCT);
-  const editorRef = useRef<HTMLElement | null>(null);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const editorOpen = editingId !== null || editor !== EMPTY_PRODUCT;
   const refresh = () => setProducts([...db.getState().woundSupplyCatalog]);
@@ -24,7 +24,6 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
   useEffect(() => {
     if (!editorOpen) return;
     const frame = window.requestAnimationFrame(() => {
-      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       firstFieldRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
@@ -103,9 +102,15 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
       </div>
     </section>
 
-    {editorOpen && <section ref={editorRef} id="wound-product-editor" className="bg-white rounded-xl border-2 border-teal-200 p-5 shadow-sm space-y-4 scroll-mt-6">
-      <h4 className="text-sm font-black text-slate-900">{editingId ? 'Edit Wound Product' : 'Add Wound Product / Size'}</h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <Modal
+      isOpen={editorOpen}
+      onClose={() => { setEditingId(null); setEditor(EMPTY_PRODUCT); }}
+      title={editingId ? 'Edit Wound Product' : 'Add Wound Product / Size'}
+      subtitle="Configure the exact product, size, stock status, and reorder details."
+      maxWidth="4xl"
+    >
+      <div id="wound-product-editor" className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Field inputRef={firstFieldRef} label="Product Family" value={editor.productFamily} onChange={value => setEditor({ ...editor, productFamily: value })} />
         <Field label="Product Name" value={editor.productName} onChange={value => setEditor({ ...editor, productName: value })} />
         <Field label="Manufacturer / Brand" value={editor.manufacturer} onChange={value => setEditor({ ...editor, manufacturer: value })} />
@@ -117,10 +122,11 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
         <Field label="Default Reorder Level" type="number" value={editor.defaultReorderLevel?.toString() || ''} onChange={value => setEditor({ ...editor, defaultReorderLevel: value ? Number(value) : undefined })} />
         <label className="text-xs font-bold text-slate-700">Local/Formulary Status<select value={editor.localFormularyStatus || 'not_stocked'} onChange={event => setEditor({ ...editor, localFormularyStatus: event.target.value as WoundSupplyLocalStatus, isFacilityStock: event.target.value === 'approved_stocked', isActive: event.target.value !== 'inactive' })} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"><option value="approved_stocked">Approved / Stocked</option><option value="special_order">Special Order</option><option value="not_stocked">Not Stocked</option><option value="inactive">Inactive</option></select></label>
         <label className="flex items-center gap-2 text-xs font-bold text-slate-700 self-end pb-2"><input type="checkbox" checked={editor.isFacilityStock} onChange={event => setEditor({ ...editor, isFacilityStock: event.target.checked, localFormularyStatus: event.target.checked ? 'approved_stocked' : editor.localFormularyStatus === 'approved_stocked' ? 'not_stocked' : editor.localFormularyStatus })} />Facility Stock Item</label>
+        </div>
+        <label className="block text-xs font-bold text-slate-700">Notes<textarea value={editor.notes || ''} onChange={event => setEditor({ ...editor, notes: event.target.value })} rows={2} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></label>
+        <div className="flex justify-end gap-2"><button type="button" onClick={() => { setEditingId(null); setEditor(EMPTY_PRODUCT); }} className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold">Cancel</button><button type="button" onClick={save} className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold"><Check className="w-3.5 h-3.5" />Save Product</button></div>
       </div>
-      <label className="block text-xs font-bold text-slate-700">Notes<textarea value={editor.notes || ''} onChange={event => setEditor({ ...editor, notes: event.target.value })} rows={2} className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></label>
-      <div className="flex justify-end gap-2"><button type="button" onClick={() => { setEditingId(null); setEditor(EMPTY_PRODUCT); }} className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold">Cancel</button><button type="button" onClick={save} className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-700 text-white rounded-lg text-xs font-bold"><Check className="w-3.5 h-3.5" />Save Product</button></div>
-    </section>}
+    </Modal>
   </div>;
 };
 
