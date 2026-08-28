@@ -19,7 +19,8 @@ import {
   Plus,
   Edit2,
   Eye,
-  EyeOff
+  EyeOff,
+  PackagePlus
 } from 'lucide-react';
 import { db } from '../../db';
 import { Facility, FacilitySettings, FacilityBrandingSettings, Role, Shift, CatalogTaskTemplate, UnitTaskTemplate, FacilityContactExtension } from '../../types';
@@ -31,6 +32,7 @@ import { AttentionRulesTab } from './AttentionRulesTab';
 import { CareTimingSettingsTab } from './CareTimingSettingsTab';
 import { AppInformationTab } from './AppInformationTab';
 import { DeveloperInformationTab } from './DeveloperInformationTab';
+import { WoundSupplyCatalogTab } from './WoundSupplyCatalogTab';
 import { ChevronDown, Code2, Printer, Sparkles, ShieldAlert } from 'lucide-react';
 import { formatShiftHeader } from '../../services/print';
 import {
@@ -47,7 +49,7 @@ interface SettingsViewProps {
   navigationResetToken?: number;
 }
 
-type SettingsTab = 'facility' | 'care_timings' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'demo' | 'backup' | 'app_info' | 'developer_info';
+type SettingsTab = 'facility' | 'care_timings' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'wound_supplies' | 'demo' | 'backup' | 'app_info' | 'developer_info';
 
 const SETTINGS_NAV_GROUPS: Array<{
   label: string;
@@ -74,6 +76,7 @@ const SETTINGS_NAV_GROUPS: Array<{
       { id: 'quick_presets', label: 'Quick Add Presets', description: 'Common resident-care shortcuts', icon: Sparkles },
       { id: 'attention_rules', label: 'Attention & Safety', description: 'Visibility and alert rules', icon: ShieldAlert },
       { id: 'catalog', label: 'Care Task Catalog', description: 'Standardized task definitions', icon: BookOpen },
+      { id: 'wound_supplies', label: 'Wound Supply Catalog', description: 'Products, sizes and facility stock', icon: PackagePlus },
     ],
   },
   {
@@ -1011,6 +1014,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
       {/* TASK ATTENTION RULES */}
       {activeTab === 'attention_rules' && (
         <AttentionRulesTab onShowFeedback={showFeedback} />
+      )}
+
+      {activeTab === 'wound_supplies' && (
+        <WoundSupplyCatalogTab onShowFeedback={showFeedback} />
       )}
 
       {/* 2. CARE TASK CATALOG MANAGER */}

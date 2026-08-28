@@ -222,7 +222,7 @@ export function buildWoundScheduleModel(currentDateStr: string): WoundScheduleMo
       frequency: formatRecurrenceHuman(w.recurrenceRule, w.frequency),
       bathingRelation: w.bathingRelation === 'after_bath' ? 'After scheduled shower/bath' : w.bathingRelation === 'before_bath' ? 'Before shower' : 'Independent of bathing',
       instructions: w.protocol || w.instructions,
-      supplies: (w.supplies || []).map(item => [item.name, item.unitSize].filter(Boolean).join(' — ')).join('; ') || '—',
+      supplies: (w.supplies || []).map(item => item.unitSize && !item.name.includes(item.unitSize) ? `${item.name} — ${item.unitSize}` : item.name).join('; ') || '—',
       assessmentType: w.assessmentType || 'none',
       scheduledTime: w.time || '—',
       shiftCode: shift ? `${shift.shortCode} — ${shift.name}` : 'Unassigned clinical shift',
@@ -288,9 +288,12 @@ export interface WoundSupplyReorderRow {
   key: string;
   supplyName: string;
   unitSize?: string;
+  unit?: string;
   residentRooms: string[];
   woundLocations: string[];
   scheduledUses: number | null;
+  quantityPerUse: number | null;
+  estimatedNeed: number | null;
 }
 
 export interface WoundSupplyReorderModel {
@@ -366,7 +369,7 @@ export function buildWeeklyWoundOverviewModel(anchorDate: string): WeeklyWoundOv
       residentName: `${resident.firstName} ${resident.lastName}`,
       location: wound.siteLocation,
       protocol: wound.protocol || wound.instructions || 'Follow configured wound protocol.',
-      supplies: (wound.supplies || []).map(item => [item.name, item.unitSize].filter(Boolean).join(' — ')).join('; ') || '—',
+      supplies: (wound.supplies || []).map(item => item.unitSize && !item.name.includes(item.unitSize) ? `${item.name} — ${item.unitSize}` : item.name).join('; ') || '—',
       frequency: formatRecurrenceHuman(wound.recurrenceRule, wound.frequency),
       slots,
     };
@@ -400,20 +403,25 @@ export function buildWoundSupplyReorderModel(anchorDate: string, scope: 'current
       ? days.filter(day => isDateDue(day.dateStr, wound.frequency, wound.recurrenceRule, wound.createdAt)).length
       : null;
     (wound.supplies || []).forEach(supply => {
-      const key = supply.catalogId ? `catalog:${supply.catalogId}` : `exact:${supply.name.trim()}|${supply.unitSize || ''}`;
+      const key = supply.catalogId ? `catalog:${supply.catalogId}|${supply.unitSize || ''}` : `exact:${supply.name.trim()}|${supply.unitSize || ''}`;
+      const catalogProduct = supply.catalogId ? state.woundSupplyCatalog.find(product => product.id === supply.catalogId) : undefined;
       const existing = aggregates.get(key) || {
         key,
-        supplyName: supply.name.trim(),
-        unitSize: supply.unitSize,
+        supplyName: supply.productFamily || catalogProduct?.productFamily || supply.name.trim(),
+        unitSize: supply.unitSize || catalogProduct?.size,
+        unit: supply.unitOfMeasure || catalogProduct?.unit,
         residentRooms: [],
         woundLocations: [],
         scheduledUses: scope === 'current_week' ? 0 : null,
+        quantityPerUse: supply.quantityPerUse ?? null,
+        estimatedNeed: null,
       };
       const residentRoom = `${resident.roomNumber} — ${resident.firstName} ${resident.lastName}`;
       const woundTrace = `${resident.roomNumber} — ${wound.siteLocation}`;
       if (!existing.residentRooms.includes(residentRoom)) existing.residentRooms.push(residentRoom);
       if (!existing.woundLocations.includes(woundTrace)) existing.woundLocations.push(woundTrace);
       if (existing.scheduledUses !== null && uses !== null) existing.scheduledUses += uses;
+      if (existing.quantityPerUse !== null && existing.quantityPerUse !== supply.quantityPerUse) existing.quantityPerUse = null;
       aggregates.set(key, existing);
     });
   });
@@ -424,7 +432,7 @@ export function buildWoundSupplyReorderModel(anchorDate: string, scope: 'current
     scope,
     scopeLabel: scope === 'current_week' ? `Current week · ${weekRange}` : 'All active wounds',
     weekRange,
-    rows: [...aggregates.values()].sort((a, b) => a.supplyName.localeCompare(b.supplyName) || (a.unitSize || '').localeCompare(b.unitSize || '')),
+    rows: [...aggregates.values()].map(row => ({ ...row, estimatedNeed: row.scheduledUses !== null && row.quantityPerUse !== null ? row.scheduledUses * row.quantityPerUse : null })).sort((a, b) => a.supplyName.localeCompare(b.supplyName) || (a.unitSize || '').localeCompare(b.unitSize || '')),
     activeWoundCount: selected.length,
     activeResidentCount: new Set(selected.map(item => item.resident.id)).size,
     generatedDate: new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }),

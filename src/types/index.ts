@@ -370,6 +370,40 @@ export interface FYI {
   source?: 'manual' | 'demo';
 }
 
+export type WoundSupplyLocalStatus = 'approved_stocked' | 'special_order' | 'not_stocked' | 'inactive';
+
+export interface WoundSupplyProduct {
+  id: UUID;
+  productFamily: string;
+  productName: string;
+  manufacturer: string;
+  category: string;
+  size?: string;
+  unit: string;
+  packageSize?: string;
+  supplierItemNumber?: string;
+  isFacilityStock: boolean;
+  defaultReorderLevel?: number;
+  isActive: boolean;
+  notes?: string;
+  localFormularyStatus?: WoundSupplyLocalStatus;
+  provenance: 'seeded' | 'user_created';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WoundSupplySelection {
+  id?: string;
+  catalogId?: string;
+  name: string;
+  productFamily?: string;
+  manufacturer?: string;
+  category?: string;
+  unitSize?: string;
+  quantityPerUse?: number;
+  unitOfMeasure?: string;
+}
+
 export interface Wound {
   id: UUID;
   residentId: UUID;
@@ -386,14 +420,7 @@ export interface Wound {
   /** Structured treatment protocol. Legacy records may still use instructions. */
   protocol?: string;
   /** Exact configured supply names. Reports deliberately do not fuzzy-merge them. */
-  supplies?: Array<{
-    id?: string;
-    catalogId?: string;
-    name: string;
-    unitSize?: string;
-    quantityPerUse?: number;
-    unitOfMeasure?: string;
-  }>;
+  supplies?: WoundSupplySelection[];
   /** Paper assessment prompt only; no clinical results are stored electronically. */
   assessmentType?: 'none' | 'partial' | 'full';
   startDate?: string;
@@ -493,6 +520,7 @@ export interface AppDatabaseState {
   unitTasks: UnitTask[];
   fyis: FYI[];
   wounds: Wound[];
+  woundSupplyCatalog: WoundSupplyProduct[];
   /**
    * @deprecated legacyCompletions — retained for safe migration only.
    * Not rendered in UI. Not used by generator. Not used by print service.

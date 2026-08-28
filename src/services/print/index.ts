@@ -877,7 +877,7 @@ return {
           residentName: `${assignment.resident.firstName} ${assignment.resident.lastName}`,
           location: wound.siteLocation,
           protocol: normalizeInstruction(wound.protocol || wound.instructions || 'Follow configured wound protocol.'),
-          supplies: (wound.supplies || []).map(supply => [supply.name, supply.unitSize].filter(Boolean).join(' — ')).join('; ') || '—',
+          supplies: (wound.supplies || []).map(supply => supply.unitSize && !supply.name.includes(supply.unitSize) ? `${supply.name} — ${supply.unitSize}` : supply.name).join('; ') || '—',
           assessmentType: wound.assessmentType || 'none',
         })))
         .sort((a, b) => a.time.localeCompare(b.time) || sortRoomNumbers(a.roomNumber, b.roomNumber) || a.location.localeCompare(b.location))

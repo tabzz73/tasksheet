@@ -38,7 +38,8 @@ import {
   TaskAttentionConfig,
   TaskAttentionIndicator,
   ResidentTrackingConfig,
-  MealRelation
+  MealRelation,
+  WoundSupplySelection
 } from '../../types';
 import { RecurrenceSelector } from '../common/RecurrenceSelector';
 import { detectAttentionIndicators, getIndicatorBadgeDetails } from '../../services/attention';
@@ -48,6 +49,7 @@ import { DEFAULT_CARE_TIMING_PRESETS } from '../../data/defaultData';
 import { choosePreferredTimingPreset, getCareTimingPresetKind, getInShiftTimingPresets } from '../../services/careTiming';
 import { validateCareShiftSelection, validateTimedCareShift } from '../../services/scheduling/careShiftAssignment';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
+import { WoundSupplyPicker } from '../common/WoundSupplyPicker';
 
 export type AddEntityType = 'care_task' | 'unit_task' | 'resident' | 'fyi' | 'wound';
 export type FormMode = 'add' | 'edit' | 'duplicate';
@@ -148,7 +150,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [woundRecurrenceRule, setWoundRecurrenceRule] = useState<RecurrenceRule | undefined>(undefined);
   const [woundBathingRelation, setWoundBathingRelation] = useState<'independent' | 'before_bath' | 'after_bath' | 'separate_day'>('independent');
   const [woundInstructions, setWoundInstructions] = useState('');
-  const [woundSupplies, setWoundSupplies] = useState('');
+  const [woundSupplies, setWoundSupplies] = useState<WoundSupplySelection[]>([]);
   const [woundAssessmentType, setWoundAssessmentType] = useState<'none' | 'partial' | 'full'>('none');
   const [woundStatus, setWoundStatus] = useState<'active' | 'healing' | 'resolved' | 'discontinued'>('active');
   const clinicalShifts = shifts.filter(shift => {
@@ -218,7 +220,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setWoundRecurrenceRule(initialWound.recurrenceRule);
         setWoundBathingRelation(initialWound.bathingRelation);
         setWoundInstructions(initialWound.protocol || initialWound.instructions || '');
-        setWoundSupplies((initialWound.supplies || []).map(supply => [supply.name, supply.unitSize].filter(Boolean).join(' — ')).join('\n'));
+        setWoundSupplies(initialWound.supplies || []);
         setWoundAssessmentType(initialWound.assessmentType || 'none');
         setWoundStatus(initialWound.status);
       } else if (initialFYI) {
@@ -276,7 +278,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setWoundRecurrenceRule(undefined);
         setWoundBathingRelation('independent');
         setWoundInstructions('');
-        setWoundSupplies('');
+        setWoundSupplies([]);
         setWoundAssessmentType('none');
         setWoundStatus('active');
       }
@@ -523,14 +525,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     e.preventDefault();
     if (!woundSiteLocation.trim() || !residentId || !woundShiftId || woundShiftTimeError) return;
 
-    const supplies = woundSupplies
-      .split(/\r?\n|,/)
-      .map(name => name.trim())
-      .filter(Boolean)
-      .map(name => ({ name }));
     const structuredFields = {
       protocol: woundInstructions.trim() || undefined,
-      supplies,
+      supplies: woundSupplies,
       assessmentType: woundAssessmentType,
       startDate: woundRecurrenceRule?.startDate,
       endDate: woundRecurrenceRule?.endDate,
@@ -1672,20 +1669,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="wound-supplies" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Supplies
-              </label>
-              <textarea
-                id="wound-supplies"
-                rows={3}
-                value={woundSupplies}
-                onChange={(event) => setWoundSupplies(event.target.value)}
-                placeholder={'One exact supply name per line\nMepilex Border 10 × 10 cm\nSterile normal saline'}
-                className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
-              />
-              <p className="mt-1 text-[11px] text-slate-500">Exact names are used by the supply re-order report.</p>
-            </div>
+            <WoundSupplyPicker value={woundSupplies} onChange={setWoundSupplies} />
             <div>
               <label htmlFor="wound-assessment-type" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 Assessment / Notes Prompt

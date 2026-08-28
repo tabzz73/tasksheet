@@ -25,6 +25,7 @@ This pre-tag gate validates the RC26 candidate build. Record the exact clean can
 - LPN normal and heavy samples include the dedicated WOUND CARE section after regular LPN tasks, with no wound duplicated in the regular table.
 - Weekly overview shows all seven configured operational-week days, correct dates, readable shift/time and Full/Partial markers, wrapped Location/Protocol text, and repeated headers across pages.
 - Supply report preserves exact configured supply names, resident/room and wound traceability, readable scheduled-use counts, and usable handwritten On Hand/Re-Order Qty spaces.
+- Brand products and sizes remain separate (for example 10 × 10 cm versus 10 × 20 cm); Qty / Use and Estimated Need appear only when quantity is explicitly configured.
 - Resolved/discontinued wounds and inactive residents do not appear.
 
 ## Acceptance criteria

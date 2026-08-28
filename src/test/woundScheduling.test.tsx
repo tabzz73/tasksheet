@@ -31,7 +31,9 @@ describe('wound protocol scheduling UI', () => {
     fireEvent.change(view.getByPlaceholderText(/Left Lower Leg Venous Ulcer/i), { target: { value: 'Left heel' } });
     fireEvent.change(view.getByLabelText(/Scheduled Time/i), { target: { value: '1000' } });
     fireEvent.change(view.getByLabelText(/Treatment Protocol/i), { target: { value: 'Cleanse with saline and apply bordered foam.' } });
-    fireEvent.change(view.getByLabelText(/^Supplies$/i), { target: { value: 'Sterile saline\nBordered foam 10 × 10 cm' } });
+    fireEvent.change(view.getByLabelText(/Search wound products/i), { target: { value: '10x10' } });
+    fireEvent.click(view.getByRole('button', { name: /Mepilex Border Flex 10 × 10 cm/i }));
+    fireEvent.change(view.getByLabelText(/Quantity per use for Mepilex Border Flex 10 × 10 cm/i), { target: { value: '1' } });
     fireEvent.change(view.getByLabelText(/Assessment \/ Notes Prompt/i), { target: { value: 'full' } });
     fireEvent.click(view.getByRole('button', { name: /^Weekly$/i }));
     fireEvent.click(view.getByRole('button', { name: /Add Wound Protocol/i }));
@@ -42,7 +44,8 @@ describe('wound protocol scheduling UI', () => {
     expect(wound?.frequency).toBe('weekly');
     expect(wound?.recurrenceRule?.type).toBe('WEEKLY');
     expect(wound?.protocol).toMatch(/Cleanse with saline/i);
-    expect(wound?.supplies?.map(item => item.name)).toEqual(['Sterile saline', 'Bordered foam 10 × 10 cm']);
+    expect(wound?.supplies?.[0]).toMatchObject({ name: 'Mepilex Border Flex 10 × 10 cm', unitSize: '10 × 10 cm', quantityPerUse: 1 });
+    expect(wound?.supplies?.[0].catalogId).toBeTruthy();
     expect(wound?.assessmentType).toBe('full');
   });
 

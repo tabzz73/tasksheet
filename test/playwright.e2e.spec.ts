@@ -105,6 +105,9 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: /Wounds \(/i }).click();
     await page.getByRole('main').getByRole('button', { name: 'Add Wound' }).click();
     await page.getByPlaceholder(/e\.g\. Left Lower Leg/i).fill('Left Forearm Skin Tear');
+    await page.getByLabel('Search wound products').fill('10x10');
+    await page.getByRole('button', { name: /Mepilex Border Flex 10 × 10 cm/i }).click();
+    await page.getByLabel(/Quantity per use for Mepilex Border Flex 10 × 10 cm/i).fill('1');
     await page.locator('form').getByRole('button', { name: 'Add Wound' }).click();
     await expect(page.getByText('Left Forearm Skin Tear')).toBeVisible();
   });
@@ -210,5 +213,20 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByLabel('Wound supply report scope').selectOption('all_active');
     await page.getByRole('button', { name: 'Preview' }).nth(1).click();
     await expect(page.getByRole('heading', { name: 'WOUND SUPPLIES RE-ORDER LIST' })).toBeVisible();
+  });
+
+  test('Journey 9 — Wound Supply Catalog searches brand products and exact sizes', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Settings' }).first().click();
+    await page.getByRole('button', { name: /TaskSheet Workflow/i }).click();
+    await page.getByRole('button', { name: /Wound Supply Catalog/i }).click();
+    await expect(page.getByRole('heading', { name: /Common Wound Products/i })).toBeVisible();
+    await page.getByLabel('Search wound supply catalog').fill('10x20');
+    await expect(page.getByText('Mepilex Border Flex 10 × 20 cm')).toBeVisible();
+    await expect(page.getByText('Biatain Silicone 10 × 20 cm')).toBeVisible();
+    await page.getByLabel('Search wound supply catalog').fill('mep');
+    await expect(page.getByText('Mepitel').first()).toBeVisible();
+    await expect(page.getByText('Mepore').first()).toBeVisible();
+    await expect(page.getByText('Mesalt').first()).toBeVisible();
   });
 });

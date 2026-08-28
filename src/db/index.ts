@@ -1,8 +1,9 @@
-import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule } from '../types';
+import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { generateDemoData } from '../data/demoSeed';
+import { WOUND_SUPPLY_CATALOG_SEED } from '../data/woundSupplyCatalog';
 
 const STORAGE_KEY = 'tasksheet_v1_db_state_v2';
 const LEGACY_STORAGE_KEY = 'tasksheet_v1_db_state';
@@ -24,12 +25,37 @@ function sanitizeLegacyCertificationTracking(task: ResidentTask): ResidentTask {
   return sanitized as ResidentTask;
 }
 
-function migrateWoundStructure(wound: Wound): Wound {
+function mergeWoundSupplyCatalog(stored: WoundSupplyProduct[] | undefined): WoundSupplyProduct[] {
+  const storedById = new Map((stored || []).map(product => [product.id, product]));
+  const seeded = WOUND_SUPPLY_CATALOG_SEED.map(product => ({ ...product, ...(storedById.get(product.id) || {}) }));
+  const custom = (stored || []).filter(product => product.provenance === 'user_created' || !WOUND_SUPPLY_CATALOG_SEED.some(seed => seed.id === product.id));
+  return [...seeded, ...custom];
+}
+
+function migrateWoundStructure(wound: Wound, catalog: WoundSupplyProduct[] = WOUND_SUPPLY_CATALOG_SEED): Wound {
   const protocol = wound.protocol || wound.instructions;
+  const supplies = Array.isArray(wound.supplies) ? wound.supplies.filter(item => item?.name?.trim()).map(item => {
+    if (item.catalogId) return item;
+    const normalizedName = item.name.trim().toLowerCase();
+    const match = catalog.find(product =>
+      product.productName.toLowerCase() === normalizedName ||
+      (product.productFamily.toLowerCase() === normalizedName && (!item.unitSize || product.size === item.unitSize))
+    );
+    return match ? {
+      ...item,
+      catalogId: match.id,
+      name: match.productName,
+      productFamily: match.productFamily,
+      manufacturer: match.manufacturer,
+      category: match.category,
+      unitSize: match.size,
+      unitOfMeasure: item.unitOfMeasure || match.unit,
+    } : item;
+  }) : [];
   return {
     ...wound,
     protocol,
-    supplies: Array.isArray(wound.supplies) ? wound.supplies.filter(item => item?.name?.trim()) : [],
+    supplies,
     assessmentType: wound.assessmentType || (wound.firstAction === 'assessment' ? 'full' : 'none'),
     startDate: wound.startDate || wound.recurrenceRule?.startDate,
     endDate: wound.endDate || wound.recurrenceRule?.endDate,
@@ -86,6 +112,7 @@ function getInitialState(): AppDatabaseState {
     unitTasks: [],
     fyis: [],
     wounds: [],
+    woundSupplyCatalog: WOUND_SUPPLY_CATALOG_SEED,
     legacyCompletions: [],
     binderState: DEFAULT_BINDER_STATE,
     catalogCategories: ALBERTA_STARTER_CATEGORIES,
@@ -177,8 +204,9 @@ class DatabaseService {
             const roleText = `${role?.code || ''} ${role?.name || ''}`.toLowerCase();
             return shift.isActive !== false && (roleText.includes('lpn') || roleText.includes('rn') || roleText.includes('nurse'));
           });
+          const woundSupplyCatalog = mergeWoundSupplyCatalog(parsed.woundSupplyCatalog);
           const migratedWounds: Wound[] = (parsed.wounds || []).map((rawWound: Wound) => {
-            const wound = migrateWoundStructure(rawWound);
+            const wound = migrateWoundStructure(rawWound, woundSupplyCatalog);
             return {
               ...wound,
               shiftId: wound.shiftId || (wound.source === 'demo' ? demoClinicalShift?.id : undefined),
@@ -201,6 +229,7 @@ class DatabaseService {
             unitTasks: parsed.unitTasks || [],
             fyis: parsed.fyis || [],
             wounds: migratedWounds,
+            woundSupplyCatalog,
             legacyCompletions: parsed.legacyCompletions || parsed.completions || [], // migrate old key
             binderState: parsed.binderState || DEFAULT_BINDER_STATE,
             catalogCategories: ALBERTA_STARTER_CATEGORIES,
@@ -779,6 +808,20 @@ class DatabaseService {
     });
   }
 
+  // Wound supply formulary catalog
+  public addWoundSupplyProduct(product: Omit<WoundSupplyProduct, 'id' | 'createdAt' | 'provenance'>): WoundSupplyProduct {
+    const created: WoundSupplyProduct = { ...product, id: generateUUID(), provenance: 'user_created', createdAt: new Date().toISOString() };
+    this.saveToStorage({ ...this.state, woundSupplyCatalog: [...this.state.woundSupplyCatalog, created] });
+    return created;
+  }
+
+  public updateWoundSupplyProduct(id: string, updates: Partial<WoundSupplyProduct>): void {
+    this.saveToStorage({
+      ...this.state,
+      woundSupplyCatalog: this.state.woundSupplyCatalog.map(product => product.id === id ? { ...product, ...updates, id: product.id, provenance: product.provenance, updatedAt: new Date().toISOString() } : product),
+    });
+  }
+
   /**
    * @deprecated ADR-001: Completion Domain Removed from Active Architecture
    * TaskSheet no longer records digital task completion.
@@ -1073,7 +1116,8 @@ class DatabaseService {
         ...shift,
         source: shift.source || (restoredDataMode === 'demo' && defaultShiftIds.has(shift.id) ? 'demo' : 'manual'),
       }));
-      parsed.wounds = (parsed.wounds || []).map((wound: Wound) => migrateWoundStructure(wound));
+      parsed.woundSupplyCatalog = mergeWoundSupplyCatalog(parsed.woundSupplyCatalog);
+      parsed.wounds = (parsed.wounds || []).map((wound: Wound) => migrateWoundStructure(wound, parsed.woundSupplyCatalog));
       this.saveToStorage(parsed);
     } catch (e: any) {
       throw new Error(`Failed to restore database: ${e.message}`);

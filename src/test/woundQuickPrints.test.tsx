@@ -77,7 +77,7 @@ describe('dedicated wound print workflows', () => {
     expect(weekly).toContain('display:table-header-group');
     expect(weekly).toContain('WEEKLY WOUND CARE OVERVIEW');
     expect(supplies).toContain('On Hand');
-    expect(supplies).toContain('Re-Order Qty');
+    expect(supplies).toContain('Order Qty');
   });
 
   it('uses the configured operational week start and resolves a specific-date wound', () => {

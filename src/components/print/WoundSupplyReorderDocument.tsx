@@ -11,13 +11,13 @@ export const WoundSupplyReorderDocument: React.FC<{ model: WoundSupplyReorderMod
     </header>
     <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
       <thead style={{ display: 'table-header-group' }}><tr>
-        {['Supply', 'Unit / Size', 'Residents / Rooms', 'Wound Traceability', 'Scheduled Uses', 'On Hand', 'Re-Order Qty'].map((label, index) => <th key={label} style={{ ...cell, width: ['18%', '10%', '19%', '22%', '10%', '10%', '11%'][index], textAlign: 'left', fontWeight: 800, borderColor: '#475569' }}>{label}</th>)}
+        {['Product', 'Size', 'Residents / Rooms', 'Wound Locations', 'Scheduled Uses', 'Qty / Use', 'Estimated Need', 'On Hand', 'Order Qty'].map((label, index) => <th key={label} style={{ ...cell, width: ['15%', '8%', '16%', '17%', '9%', '8%', '9%', '9%', '9%'][index], textAlign: 'left', fontWeight: 800, borderColor: '#475569' }}>{label}</th>)}
       </tr></thead>
       <tbody>
-        {model.rows.length === 0 ? <tr><td colSpan={7} style={{ ...cell, padding: '18pt', textAlign: 'center' }}>No configured wound supplies were found for this scope.</td></tr> : model.rows.map(row => (
+        {model.rows.length === 0 ? <tr><td colSpan={9} style={{ ...cell, padding: '18pt', textAlign: 'center' }}>No wound-care supplies found for the selected scope.</td></tr> : model.rows.map(row => (
           <tr key={row.key} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <td style={{ ...cell, fontWeight: 800 }}>{row.supplyName}</td><td style={cell}>{row.unitSize || '—'}</td><td style={cell}>{row.residentRooms.join('; ')}</td><td style={cell}>{row.woundLocations.join('; ')}</td>
-            <td style={{ ...cell, textAlign: 'center', fontWeight: 700 }}>{row.scheduledUses ?? '—'}</td><td style={cell}><div style={{ height: '14pt', borderBottom: '0.5pt solid #64748b' }} /></td><td style={cell}><div style={{ height: '14pt', borderBottom: '0.5pt solid #64748b' }} /></td>
+            <td style={{ ...cell, textAlign: 'center', fontWeight: 700 }}>{row.scheduledUses ?? '—'}</td><td style={{ ...cell, textAlign: 'center' }}>{row.quantityPerUse !== null ? `${row.quantityPerUse} ${row.unit || ''}`.trim() : '—'}</td><td style={{ ...cell, textAlign: 'center', fontWeight: 700 }}>{row.estimatedNeed !== null ? `${row.estimatedNeed} ${row.unit || ''}`.trim() : '—'}</td><td style={cell}><div style={{ height: '14pt', borderBottom: '0.5pt solid #64748b' }} /></td><td style={cell}><div style={{ height: '14pt', borderBottom: '0.5pt solid #64748b' }} /></td>
           </tr>
         ))}
       </tbody>
