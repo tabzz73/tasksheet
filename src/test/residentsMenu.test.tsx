@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { db } from '../db';
 import { ResidentsView } from '../components/views/ResidentsView';
@@ -69,5 +69,23 @@ describe('Residents list action menu', () => {
     const menu = screen.getByRole('menu');
     expect(menu.style.top).toBe('');
     expect(menu.style.bottom).not.toBe('');
+  });
+
+  it('opens a resident from the full list row without a redundant Open button', () => {
+    const onOpenResidentProfile = vi.fn();
+    const view = render(
+      <ResidentsView
+        onOpenResidentProfile={onOpenResidentProfile}
+        onOpenAddResident={() => undefined}
+        onOpenQuickCareSetup={() => undefined}
+      />,
+    );
+
+    const residentRow = view.container.querySelector<HTMLElement>('[aria-label^="Open resident "].cursor-pointer');
+    expect(residentRow).not.toBeNull();
+    expect(screen.queryByText(/^Open$/)).toBeNull();
+
+    fireEvent.click(residentRow!);
+    expect(onOpenResidentProfile).toHaveBeenCalledOnce();
   });
 });

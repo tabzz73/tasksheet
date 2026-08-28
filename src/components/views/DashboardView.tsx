@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   Clock, 
-  ArrowRight, 
   Printer, 
   Users, 
   BookOpen, 
@@ -225,7 +224,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {shiftSheets.map(sheet => (
               <div
                 key={sheet.shift.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all p-5 flex flex-col justify-between"
+                onClick={() => onOpenShift(sheet.shift.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${sheet.shift.shortCode || sheet.shift.name} shift`}
+                onKeyDown={event => {
+                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onOpenShift(sheet.shift.id);
+                  }
+                }}
+                className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-teal-300 hover:shadow-sm transition-all p-5 flex flex-col justify-between cursor-pointer group"
               >
                 <div>
                   {/* Card Header: Code Badge + Name + Role + Time Pill */}
@@ -271,21 +280,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => onPrintShift(sheet)}
-                    className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors"
+                    onClick={event => {
+                      event.stopPropagation();
+                      onPrintShift(sheet);
+                    }}
+                    className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
                   >
                     <Printer className="w-3.5 h-3.5 text-slate-500" />
                     <span>Print</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => onOpenShift(sheet.shift.id)}
-                    className="px-3.5 py-1.5 bg-white hover:bg-teal-50 text-teal-700 border border-teal-600 rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors"
-                  >
-                    <span>Open Shift</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </div>
             ))}

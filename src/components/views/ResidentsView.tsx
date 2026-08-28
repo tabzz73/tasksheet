@@ -14,7 +14,6 @@ import {
   LayoutList,
   LayoutGrid,
   DoorOpen,
-  ArrowRight,
   MoreVertical,
   Edit,
   ArrowRightLeft,
@@ -440,7 +439,13 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                   onClick={() => onOpenResidentProfile(res.id)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && onOpenResidentProfile(res.id)}
+                  aria-label={`Open resident ${res.firstName} ${res.lastName}`}
+                  onKeyDown={event => {
+                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault();
+                      onOpenResidentProfile(res.id);
+                    }
+                  }}
                   className="flex items-center px-5 py-3.5 hover:bg-slate-50 cursor-pointer transition-colors group"
                 >
                   {/* Room badge */}
@@ -495,18 +500,6 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                     >
                       <Sparkles className="w-3.5 h-3.5 text-teal-600" />
                       <span>Care Setup</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenResidentProfile(res.id);
-                      }}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-teal-600 hover:text-white text-slate-700 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1"
-                    >
-                      <span>Open</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
 
                     {/* ⋯ Overflow Menu */}
@@ -621,7 +614,13 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                 onClick={() => onOpenResidentProfile(res.id)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && onOpenResidentProfile(res.id)}
+                aria-label={`Open resident ${res.firstName} ${res.lastName}`}
+                onKeyDown={event => {
+                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onOpenResidentProfile(res.id);
+                  }
+                }}
                 className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md hover:border-teal-300 transition-all flex flex-col justify-between cursor-pointer group"
               >
                 <div>
@@ -676,10 +675,6 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                     <span>Setup</span>
                   </button>
 
-                  <span className="text-xs font-bold text-teal-700 group-hover:text-teal-900 flex items-center space-x-1">
-                    <span>Open Resident</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
                 </div>
               </div>
             );

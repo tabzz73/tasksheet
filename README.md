@@ -4,9 +4,9 @@ TaskSheet turns resident care assignments, unit responsibilities, and important 
 
 ## Release status
 
-**TaskSheet 1.0.0-rc.25 — Pilot Artifact Ready**
+**TaskSheet 1.0.0-rc.26 — Development candidate**
 
-RC24 remains immutable. RC25 is the print-typography candidate and remains unapproved until its tagged artifact passes clean-machine validation, physical-print certification, and the controlled pilot with zero open P0/P1 defects.
+RC25 remains immutable. RC26 contains the post-RC25 clickable-card navigation refinement and is not yet a tagged or packaged pilot artifact.
 
 Start with the [release closure index](docs/release/README.md) for pilot execution, validation checklists, documentation, and release gates.
 

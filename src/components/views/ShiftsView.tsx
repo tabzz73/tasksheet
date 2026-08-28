@@ -7,7 +7,6 @@ import {
   LayoutList, 
   LayoutGrid, 
   Clock, 
-  ArrowRight, 
   Info, 
   AlertTriangle,
   HeartHandshake,
@@ -292,7 +291,13 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                   onClick={() => onOpenShift(shift.id)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={e => e.key === 'Enter' && onOpenShift(shift.id)}
+                  aria-label={`Open ${shift.shortCode || shift.name} shift`}
+                  onKeyDown={event => {
+                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault();
+                      onOpenShift(shift.id);
+                    }
+                  }}
                   className="flex items-center px-5 py-4 hover:bg-slate-50 cursor-pointer transition-colors group"
                 >
                   {/* Short code badge */}
@@ -342,14 +347,6 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                     >
                       <Printer className="w-4 h-4" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); onOpenShift(shift.id); }}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-teal-600 hover:text-white text-slate-700 rounded-lg text-xs font-bold transition-colors flex items-center space-x-1"
-                    >
-                      <span>Open</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
                   </div>
                 </div>
               );
@@ -371,7 +368,13 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                 onClick={() => onOpenShift(shift.id)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && onOpenShift(shift.id)}
+                aria-label={`Open ${shift.shortCode || shift.name} shift`}
+                onKeyDown={event => {
+                  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onOpenShift(shift.id);
+                  }
+                }}
                 className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all p-5 flex flex-col justify-between cursor-pointer group"
               >
                 <div>
@@ -418,10 +421,6 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                   >
                     <Printer className="w-4 h-4" />
                   </button>
-                  <span className="text-xs font-bold text-teal-700 group-hover:text-teal-900 flex items-center space-x-1">
-                    <span>Open Shift</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
                 </div>
               </div>
             );
