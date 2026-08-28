@@ -407,7 +407,7 @@ describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () =>
       const today = new Date().toISOString().split('T')[0];
       const resident = db.addResident({ firstName: 'Clinical', lastName: 'Fields', roomNumber: '779', status: 'active' });
       const taskSpecs = [
-        ['Certification Vital Signs', 'Health Monitoring', 'BP:'],
+        ['Certification Vital Signs and Pain Assessment', 'Health Monitoring', 'BP:'],
         ['Certification Blood Glucose', 'Diabetes Care', 'BG:'],
         ['Certification Respiratory Status', 'Respiratory Care', 'SpO₂:'],
         ['Certification Post-Fall Neuro Check', 'Health Monitoring', 'Neuro / Result:'],
@@ -436,6 +436,11 @@ describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () =>
         const row = model.tableRows.find(item => item.taskTitle === title);
         expect(row?.structuredResult?.label).toContain(expectedLabel);
       });
+      const combinedVitalsPain = model.tableRows.find(
+        item => item.taskTitle === 'Certification Vital Signs and Pain Assessment'
+      );
+      expect(combinedVitalsPain?.structuredResult?.label).toContain('Pain: ____/10');
+      expect(combinedVitalsPain?.structuredResult?.label).toContain('PAINAD');
     });
 
     it('TS-155: Print header displays clean short code by default without redundant strings', () => {

@@ -813,7 +813,12 @@ return {
         if (titleL.includes('bg') || titleL.includes('glucose') || titleL.includes('insulin')) {
           structuredResult = { type: 'bg', label: 'BG: ______ mmol/L' };
         } else if (titleL.includes('vitals') || titleL.includes('vital signs') || titleL.includes('bp') || titleL.includes('blood pressure')) {
-          structuredResult = { type: 'vitals', label: 'BP: ____/____  HR: ____\nRR: ____  Temp: ____\nSpO₂: ____%' };
+          structuredResult = {
+            type: 'vitals',
+            label: isExplicitPainTask
+              ? 'BP: ____/____  HR: ____\nRR: ____  Temp: ____\nSpO₂: ____%  Pain: ____/10\nLocation: ______  Tool: ☐ 0–10 ☐ PAINAD'
+              : 'BP: ____/____  HR: ____\nRR: ____  Temp: ____\nSpO₂: ____%',
+          };
           rowType = 'expanded';
         } else if (titleL.includes('weight') || titleL.includes('wt')) {
           structuredResult = { type: 'weight', label: 'Wt: ______ kg' };
