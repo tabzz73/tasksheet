@@ -403,6 +403,36 @@ describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () =>
       expect(model.header.shiftTime).toBeTruthy();
     });
 
+    it('gives every LPN resident task an appropriate Vitals / Results write-in field', () => {
+      const today = new Date().toISOString().split('T')[0];
+      const resident = db.addResident({ firstName: 'Clinical', lastName: 'Fields', roomNumber: '779', status: 'active' });
+      const taskSpecs = [
+        ['Certification Vital Signs', 'Health Monitoring', 'BP:'],
+        ['Certification Blood Glucose', 'Diabetes Care', 'BG:'],
+        ['Certification Respiratory Status', 'Respiratory Care', 'SpO₂:'],
+        ['Certification Post-Fall Neuro Check', 'Health Monitoring', 'Neuro / Result:'],
+        ['Certification Edema and Circulation Check', 'Health Monitoring', 'Edema / Circulation:'],
+        ['Certification Clinical Review', 'General', 'Result:'],
+      ] as const;
+
+      taskSpecs.forEach(([title, category], index) => {
+        db.addResidentTask({
+          residentId: resident.id,
+          shiftId: SHIFT_LPN_DAY_ID,
+          title,
+          category,
+          frequency: 'daily',
+          time: `1${index}00`,
+        });
+      });
+
+      const model = PrintService.generateDocumentModel(generateShiftSheet(today, SHIFT_LPN_DAY_ID));
+      taskSpecs.forEach(([title, , expectedLabel]) => {
+        const row = model.tableRows.find(item => item.taskTitle === title);
+        expect(row?.structuredResult?.label).toContain(expectedLabel);
+      });
+    });
+
     it('TS-155: Print header displays clean short code by default without redundant strings', () => {
       const today = new Date().toISOString().split('T')[0];
       const sheet = generateShiftSheet(today, SHIFT_LPN_DAY_ID);

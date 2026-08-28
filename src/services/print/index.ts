@@ -818,7 +818,19 @@ return {
           structuredResult = { type: 'weight', label: 'Wt: ______ kg' };
         } else if (titleL.includes('temperature') || titleL.includes('temp')) {
           structuredResult = { type: 'temp', label: 'Temp: _____ °C' };
+        } else if (isClinical && (titleL.includes('oxygen') || titleL.includes('respiratory'))) {
+          structuredResult = { type: 'vitals', label: 'RR: ____   SpO₂: ____%\nO₂: ____ L/min' };
+        } else if (isClinical && (titleL.includes('post-fall') || titleL.includes('neuro'))) {
+          structuredResult = { type: 'generic', label: 'Neuro / Result: ____________' };
+        } else if (isClinical && (titleL.includes('edema') || titleL.includes('circulation'))) {
+          structuredResult = { type: 'generic', label: 'Edema / Circulation: ____________' };
+        } else if (isClinical && titleL.includes('pain')) {
+          structuredResult = { type: 'generic', label: 'Pain: ______/10   Location: __________' };
         } else if (isClinical && (catL.includes('assessment') || catL.includes('monitoring') || catL.includes('injection'))) {
+          structuredResult = { type: 'generic', label: 'Result: ____________' };
+        } else if (isClinical) {
+          // Every scheduled resident row on a clinical worksheet needs a usable
+          // write-in field even when no more specific result pattern applies.
           structuredResult = { type: 'generic', label: 'Result: ____________' };
         }
 
