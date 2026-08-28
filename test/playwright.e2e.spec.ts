@@ -197,4 +197,18 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.getByText('D2', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Duplicate Test Shift').first()).toBeVisible();
   });
+
+  test('Journey 8 — Wound Quick Prints preview weekly and supply reports', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /Print Center/i }).first().click();
+    await expect(page.getByRole('heading', { name: /Wound Quick Prints/i })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Preview' }).first().click();
+    await expect(page.getByRole('heading', { name: 'WEEKLY WOUND CARE OVERVIEW' })).toBeVisible();
+    await page.getByRole('button', { name: 'Back' }).click();
+
+    await page.getByLabel('Wound supply report scope').selectOption('all_active');
+    await page.getByRole('button', { name: 'Preview' }).nth(1).click();
+    await expect(page.getByRole('heading', { name: 'WOUND SUPPLIES RE-ORDER LIST' })).toBeVisible();
+  });
 });

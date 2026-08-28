@@ -224,7 +224,7 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
 
     // Wounds for this resident
     const candidateWounds = state.wounds
-      .filter(w => w.residentId === res.id && w.status !== 'resolved' && w.shiftId === shiftId)
+      .filter(w => w.residentId === res.id && (w.status === 'active' || w.status === 'healing') && w.shiftId === shiftId)
       .filter(w => isDateDue(dateStr, w.frequency, w.recurrenceRule, w.createdAt));
     const wounds = candidateWounds.filter(w => {
       if (w.time && isTimeWithinShift(w.time, shift.startTime, shift.endTime)) return true;

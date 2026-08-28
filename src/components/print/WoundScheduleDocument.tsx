@@ -87,11 +87,13 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
                 {/* Treatment Instructions */}
                 <td className="p-2 border border-slate-300 text-xs text-slate-800 leading-snug align-top">
                   <p className="font-medium">{w.instructions || 'Cleanse and redress per clinical protocol.'}</p>
+                  <p className="mt-1 text-[10px]"><strong>Supplies:</strong> {w.supplies}</p>
                 </td>
 
                 {/* Observations & Writable Fields */}
                 <td className="p-2 border border-slate-300 text-[10px] text-slate-500 align-top bg-slate-50/50">
                   <div className="space-y-1.5">
+                    {w.assessmentType !== 'none' && <div className="font-black text-slate-800">{w.assessmentType === 'full' ? 'FULL' : 'PARTIAL'} ASSESSMENT</div>}
                     <div>Bed: ☐ Gran ☐ Slough ☐ Necrotic</div>
                     <div>Drainage: ☐ None ☐ Scant ☐ Mod ☐ Heavy</div>
                     <div className="pt-1 flex items-center justify-between border-t border-slate-200">

@@ -30,6 +30,9 @@ describe('wound protocol scheduling UI', () => {
 
     fireEvent.change(view.getByPlaceholderText(/Left Lower Leg Venous Ulcer/i), { target: { value: 'Left heel' } });
     fireEvent.change(view.getByLabelText(/Scheduled Time/i), { target: { value: '1000' } });
+    fireEvent.change(view.getByLabelText(/Treatment Protocol/i), { target: { value: 'Cleanse with saline and apply bordered foam.' } });
+    fireEvent.change(view.getByLabelText(/^Supplies$/i), { target: { value: 'Sterile saline\nBordered foam 10 × 10 cm' } });
+    fireEvent.change(view.getByLabelText(/Assessment \/ Notes Prompt/i), { target: { value: 'full' } });
     fireEvent.click(view.getByRole('button', { name: /^Weekly$/i }));
     fireEvent.click(view.getByRole('button', { name: /Add Wound Protocol/i }));
 
@@ -38,6 +41,9 @@ describe('wound protocol scheduling UI', () => {
     expect(wound?.time).toBe('1000');
     expect(wound?.frequency).toBe('weekly');
     expect(wound?.recurrenceRule?.type).toBe('WEEKLY');
+    expect(wound?.protocol).toMatch(/Cleanse with saline/i);
+    expect(wound?.supplies?.map(item => item.name)).toEqual(['Sterile saline', 'Bordered foam 10 × 10 cm']);
+    expect(wound?.assessmentType).toBe('full');
   });
 
   it('blocks an out-of-window wound time for the selected clinical shift', () => {

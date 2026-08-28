@@ -17,6 +17,15 @@ This pre-tag gate validates the RC26 candidate build. Record the exact clean can
 | LPN heavy workload | Landscape | Pending | | |
 | FYI Binder multi-page | Configured profile | Pending | | |
 | Densest specialized schedule/report | Configured profile | Pending | | |
+| Weekly Wound Care Overview — multi-resident/multi-wound | Letter landscape | Pending | | |
+| Wound Supplies Re-Order List — multiple residents/supplies | Letter landscape | Pending | | |
+
+## Wound-print checks
+
+- LPN normal and heavy samples include the dedicated WOUND CARE section after regular LPN tasks, with no wound duplicated in the regular table.
+- Weekly overview shows all seven configured operational-week days, correct dates, readable shift/time and Full/Partial markers, wrapped Location/Protocol text, and repeated headers across pages.
+- Supply report preserves exact configured supply names, resident/room and wound traceability, readable scheduled-use counts, and usable handwritten On Hand/Re-Order Qty spaces.
+- Resolved/discontinued wounds and inactive residents do not appear.
 
 ## Acceptance criteria
 

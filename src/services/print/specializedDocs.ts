@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import { Facility, Resident, ResidentTask, Shift, Role } from '../../types';
+import { Facility, Resident, ResidentTask, Shift, Role, Wound } from '../../types';
 import { isDateDue, sortRoomNumbers } from '../generator';
 import { formatRecurrenceHuman, isRecurrenceScheduleEnded } from '../recurrence';
 
@@ -172,6 +172,8 @@ export interface WoundScheduleItem {
   frequency: string;
   bathingRelation: string;
   instructions?: string;
+  supplies: string;
+  assessmentType: 'none' | 'partial' | 'full';
   scheduledTime: string;
   shiftCode: string;
   roleName: string;
@@ -192,7 +194,8 @@ export function buildWoundScheduleModel(currentDateStr: string): WoundScheduleMo
   const state = db.getState();
   const facility = state.facility;
   const activeWounds = (state.wounds || [])
-    .filter(w => w.status !== 'resolved')
+    .filter(w => w.status === 'active' || w.status === 'healing')
+    .filter(w => state.residents.some(resident => resident.id === w.residentId && resident.status === 'active'))
     .filter(w => isDateDue(currentDateStr, w.frequency, w.recurrenceRule, w.createdAt));
   
   const residents = state.residents;
@@ -218,7 +221,9 @@ export function buildWoundScheduleModel(currentDateStr: string): WoundScheduleMo
           : 'Assessment & Staging',
       frequency: formatRecurrenceHuman(w.recurrenceRule, w.frequency),
       bathingRelation: w.bathingRelation === 'after_bath' ? 'After scheduled shower/bath' : w.bathingRelation === 'before_bath' ? 'Before shower' : 'Independent of bathing',
-      instructions: w.instructions,
+      instructions: w.protocol || w.instructions,
+      supplies: (w.supplies || []).map(item => [item.name, item.unitSize].filter(Boolean).join(' — ')).join('; ') || '—',
+      assessmentType: w.assessmentType || 'none',
       scheduledTime: w.time || '—',
       shiftCode: shift ? `${shift.shortCode} — ${shift.name}` : 'Unassigned clinical shift',
       roleName: role?.name || 'Unassigned',
@@ -241,6 +246,188 @@ export function buildWoundScheduleModel(currentDateStr: string): WoundScheduleMo
     wounds,
     totalActiveWounds: wounds.length,
     totalResidentsWithWounds: uniqueResidentIds.size,
+  };
+}
+
+// ─── Weekly Wound Overview & Supply Re-Order ────────────────────────────────
+
+export interface WoundWeekDay {
+  dateStr: string;
+  label: string;
+  shortDate: string;
+}
+
+export interface WeeklyWoundOverviewRow {
+  woundId: string;
+  residentId: string;
+  roomNumber: string;
+  residentName: string;
+  location: string;
+  protocol: string;
+  supplies: string;
+  frequency: string;
+  slots: Array<{ dateStr: string; due: boolean; marker?: string }>;
+}
+
+export interface WeeklyWoundOverviewModel {
+  facility: Facility;
+  title: string;
+  weekRange: string;
+  anchorDate: string;
+  days: WoundWeekDay[];
+  rows: WeeklyWoundOverviewRow[];
+  dailyTotals: number[];
+  totalScheduledTreatments: number;
+  totalActiveResidents: number;
+  totalActiveWounds: number;
+  fullAssessmentCount: number;
+  partialAssessmentCount: number;
+}
+
+export interface WoundSupplyReorderRow {
+  key: string;
+  supplyName: string;
+  unitSize?: string;
+  residentRooms: string[];
+  woundLocations: string[];
+  scheduledUses: number | null;
+}
+
+export interface WoundSupplyReorderModel {
+  facility: Facility;
+  title: string;
+  scope: 'current_week' | 'all_active';
+  scopeLabel: string;
+  weekRange: string;
+  rows: WoundSupplyReorderRow[];
+  activeWoundCount: number;
+  activeResidentCount: number;
+  generatedDate: string;
+}
+
+function toIsoDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+export function getWoundWeek(anchorDate: string): { days: WoundWeekDay[]; weekRange: string } {
+  const [year, month, day] = anchorDate.split('-').map(Number);
+  const anchor = new Date(year, month - 1, day, 12);
+  const weekStartsOn = db.getState().settings.operationalWeekStartsOn ?? 1;
+  const weekStart = new Date(anchor);
+  weekStart.setDate(anchor.getDate() - ((anchor.getDay() - weekStartsOn + 7) % 7));
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const current = new Date(weekStart);
+    current.setDate(weekStart.getDate() + index);
+    return {
+      dateStr: toIsoDate(current),
+      label: current.toLocaleDateString('en-CA', { weekday: 'short' }),
+      shortDate: current.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }),
+    };
+  });
+  const last = new Date(weekStart);
+  last.setDate(weekStart.getDate() + 6);
+  return {
+    days,
+    weekRange: `${weekStart.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} – ${last.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+  };
+}
+
+function activeOperationalWounds(): Array<{ wound: Wound; resident: Resident; shift?: Shift }> {
+  const state = db.getState();
+  return state.wounds.flatMap(wound => {
+    if (wound.status !== 'active' && wound.status !== 'healing') return [];
+    const resident = state.residents.find(item => item.id === wound.residentId && item.status === 'active');
+    if (!resident) return [];
+    const shift = state.shifts.find(item => item.id === wound.shiftId && item.isActive !== false);
+    return [{ wound, resident, shift }];
+  });
+}
+
+export function buildWeeklyWoundOverviewModel(anchorDate: string): WeeklyWoundOverviewModel {
+  const state = db.getState();
+  const { days, weekRange } = getWoundWeek(anchorDate);
+  const dailyTotals = Array(7).fill(0) as number[];
+  let fullAssessmentCount = 0;
+  let partialAssessmentCount = 0;
+
+  const rows = activeOperationalWounds().map(({ wound, resident, shift }) => {
+    const slots = days.map((day, index) => {
+      const due = isDateDue(day.dateStr, wound.frequency, wound.recurrenceRule, wound.createdAt);
+      if (due) dailyTotals[index] += 1;
+      const assessment = wound.assessmentType === 'full' ? 'FULL' : wound.assessmentType === 'partial' ? 'PARTIAL' : '';
+      if (due && assessment === 'FULL') fullAssessmentCount += 1;
+      if (due && assessment === 'PARTIAL') partialAssessmentCount += 1;
+      return { dateStr: day.dateStr, due, marker: due ? [wound.time || '—', shift?.shortCode || 'UNASSIGNED', assessment].filter(Boolean).join(' · ') : undefined };
+    });
+    return {
+      woundId: wound.id,
+      residentId: resident.id,
+      roomNumber: resident.roomNumber,
+      residentName: `${resident.firstName} ${resident.lastName}`,
+      location: wound.siteLocation,
+      protocol: wound.protocol || wound.instructions || 'Follow configured wound protocol.',
+      supplies: (wound.supplies || []).map(item => [item.name, item.unitSize].filter(Boolean).join(' — ')).join('; ') || '—',
+      frequency: formatRecurrenceHuman(wound.recurrenceRule, wound.frequency),
+      slots,
+    };
+  }).filter(row => row.slots.some(slot => slot.due))
+    .sort((a, b) => sortRoomNumbers(a.roomNumber, b.roomNumber) || a.residentName.localeCompare(b.residentName) || a.location.localeCompare(b.location));
+
+  return {
+    facility: state.facility,
+    title: 'WEEKLY WOUND CARE OVERVIEW',
+    weekRange,
+    anchorDate,
+    days,
+    rows,
+    dailyTotals,
+    totalScheduledTreatments: dailyTotals.reduce((sum, count) => sum + count, 0),
+    totalActiveResidents: new Set(rows.map(row => row.residentId)).size,
+    totalActiveWounds: rows.length,
+    fullAssessmentCount,
+    partialAssessmentCount,
+  };
+}
+
+export function buildWoundSupplyReorderModel(anchorDate: string, scope: 'current_week' | 'all_active'): WoundSupplyReorderModel {
+  const state = db.getState();
+  const { days, weekRange } = getWoundWeek(anchorDate);
+  const aggregates = new Map<string, WoundSupplyReorderRow>();
+  const selected = activeOperationalWounds().filter(({ wound }) => scope === 'all_active' || days.some(day => isDateDue(day.dateStr, wound.frequency, wound.recurrenceRule, wound.createdAt)));
+
+  selected.forEach(({ wound, resident }) => {
+    const uses = scope === 'current_week'
+      ? days.filter(day => isDateDue(day.dateStr, wound.frequency, wound.recurrenceRule, wound.createdAt)).length
+      : null;
+    (wound.supplies || []).forEach(supply => {
+      const key = supply.catalogId ? `catalog:${supply.catalogId}` : `exact:${supply.name.trim()}|${supply.unitSize || ''}`;
+      const existing = aggregates.get(key) || {
+        key,
+        supplyName: supply.name.trim(),
+        unitSize: supply.unitSize,
+        residentRooms: [],
+        woundLocations: [],
+        scheduledUses: scope === 'current_week' ? 0 : null,
+      };
+      const residentRoom = `${resident.roomNumber} — ${resident.firstName} ${resident.lastName}`;
+      const woundTrace = `${resident.roomNumber} — ${wound.siteLocation}`;
+      if (!existing.residentRooms.includes(residentRoom)) existing.residentRooms.push(residentRoom);
+      if (!existing.woundLocations.includes(woundTrace)) existing.woundLocations.push(woundTrace);
+      if (existing.scheduledUses !== null && uses !== null) existing.scheduledUses += uses;
+      aggregates.set(key, existing);
+    });
+  });
+
+  return {
+    facility: state.facility,
+    title: 'WOUND SUPPLIES RE-ORDER LIST',
+    scope,
+    scopeLabel: scope === 'current_week' ? `Current week · ${weekRange}` : 'All active wounds',
+    weekRange,
+    rows: [...aggregates.values()].sort((a, b) => a.supplyName.localeCompare(b.supplyName) || (a.unitSize || '').localeCompare(b.unitSize || '')),
+    activeWoundCount: selected.length,
+    activeResidentCount: new Set(selected.map(item => item.resident.id)).size,
+    generatedDate: new Date().toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }),
   };
 }
 
@@ -289,7 +476,7 @@ export function buildResidentCareSummaryModel(residentId: string, currentDateStr
   );
   const wounds = (state.wounds || []).filter(w =>
     w.residentId === resident.id &&
-    w.status !== 'resolved' &&
+    (w.status === 'active' || w.status === 'healing') &&
     !isRecurrenceScheduleEnded(w.recurrenceRule, w.frequency, currentDateStr, w.createdAt)
   );
   const fyis = state.fyis.filter(f => f.residentId === resident.id && f.status === 'active');

@@ -280,6 +280,7 @@ export const DEFAULT_CARE_TIMING_PRESETS: FacilityCareTimingSettings = {
 export const DEFAULT_SETTINGS: FacilitySettings = {
   timezone: 'America/Edmonton',
   timeFormat: '24h',
+  operationalWeekStartsOn: 1,
   developerFooterEnabled: false,
   firstRunCompleted: false,
   dataMode: 'setup_required',

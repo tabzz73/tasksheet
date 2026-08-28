@@ -5,6 +5,8 @@ import { PrintDocumentView } from '../print/PrintDocumentView';
 import { 
   BathingScheduleModel, 
   WoundScheduleModel, 
+  WeeklyWoundOverviewModel,
+  WoundSupplyReorderModel,
   ResidentCareSummaryModel, 
   ShiftConfigReferenceModel 
 } from '../../services/print/specializedDocs';
@@ -12,6 +14,8 @@ import { WhatChangedModel } from '../../services/printHistory';
 import { PrintPackageModel } from '../../services/print/packages';
 import { BathingScheduleDocument } from '../print/BathingScheduleDocument';
 import { WoundScheduleDocument } from '../print/WoundScheduleDocument';
+import { WoundWeeklyOverviewDocument } from '../print/WoundWeeklyOverviewDocument';
+import { WoundSupplyReorderDocument } from '../print/WoundSupplyReorderDocument';
 import { ResidentCareSummaryDocument } from '../print/ResidentCareSummaryDocument';
 import { ShiftConfigReferenceDocument } from '../print/ShiftConfigReferenceDocument';
 import { UpcomingScheduleDocument } from '../print/UpcomingScheduleDocument';
@@ -22,6 +26,8 @@ import { PrintPackageView } from '../print/PrintPackageView';
 export type SpecializedPrintDoc = 
   | { type: 'bathing'; model: BathingScheduleModel }
   | { type: 'wound'; model: WoundScheduleModel }
+  | { type: 'wound_weekly'; model: WeeklyWoundOverviewModel }
+  | { type: 'wound_supplies'; model: WoundSupplyReorderModel }
   | { type: 'resident_care'; model: ResidentCareSummaryModel }
   | { type: 'upcoming'; currentDateStr: string }
   | { type: 'shift_config'; model: ShiftConfigReferenceModel }
@@ -71,6 +77,16 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       docTitle = 'Wound & Dressing Treatment Schedule';
       profileLabel = 'Letter Landscape · Clinical Worksheet';
       subheaderText = `${specializedDoc.model.formattedDate} · ${specializedDoc.model.totalActiveWounds} active wound protocols`;
+    } else if (specializedDoc.type === 'wound_weekly') {
+      isLandscape = true;
+      docTitle = 'Weekly Wound Care Overview';
+      profileLabel = 'Letter Landscape · Weekly Clinical Operations';
+      subheaderText = `${specializedDoc.model.weekRange} · ${specializedDoc.model.totalScheduledTreatments} scheduled treatments`;
+    } else if (specializedDoc.type === 'wound_supplies') {
+      isLandscape = true;
+      docTitle = 'Wound Supplies Re-Order List';
+      profileLabel = 'Letter Landscape · Supply Planning';
+      subheaderText = specializedDoc.model.scopeLabel;
     } else if (specializedDoc.type === 'resident_care') {
       isLandscape = false;
       docTitle = `Care Summary — ${specializedDoc.model.resident.firstName} ${specializedDoc.model.resident.lastName}`;
@@ -120,6 +136,10 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
           return <BathingScheduleDocument model={specializedDoc.model} />;
         case 'wound':
           return <WoundScheduleDocument model={specializedDoc.model} />;
+        case 'wound_weekly':
+          return <WoundWeeklyOverviewDocument model={specializedDoc.model} />;
+        case 'wound_supplies':
+          return <WoundSupplyReorderDocument model={specializedDoc.model} />;
         case 'resident_care':
           return <ResidentCareSummaryDocument model={specializedDoc.model} />;
         case 'upcoming':

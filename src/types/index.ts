@@ -193,6 +193,8 @@ export interface FacilityCareTimingSettings {
 export interface FacilitySettings {
   timezone: string;
   timeFormat: '24h' | '12h';
+  /** 0=Sunday through 6=Saturday; defaults to Monday for operational reports. */
+  operationalWeekStartsOn?: number;
   developerFooterEnabled: boolean;
   firstRunCompleted: boolean;
   dataMode?: 'demo' | 'setup_required' | 'operational';
@@ -376,11 +378,27 @@ export interface Wound {
   /** Scheduled 24-hour time within the assigned LPN/RN shift. */
   time?: string;
   siteLocation: string;
-  status: 'active' | 'healing' | 'resolved';
+  status: 'active' | 'healing' | 'resolved' | 'discontinued';
   firstAction: 'treatment' | 'assessment' | 'dressing_change';
   frequency: RecurrenceFrequency;
   recurrenceRule?: RecurrenceRule;
   bathingRelation: 'independent' | 'before_bath' | 'after_bath' | 'separate_day';
+  /** Structured treatment protocol. Legacy records may still use instructions. */
+  protocol?: string;
+  /** Exact configured supply names. Reports deliberately do not fuzzy-merge them. */
+  supplies?: Array<{
+    id?: string;
+    catalogId?: string;
+    name: string;
+    unitSize?: string;
+    quantityPerUse?: number;
+    unitOfMeasure?: string;
+  }>;
+  /** Paper assessment prompt only; no clinical results are stored electronically. */
+  assessmentType?: 'none' | 'partial' | 'full';
+  startDate?: string;
+  endDate?: string;
+  discontinuedAt?: string;
   instructions?: string;
   createdAt: string;
   updatedAt?: string;

@@ -148,6 +148,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [woundRecurrenceRule, setWoundRecurrenceRule] = useState<RecurrenceRule | undefined>(undefined);
   const [woundBathingRelation, setWoundBathingRelation] = useState<'independent' | 'before_bath' | 'after_bath' | 'separate_day'>('independent');
   const [woundInstructions, setWoundInstructions] = useState('');
+  const [woundSupplies, setWoundSupplies] = useState('');
+  const [woundAssessmentType, setWoundAssessmentType] = useState<'none' | 'partial' | 'full'>('none');
+  const [woundStatus, setWoundStatus] = useState<'active' | 'healing' | 'resolved' | 'discontinued'>('active');
   const clinicalShifts = shifts.filter(shift => {
     if (shift.isActive === false) return false;
     const role = roles.find(item => item.id === shift.roleId);
@@ -214,7 +217,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setWoundFrequency(initialWound.frequency);
         setWoundRecurrenceRule(initialWound.recurrenceRule);
         setWoundBathingRelation(initialWound.bathingRelation);
-        setWoundInstructions(initialWound.instructions || '');
+        setWoundInstructions(initialWound.protocol || initialWound.instructions || '');
+        setWoundSupplies((initialWound.supplies || []).map(supply => [supply.name, supply.unitSize].filter(Boolean).join(' — ')).join('\n'));
+        setWoundAssessmentType(initialWound.assessmentType || 'none');
+        setWoundStatus(initialWound.status);
       } else if (initialFYI) {
         setSelectedType('fyi');
         setResidentId(initialFYI.residentId || '');
@@ -270,6 +276,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setWoundRecurrenceRule(undefined);
         setWoundBathingRelation('independent');
         setWoundInstructions('');
+        setWoundSupplies('');
+        setWoundAssessmentType('none');
+        setWoundStatus('active');
       }
     }
   }, [isOpen, initialType, initialResidentTask, initialUnitTask, initialWound, initialFYI, contextResidentId, contextShiftId, mode]);
@@ -514,6 +523,21 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     e.preventDefault();
     if (!woundSiteLocation.trim() || !residentId || !woundShiftId || woundShiftTimeError) return;
 
+    const supplies = woundSupplies
+      .split(/\r?\n|,/)
+      .map(name => name.trim())
+      .filter(Boolean)
+      .map(name => ({ name }));
+    const structuredFields = {
+      protocol: woundInstructions.trim() || undefined,
+      supplies,
+      assessmentType: woundAssessmentType,
+      startDate: woundRecurrenceRule?.startDate,
+      endDate: woundRecurrenceRule?.endDate,
+      status: woundStatus,
+      discontinuedAt: woundStatus === 'discontinued' ? new Date().toISOString() : undefined,
+    };
+
     if (mode === 'edit' && initialWound) {
       db.updateWound(initialWound.id, {
         residentId,
@@ -524,7 +548,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         frequency: woundFrequency,
         recurrenceRule: woundRecurrenceRule,
         bathingRelation: woundBathingRelation,
-        instructions: woundInstructions.trim() || undefined
+        ...structuredFields,
+        instructions: undefined
       });
     } else {
       db.addWound({
@@ -532,12 +557,12 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         shiftId: woundShiftId,
         time: woundTime,
         siteLocation: woundSiteLocation.trim(),
-        status: 'active',
         firstAction: woundFirstAction,
         frequency: woundFrequency,
         recurrenceRule: woundRecurrenceRule,
         bathingRelation: woundBathingRelation,
-        instructions: woundInstructions.trim() || undefined
+        ...structuredFields,
+        instructions: undefined
       });
     }
 
@@ -1369,6 +1394,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           <div>
+            <label htmlFor="wound-status" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Wound Protocol Status</label>
+            <select id="wound-status" value={woundStatus} onChange={event => setWoundStatus(event.target.value as typeof woundStatus)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm">
+              <option value="active">Active</option><option value="healing">Healing — remains operationally active</option><option value="resolved">Healed / Resolved</option><option value="discontinued">Discontinued</option>
+            </select>
+          </div>
+
+          <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
               Room / Bed Number <span className="text-red-500">*</span>
             </label>
@@ -1626,16 +1658,50 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Wound Treatment Protocol / Dressing Instructions
+            <label htmlFor="wound-protocol" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              Treatment Protocol / Dressing Instructions
             </label>
             <textarea
+              id="wound-protocol"
               rows={2}
               value={woundInstructions}
               onChange={(e) => setWoundInstructions(e.target.value)}
               placeholder="Cleanse with sterile NS, apply barrier film, cover with Mepilex Border..."
               className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
             />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="wound-supplies" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Supplies
+              </label>
+              <textarea
+                id="wound-supplies"
+                rows={3}
+                value={woundSupplies}
+                onChange={(event) => setWoundSupplies(event.target.value)}
+                placeholder={'One exact supply name per line\nMepilex Border 10 × 10 cm\nSterile normal saline'}
+                className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">Exact names are used by the supply re-order report.</p>
+            </div>
+            <div>
+              <label htmlFor="wound-assessment-type" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Assessment / Notes Prompt
+              </label>
+              <select
+                id="wound-assessment-type"
+                value={woundAssessmentType}
+                onChange={(event) => setWoundAssessmentType(event.target.value as 'none' | 'partial' | 'full')}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+              >
+                <option value="none">Notes only</option>
+                <option value="partial">Partial assessment</option>
+                <option value="full">Full assessment</option>
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">Creates a paper prompt only. No clinical result is stored in TaskSheet.</p>
+            </div>
           </div>
 
           <div className="pt-2 flex justify-end space-x-3">

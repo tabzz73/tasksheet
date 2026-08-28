@@ -1409,6 +1409,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
               />
             </div>
 
+            <div>
+              <label htmlFor="operational-week-start" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Operational Week Starts On
+              </label>
+              <select
+                id="operational-week-start"
+                value={settings.operationalWeekStartsOn ?? 1}
+                onChange={(event) => handleSaveSettings({ operationalWeekStartsOn: Number(event.target.value) })}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm bg-white"
+              >
+                <option value={1}>Monday</option>
+                <option value={0}>Sunday</option>
+                <option value={6}>Saturday</option>
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">Controls weekly wound and operational report date ranges.</p>
+            </div>
+
           </div>
         </div>
       )}

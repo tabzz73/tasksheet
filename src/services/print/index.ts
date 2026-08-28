@@ -125,6 +125,17 @@ export interface PrintWoundGroup {
   actions: PrintWoundAction[];
 }
 
+export interface PrintWoundTableRow {
+  id: string;
+  time: string;
+  roomNumber: string;
+  residentName: string;
+  location: string;
+  protocol: string;
+  supplies: string;
+  assessmentType: 'none' | 'partial' | 'full';
+}
+
 // ─── Resident group ───────────────────────────────────────────────────────────
 
 export interface PrintResidentGroup {
@@ -168,6 +179,8 @@ export interface PrintDocumentModel {
   density?: PrintDensity;
   largePrint?: boolean;
   tableRows: PrintTableRow[];
+  /** Dedicated clinical wound section; wounds are not duplicated in tableRows. */
+  woundRows: PrintWoundTableRow[];
   conciseShiftAlerts: Array<{ priority: 'urgent' | 'high'; text: string; room?: string }>;
   startUnitTasks: PrintUnitTask[];
   duringUnitTasks: PrintUnitTask[];
@@ -654,7 +667,7 @@ export class PrintService {
       // Wound groups
       const woundGroups: PrintWoundGroup[] = assignment.wounds.map(w => {
         const timingNote = translateBathingRelation(w.bathingRelation);
-        const instruction = normalizeInstruction(w.instructions || 'Follow wound care protocol.');
+        const instruction = normalizeInstruction(w.protocol || w.instructions || 'Follow wound care protocol.');
         const instructionWithTiming = timingNote
           ? `${instruction} ${timingNote}`.trim()
           : instruction;
@@ -676,16 +689,6 @@ export class PrintService {
             { label: 'Notes / Follow-up:', lines: 1 },
           ] : [],
         };
-
-        // Always add assessment block for LPN clinical
-        const assessmentAction: PrintWoundAction | null = isClinical ? {
-          actionLabel: 'Wound Assessment',
-          instruction: undefined,
-          writableFields: [
-            { label: 'Appearance / Measurement:', lines: 1 },
-            { label: 'Notes:', lines: 1 },
-          ],
-        } : null;
 
         const actions: PrintWoundAction[] = [treatmentAction];
 return {
@@ -864,25 +867,21 @@ return {
         });
       });
 
-      // Add wound groups as resident care items
-      g.woundGroups.forEach(w => {
-        rawResidentItems.push({
-          id: `row_wound_${w.woundId}`,
-          time: w.time || '—',
-          roomNumber: g.roomNumber,
-          residentName: g.residentName,
-          residentId: g.residentId,
-          taskTitle: `Wound Care — ${w.site}`,
-          category: 'Wound Care',
-          rowType: 'expanded',
-          attentionTags: ['[HA]'],
-          importantInfo: compressTaskInstruction(w.actions[0]?.instruction || `Protocol: ${w.site}`),
-          structuredResult: { type: 'wound', label: 'Dressing/Result: ____________' },
-          priority: 'high',
-          isWound: true,
-        });
-      });
     });
+
+    const woundRows: PrintWoundTableRow[] = isClinical
+      ? sheet.residentAssignments.flatMap(assignment => assignment.wounds.map(wound => ({
+          id: wound.id,
+          time: wound.time || '—',
+          roomNumber: assignment.resident.roomNumber,
+          residentName: `${assignment.resident.firstName} ${assignment.resident.lastName}`,
+          location: wound.siteLocation,
+          protocol: normalizeInstruction(wound.protocol || wound.instructions || 'Follow configured wound protocol.'),
+          supplies: (wound.supplies || []).map(supply => [supply.name, supply.unitSize].filter(Boolean).join(' — ')).join('; ') || '—',
+          assessmentType: wound.assessmentType || 'none',
+        })))
+        .sort((a, b) => a.time.localeCompare(b.time) || sortRoomNumbers(a.roomNumber, b.roomNumber) || a.location.localeCompare(b.location))
+      : [];
 
     // Sort resident items chronologically, then by room number
     rawResidentItems.sort((a, b) => {
@@ -1021,7 +1020,7 @@ return {
     const importantFyiCount = importantSharedFYIs.length +
       residentGroups.reduce((s, g) => s + g.importantInfoItems.filter(i => i.priority !== 'normal').length, 0);
 
-    const totalRowsCount = tableRows.length;
+    const totalRowsCount = tableRows.length + woundRows.length * 1.35;
     const requestedDensity = activeConfig?.density || 'standard';
     const largePrint = activeConfig?.largePrint || false;
     const requestedHandoffLines = activeConfig?.showHandoffLines !== false
@@ -1053,6 +1052,7 @@ return {
       density: adaptiveLayout.density,
       largePrint,
       tableRows,
+      woundRows,
       conciseShiftAlerts,
       startUnitTasks: activeConfig?.showStartUnitTasks !== false ? startUnitTasks : [],
       duringUnitTasks: activeConfig?.showDuringUnitTasks !== false ? duringUnitTasks : [],

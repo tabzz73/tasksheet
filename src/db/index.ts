@@ -24,6 +24,18 @@ function sanitizeLegacyCertificationTracking(task: ResidentTask): ResidentTask {
   return sanitized as ResidentTask;
 }
 
+function migrateWoundStructure(wound: Wound): Wound {
+  const protocol = wound.protocol || wound.instructions;
+  return {
+    ...wound,
+    protocol,
+    supplies: Array.isArray(wound.supplies) ? wound.supplies.filter(item => item?.name?.trim()) : [],
+    assessmentType: wound.assessmentType || (wound.firstAction === 'assessment' ? 'full' : 'none'),
+    startDate: wound.startDate || wound.recurrenceRule?.startDate,
+    endDate: wound.endDate || wound.recurrenceRule?.endDate,
+  };
+}
+
 export function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -165,11 +177,14 @@ class DatabaseService {
             const roleText = `${role?.code || ''} ${role?.name || ''}`.toLowerCase();
             return shift.isActive !== false && (roleText.includes('lpn') || roleText.includes('rn') || roleText.includes('nurse'));
           });
-          const migratedWounds: Wound[] = (parsed.wounds || []).map((wound: Wound) => ({
-            ...wound,
-            shiftId: wound.shiftId || (wound.source === 'demo' ? demoClinicalShift?.id : undefined),
-            time: wound.time || (wound.source === 'demo' ? '1000' : undefined),
-          }));
+          const migratedWounds: Wound[] = (parsed.wounds || []).map((rawWound: Wound) => {
+            const wound = migrateWoundStructure(rawWound);
+            return {
+              ...wound,
+              shiftId: wound.shiftId || (wound.source === 'demo' ? demoClinicalShift?.id : undefined),
+              time: wound.time || (wound.source === 'demo' ? '1000' : undefined),
+            };
+          });
 
           // Always enforce current 25 standardized categories and latest starter templates
           // while preserving any custom user templates (isStandardTemplate === false)
@@ -446,7 +461,7 @@ class DatabaseService {
   public deleteShift(id: string): { success: boolean; error?: string } {
     const assignedResidentTasks = this.state.residentTasks.filter(t => t.shiftId === id && t.isActive !== false);
     const assignedUnitTasks = this.state.unitTasks.filter(u => u.shiftId === id && u.isActive !== false);
-    const assignedWounds = this.state.wounds.filter(w => w.shiftId === id && w.status !== 'resolved');
+    const assignedWounds = this.state.wounds.filter(w => w.shiftId === id && (w.status === 'active' || w.status === 'healing'));
     
     if (assignedResidentTasks.length > 0 || assignedUnitTasks.length > 0 || assignedWounds.length > 0) {
       return {
@@ -1058,6 +1073,7 @@ class DatabaseService {
         ...shift,
         source: shift.source || (restoredDataMode === 'demo' && defaultShiftIds.has(shift.id) ? 'demo' : 'manual'),
       }));
+      parsed.wounds = (parsed.wounds || []).map((wound: Wound) => migrateWoundStructure(wound));
       this.saveToStorage(parsed);
     } catch (e: any) {
       throw new Error(`Failed to restore database: ${e.message}`);

@@ -11,6 +11,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   const { 
     header, 
     tableRows, 
+    woundRows,
     conciseShiftAlerts, 
     residentStatusExceptions,
     confidentialityNotice, 
@@ -502,6 +503,44 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
           )}
         </tbody>
       </table>
+
+      {isClinical && woundRows.length > 0 && (
+        <section style={{ marginTop: '7pt' }} aria-label="Wound Care">
+          <div style={{ fontSize: 'var(--print-section-size)', fontWeight: 800, letterSpacing: '0.06em', border: '1pt solid #0f172a', borderBottom: 0, padding: '3pt 5pt' }}>
+            WOUND CARE <span style={{ float: 'right', fontSize: 'var(--print-secondary-size)' }}>({woundRows.length} ITEM{woundRows.length === 1 ? '' : 'S'})</span>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontFamily: 'Arial, Helvetica, sans-serif', fontSize: fontSizeInfo }}>
+            <thead style={{ display: 'table-header-group' }}>
+              <tr style={{ border: '1pt solid #64748b' }}>
+                {[
+                  ['☐', '3%'], ['Time', '6%'], ['Room', '6%'], ['Resident', '13%'],
+                  ['Location', '12%'], ['Protocol', '23%'], ['Supplies', '18%'], ['Assessment / Notes', '19%'],
+                ].map(([label, width]) => (
+                  <th key={label} style={{ width, padding: '3pt', textAlign: label === '☐' ? 'center' : 'left', borderRight: '0.5pt solid #94a3b8', fontSize: fontSizeHeader, fontWeight: 800 }}>{label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {woundRows.map(row => (
+                <tr key={row.id} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <td style={{ padding: '4pt 2pt', textAlign: 'center', border: '0.5pt solid #cbd5e1' }}><CheckBox /></td>
+                  <td style={{ padding: '4pt 3pt', fontWeight: 800, border: '0.5pt solid #cbd5e1' }}>{row.time}</td>
+                  <td style={{ padding: '4pt 3pt', fontWeight: 800, border: '0.5pt solid #cbd5e1' }}>{row.roomNumber}</td>
+                  <td style={{ padding: '4pt 3pt', fontWeight: 700, border: '0.5pt solid #cbd5e1' }}>{row.residentName}</td>
+                  <td style={{ padding: '4pt 3pt', border: '0.5pt solid #cbd5e1' }}>{row.location}</td>
+                  <td style={{ padding: '4pt 3pt', border: '0.5pt solid #cbd5e1' }}>{row.protocol}</td>
+                  <td style={{ padding: '4pt 3pt', border: '0.5pt solid #cbd5e1' }}>{row.supplies}</td>
+                  <td style={{ padding: '4pt 3pt', border: '0.5pt solid #cbd5e1' }}>
+                    {row.assessmentType !== 'none' && <strong>{row.assessmentType === 'full' ? 'FULL' : 'PARTIAL'} ASSESSMENT</strong>}
+                    <div style={{ borderBottom: '0.5pt solid #94a3b8', height: '10pt' }} />
+                    <div style={{ borderBottom: '0.5pt solid #94a3b8', height: '10pt' }} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {/* ── 4. HANDOFF / NOTES SECTION (If configured) ── */}
       {handoffNotesLinesCount > 0 && (
