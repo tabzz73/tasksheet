@@ -11,21 +11,22 @@ This is the authoritative index of what has and has not been verified for RC26. 
 - [Physical Print Validation](RC26_PHYSICAL_PRINT_VALIDATION.md) — printer certification checklist, not yet performed
 - Superseded by this document for RC26 purposes: `TASKSHEET_1.0.0_RELEASE_EVIDENCE_INDEX.md`, `GAP_AUDIT_1.0.0_2026-08-29.md`, `KNOWN_LIMITATIONS_1.0.0.md`, `RC26_CANDIDATE_VALIDATION.md` (earlier RC26 pre-Report-Center-scope snapshots — retained for history, not authoritative for this candidate)
 
-## 1. Git state (verified directly, this pass)
+## 1. Git state (final, post-commit and post-tag)
 
 | Item | Value |
 |---|---|
 | Branch | `main` |
-| HEAD commit | `40165e8ee39ffacf521f3a968c818733c4ccd848` |
-| Most recent immutable tag | `v1.0.0-rc.25` |
+| Prior HEAD (pre-commit) | `40165e8ee39ffacf521f3a968c818733c4ccd848` |
+| **Release commit HEAD** | **`3593d07053b6d8e3f40e3c4ff0c359376cd18c09`** |
+| Commit message | `release: prepare TaskSheet 1.0.0-rc.26` |
+| Immutable tag | **`v1.0.0-rc.26`** — points exactly at `3593d07053b6d8e3f40e3c4ff0c359376cd18c09`, verified by `git rev-list -n 1` |
+| Previous immutable tag | `v1.0.0-rc.25` → `cb5cf7ec3aaaf1d6c9b2e9e0701cc22aee4d2be4` — confirmed **unchanged** by this process |
 | `package.json` version | `1.0.0-rc.26` |
-| Is HEAD tagged `v1.0.0-rc.26`? | **No** |
-| Working tree clean? | **No** — 66 modified paths, 28 untracked paths (94 total) |
-| Any generated/build artifacts tracked or staged? | No — verified against `.gitignore`; `node_modules/`, `dist/`, `release/`, `test-results/`, `*.tsbuildinfo`, and backup exports are all correctly excluded |
+| Working tree at commit time | Clean (0 unstaged/untracked paths) — verified before and after tagging, and again after packaging |
 
-**What the 94 changed paths represent**: a combination of (a) the pre-existing, previously-flagged Report & Print Center feature work (`ReportCatalogPanel.tsx`, `CustomReportDocument.tsx`, `ServiceCoverageSettingsTab.tsx`, `RoomSetupTab.tsx`, `services/reports/`, `services/validation/`, plus their tests), (b) two prior audit passes' defect fixes (data integrity, security, print, timezone, accessibility — see Release Notes), and (c) this pass's new release documentation. No file was found in the diff that falls outside these three categories; every modified source file belongs to either an in-scope feature or a fix described in the Release Notes.
+**Provenance defect found and fixed before committing**: `.gitignore` contained an unscoped `coverage/` pattern (intended to exclude `vitest --coverage` report output). Because the pattern had no leading slash, it also matched the real, load-bearing source directory `src/services/coverage/` — confirmed via `git log --all -- src/services/coverage/index.ts` returning nothing, i.e. **this file had never been committed to this repository, in any prior RC**. Every previous tag (rc.1 through rc.25) is missing this file from its git history, even though it was present on disk and required for the Service Coverage feature and the generator to function. Fixed by anchoring the pattern to `/coverage/` (repo-root only) before staging. This is now included in the RC26 commit. No other real source files were found affected by an overly-broad ignore pattern (checked `logs/`, `tmp/`, `temp/`, `backups/`, `dist-ssr/` against the actual source tree).
 
-**Packaging status**: `scripts/build-pilot-installer.cjs` refuses to run unless the working tree is clean AND `HEAD` carries the exact tag `v${package.json version}`. Neither condition is currently true, by design — this preparation pass does not commit or tag. Packaging is therefore **BLOCKED** pending an explicit decision to commit and tag, which was intentionally not made in this pass per instruction.
+**What the 102 committed paths represent**: (a) the pre-existing Report & Print Center feature work (`ReportCatalogPanel.tsx`, `CustomReportDocument.tsx`, `ServiceCoverageSettingsTab.tsx`, `RoomSetupTab.tsx`, `services/reports/`, `services/validation/`, `services/coverage/`, plus their tests), (b) two prior audit passes' defect fixes (data integrity, security, print, timezone, accessibility), (c) the release documentation, and (d) the `.gitignore` provenance fix above. No file was found in the diff that falls outside these categories. No sensitive data (secrets, API keys, real resident/facility information, absolute developer-machine paths) was found in the diff — checked directly before staging.
 
 ## 2. Automated release gate (re-run fresh in this pass, not reused from a prior session)
 
@@ -50,21 +51,42 @@ All five commands were executed in this session against the current working tree
 
 ## 4. Package verification (Section 20) — status
 
-**BLOCKED.** Packaging requires a clean, tagged tree by the build script's own safety check (see Section 1). No installer has been built, so there is no filename, size, or SHA-256 checksum to record yet. Once a commit and tag decision is made:
+**PACKAGED.** Built via the approved process, from the exact tagged commit, with the packaging script's own clean-tree/tag safety checks intact and unbypassed.
 
-```
-git add -A
-git commit -m "..."
-git tag v1.0.0-rc.26
-npm run dist:win
-```
+| Item | Value |
+|---|---|
+| Packaging command | `npm run dist:win` (runs `verify:release` then `scripts/build-pilot-installer.cjs`) |
+| Underlying installer command | `electron-builder --win nsis --x64` |
+| Git commit packaged | `3593d07053b6d8e3f40e3c4ff0c359376cd18c09` |
+| Git tag | `v1.0.0-rc.26` |
+| App version (from installed executable's VersionInfo) | `1.0.0-rc.26` (FileVersion) |
+| Architecture | x64 |
+| Installer filename | `TaskSheet-Setup-1.0.0-rc.26-x64.exe` |
+| Installer size | 113,039,353 bytes (~107.8 MiB) |
+| Installer SHA-256 | `8393E241E68452EC274DE60337667BD405EC4374667DC9DAE2EC7E7FEF78E386` — computed independently with `sha256sum` against the actual produced file, and confirmed to match the packaging script's own self-reported checksum in `release/TaskSheet-Build-Evidence-1.0.0-rc.26.txt` |
+| Attempt history | First two packaging attempts failed with `EPERM: operation not permitted, rename ... win-unpacked.tmp -> win-unpacked` — root-caused to a leftover background Vite dev server process (started earlier in this development session for browser-based UI verification, never stopped) file-watching the entire project tree including `release/`. Stopped that process, cleared the stale temp directory, retried — third attempt succeeded cleanly. This was a development-environment condition, not a defect in the tagged source; `verify:release` passed identically (typecheck/tests/build all green) on every attempt including the two that failed at the packaging step. |
 
-`npm run dist:win` runs `verify:release` (typecheck → test → build) and then `scripts/build-pilot-installer.cjs`, which will refuse unless the commit is tagged, and will write `release/TaskSheet-Setup-1.0.0-rc.26-x64.exe` plus a build-evidence text file containing the exact commit SHA, installer SHA-256, and a full `dist/` file manifest with per-file checksums. That evidence file should be linked from this index once it exists.
+**Package output inspected** (per Section 10 — not a clean-machine install test, just a direct inspection of the produced package on this machine):
+- `release/win-unpacked/TaskSheet.exe` — VersionInfo confirms `ProductName: TaskSheet`, `FileVersion: 1.0.0-rc.26`, `CompanyName: SoftVibeSolutions`. Correct on all counts.
+- `resources/app.asar` contents inspected directly (`npx asar list`): contains exactly `build/icon.png`, `dist/` (the built web app), `electron/main.cjs`, `package.json`, and the `node_modules` for the three runtime dependencies (`canvas-confetti`, `clsx`, `lucide-react`). No `src/`, no test files, no `.git`, no documentation, no development-only files. **Minor non-blocking observation**: the three runtime-dependency `node_modules` are packaged in full even though Vite already inlines them into `dist/assets/index-*.js` for the renderer — this is redundant (electron-builder's default dependency-bundling behavior) and modestly inflates installer size, but does not affect correctness since the app never loads them from that path. Not fixed in this pass per the no-opportunistic-refactoring instruction; noted for a future packaging-config cleanup, not release-blocking.
+- **Code signing**: `Get-AuthenticodeSignature` reports the installer as **Not Signed**, despite the build log showing `signing with signtool.exe` steps (these ran without a trusted certificate configured, so signing was effectively a no-op). This means Windows SmartScreen will very likely show an "Unknown Publisher" warning on first run on a clean machine. This is an existing characteristic of this build pipeline, not introduced by this pass — `RC26_CLEAN_MACHINE_VALIDATION.md` Section 1.1 already anticipates a dismissible SmartScreen prompt. Recorded here explicitly so it isn't mistaken for a new defect during certification.
 
-## 5. Final RC26 decision
+Full self-reported build evidence (commit SHA, tag, clean-tree status, per-command results, dist file manifest with checksums) is written to `release/TaskSheet-Build-Evidence-1.0.0-rc.26.txt` by the packaging script itself. **One inaccuracy in that auto-generated file**: it contains a hardcoded string `Test result: PASS - 154/154`, left over from an earlier version of the script written when the suite had 154 tests. The actual, directly-observed result for this build (both in the pre-package `verify:release` run and independently before it) was **PASS — 266/266**. This is a stale literal in `scripts/build-pilot-installer.cjs`, not a real discrepancy in test results — flagged here rather than silently corrected, since editing the script was not requested and this pass avoids opportunistic changes to release infrastructure beyond what was needed to fix the provenance defect above.
 
-**RC26 SOURCE READY FOR CLEAN-MACHINE CERTIFICATION.**
+## 5. Automated gate results, restated against the exact packaged commit
 
-This is a source-readiness decision, not a production-release decision. It means: the automated release gate is genuinely green (re-verified, not assumed), the feature scope is explicit and documented, the known limitations are accurate, and every confirmed defect found during two audit passes has been fixed and covered by a regression test. It does not mean the packaged installer has been tested on a clean machine, and it does not mean physical print output has been inspected — both remain required before any production-readiness claim, per `RC26_CLEAN_MACHINE_VALIDATION.md` and `RC26_PHYSICAL_PRINT_VALIDATION.md`.
+Run a third time, immediately before packaging, against commit `3593d07`:
 
-Do not tag `v1.0.0-rc.26` until this preparation package has been reviewed and the tag is explicitly requested.
+| Command | Result |
+|---|---|
+| `npm run typecheck` | PASS — 0 errors |
+| `npm test` | **PASS — 266/266**, 33 files |
+| `npm run build` | PASS |
+| `npx oxlint` | PASS — 0 errors, 153 pre-existing warnings |
+| `npx playwright test` | PASS — 14/14 |
+
+## 6. Final RC26 decision
+
+**TASKSHEET 1.0.0-rc.26 PACKAGED AND READY FOR CLEAN-MACHINE CERTIFICATION.**
+
+This is not a production-release decision. The tagged commit is verified, immutable, and now packaged into a real installer with an independently-confirmed checksum. Clean-machine installation/first-launch/destructive-recovery testing (`RC26_CLEAN_MACHINE_VALIDATION.md`) and physical print certification (`RC26_PHYSICAL_PRINT_VALIDATION.md`) remain **pending manual execution** and are not marked PASS anywhere in this document — they cannot be, since they were not performed. If either surfaces a release-significant (P0/P1/P2) defect, per the project's release rule: do not modify the `v1.0.0-rc.26` tag or its commit; fix on `main`, increment to `1.0.0-rc.27`, and repeat the affected certification sections against a new tag.
