@@ -164,12 +164,12 @@ export const CareTimingSettingsTab: React.FC<CareTimingSettingsTabProps> = ({ on
 
   return (
     <div className="space-y-5">
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <span className="p-2 rounded-xl bg-white/10"><Clock3 className="w-5 h-5 text-teal-300" /></span>
+          <span className="p-2 rounded-xl bg-teal-100 text-teal-800"><Clock3 className="w-5 h-5" /></span>
           <div>
-            <h2 className="text-base font-black">Facility Care Timing Presets</h2>
-            <p className="text-xs text-slate-300 mt-1 max-w-2xl">These times appear as quick choices when staff add Medication Assistance or meal-related resident tasks. Only times inside the selected shift are offered.</p>
+            <h2 className="text-base font-black text-slate-900">Facility Care Timing Presets</h2>
+            <p className="text-xs text-slate-500 mt-1 max-w-2xl">These times appear as quick choices when staff add Medication Assistance or meal-related resident tasks. Only times inside the selected shift are offered.</p>
           </div>
         </div>
       </div>

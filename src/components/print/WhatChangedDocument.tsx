@@ -24,7 +24,7 @@ export const WhatChangedDocument: React.FC<WhatChangedDocumentProps> = ({ model 
 
   return (
     <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4" style={printPageStyle(`what-changed-${shiftCode || shiftName}`)}>
-      <RepeatingPrintFooter pageName={`what-changed-${shiftCode || shiftName}`} orientation="portrait" coverage={`${shiftCode || shiftName} · ${formattedDate}`} generatedAt={newGeneratedAt} />
+      <RepeatingPrintFooter pageName={`what-changed-${shiftCode || shiftName}`} orientation="portrait" facilityName={facility.siteName} documentLabel="TaskSheet Changes" dateLabel={formattedDate} secondaryLabel={`${shiftCode || shiftName} · Revision ${newRevision}`} generatedAt={newGeneratedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>

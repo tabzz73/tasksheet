@@ -26,7 +26,7 @@ describe('finite resident care courses', () => {
 
   it('prints the fifth daily occurrence and excludes the sixth', () => {
     const state = db.getState();
-    const shift = state.shifts.find(item => item.isActive !== false)!;
+    const shift = state.shifts.find(item => item.isActive !== false && state.roles.find(role => role.id === item.roleId)?.code === 'LPN')!;
     const resident = db.addResident({
       firstName: 'Finite', lastName: 'Course', roomNumber: '995', status: 'active',
     });
@@ -89,7 +89,8 @@ describe('finite resident care courses', () => {
   });
 
   it('separates ended schedules and exposes extend/restart actions without deleting them', () => {
-    const shift = db.getState().shifts.find(item => item.isActive !== false)!;
+    const current = db.getState();
+    const shift = current.shifts.find(item => item.isActive !== false && current.roles.find(role => role.id === item.roleId)?.code === 'LPN')!;
     const resident = db.addResident({
       firstName: 'Ended', lastName: 'Schedule', roomNumber: '996', status: 'active',
     });

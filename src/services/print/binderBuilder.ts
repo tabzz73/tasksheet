@@ -8,6 +8,7 @@ import {
   BinderRoleSection,
   BinderShiftGroup,
 } from '../../components/print/FyiBinderPrintDocument';
+import { getTodayLocalDateString } from '../recurrence';
 
 function formatMilitary(start: string, end: string): string {
   return start + '\u2013' + end;
@@ -82,7 +83,7 @@ export function buildFyiBinderPrintModel(
   scopeShiftId?: string
 ): FyiBinderPrintDocumentModel {
   const now = new Date().toISOString();
-  const today = now.split('T')[0];
+  const today = getTodayLocalDateString();
 
   // Filter: only active, not expired
   const activeFyis = state.fyis.filter(f => {

@@ -39,10 +39,15 @@ import {
   TaskAttentionIndicator,
   ResidentTrackingConfig,
   MealRelation,
-  WoundSupplySelection
+  WoundSupplySelection,
+  ResidentStatus,
+  TaskTimingType,
+  TaskServiceCoverage
 } from '../../types';
 import { RecurrenceSelector } from '../common/RecurrenceSelector';
 import { detectAttentionIndicators, getIndicatorBadgeDetails } from '../../services/attention';
+import { DomainConflictError, ValidationResult } from '../../services/validation';
+import { ConflictNotice } from '../common/ConflictNotice';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { filterCatalogTasks, getCommonCatalogTasks, getRoleCatalogTasks } from '../../services/catalogDiscovery';
 import { DEFAULT_CARE_TIMING_PRESETS } from '../../data/defaultData';
@@ -50,6 +55,8 @@ import { choosePreferredTimingPreset, getCareTimingPresetKind, getInShiftTimingP
 import { validateCareShiftSelection, validateTimedCareShift } from '../../services/scheduling/careShiftAssignment';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 import { WoundSupplyPicker } from '../common/WoundSupplyPicker';
+import { createCoverageSnapshot, getCoverageDefinitions, normalizeCoverage } from '../../services/coverage';
+import { getTodayLocalDateString } from '../../services/recurrence';
 
 export type AddEntityType = 'care_task' | 'unit_task' | 'resident' | 'fyi' | 'wound';
 export type FormMode = 'add' | 'edit' | 'duplicate';
@@ -84,10 +91,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [selectedType, setSelectedType] = useState<AddEntityType | null>(
     initialType || (initialResidentTask ? 'care_task' : initialUnitTask ? 'unit_task' : initialWound ? 'wound' : initialFYI ? 'fyi' : null)
   );
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
 
   // Database state
   const state = db.getState();
   const residents = state.residents.filter(r => r.status !== 'deceased');
+  const occupiedPositionIds = new Set(state.residents.filter(r => r.occupancyPositionId && ['active', 'in_hospital', 'out_on_pass', 'on_hold'].includes(r.status)).map(r => r.occupancyPositionId));
+  const availablePositions = state.occupancyPositions.filter(position => position.active !== false && !occupiedPositionIds.has(position.id));
   const shifts = state.shifts.filter(shift => shift.isActive !== false);
   const roles = state.roles;
   const catalogTemplates = state.catalogTaskTemplates.filter(t => t.isActive !== false);
@@ -109,12 +120,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskTemplateSlug, setTaskTemplateSlug] = useState<string | undefined>(undefined);
   const [taskTime, setTaskTime] = useState('0800');
   const [isNoSpecificTime, setIsNoSpecificTime] = useState(false);
+  const [taskTimingType, setTaskTimingType] = useState<TaskTimingType>('fixed');
   const [taskFrequency, setTaskFrequency] = useState<RecurrenceFrequency>('daily');
   const [taskRecurrenceRule, setTaskRecurrenceRule] = useState<RecurrenceRule | undefined>(undefined);
   const [taskAttentionConfig, setTaskAttentionConfig] = useState<TaskAttentionConfig | undefined>(undefined);
   const [taskTrackingConfig, setTaskTrackingConfig] = useState<ResidentTrackingConfig | undefined>(undefined);
   const [taskInstructions, setTaskInstructions] = useState('');
   const [taskPriority, setTaskPriority] = useState<TaskPriority>('normal');
+  const [coverageType, setCoverageType] = useState('FUNDED');
+  const [coverageStartDate, setCoverageStartDate] = useState('');
+  const [coverageEndDate, setCoverageEndDate] = useState('');
+  const [coverageAdditional, setCoverageAdditional] = useState(false);
+  const [coverageNote, setCoverageNote] = useState('');
+  const [coverageChangeConfirmed, setCoverageChangeConfirmed] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [allowPausedResidentCare, setAllowPausedResidentCare] = useState(false);
 
@@ -123,6 +141,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [unitCategory, setUnitCategory] = useState('Start of Shift');
   const [unitShiftPhase, setUnitShiftPhase] = useState<'start' | 'during' | 'end'>('start');
   const [unitTime, setUnitTime] = useState('0715');
+  const [unitTimingType, setUnitTimingType] = useState<TaskTimingType>('fixed');
   const [unitFrequency, setUnitFrequency] = useState<RecurrenceFrequency>('daily');
   const [unitRecurrenceRule, setUnitRecurrenceRule] = useState<RecurrenceRule | undefined>(undefined);
   const [unitResultType, setUnitResultType] = useState<any>('confirmation');
@@ -132,7 +151,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [resFirstName, setResFirstName] = useState('');
   const [resLastName, setResLastName] = useState('');
   const [resRoomNumber, setResRoomNumber] = useState('');
+  const [resStatus, setResStatus] = useState<ResidentStatus>('active');
   const [resNotes, setResNotes] = useState('');
+  const [residentSaveError, setResidentSaveError] = useState('');
+  const [mutationConflict, setMutationConflict] = useState<ValidationResult | null>(null);
 
   // Form State: FYI
   const [fyiText, setFyiText] = useState('');
@@ -153,6 +175,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [woundSupplies, setWoundSupplies] = useState<WoundSupplySelection[]>([]);
   const [woundAssessmentType, setWoundAssessmentType] = useState<'none' | 'partial' | 'full'>('none');
   const [woundStatus, setWoundStatus] = useState<'active' | 'healing' | 'resolved' | 'discontinued'>('active');
+  const [woundStopConfirmed, setWoundStopConfirmed] = useState(false);
   const clinicalShifts = shifts.filter(shift => {
     if (shift.isActive === false) return false;
     const role = roles.find(item => item.id === shift.roleId);
@@ -181,6 +204,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   // Reset or initialize on open / prop changes
   useEffect(() => {
     if (isOpen) {
+      setHasUnsavedChanges(false);
+      setShowUnsavedWarning(false);
+      setWoundStopConfirmed(false);
+      setCoverageChangeConfirmed(false);
       if (initialResidentTask) {
         setSelectedType('care_task');
         setResidentId(initialResidentTask.residentId);
@@ -191,12 +218,15 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskTemplateSlug(initialResidentTask.templateSlug);
         setTaskTime(initialResidentTask.time || '0800');
         setIsNoSpecificTime(!!initialResidentTask.isNoSpecificTime);
+        setTaskTimingType(initialResidentTask.timingType || (initialResidentTask.isNoSpecificTime || !initialResidentTask.time ? 'period' : 'fixed'));
         setTaskFrequency(initialResidentTask.frequency);
         setTaskRecurrenceRule(initialResidentTask.recurrenceRule);
         setTaskAttentionConfig(initialResidentTask.attentionConfig);
         setTaskTrackingConfig(initialResidentTask.trackingConfig);
         setTaskInstructions(initialResidentTask.instructions || '');
         setTaskPriority(initialResidentTask.priority || 'normal');
+        const coverage = normalizeCoverage(initialResidentTask.serviceCoverage);
+        setCoverageType(coverage.type); setCoverageStartDate(coverage.startDate || ''); setCoverageEndDate(coverage.endDate || ''); setCoverageAdditional(Boolean(coverage.isAdditionalService)); setCoverageNote(coverage.note || '');
       } else if (initialUnitTask) {
         setSelectedType('unit_task');
         setShiftId(initialUnitTask.shiftId);
@@ -205,6 +235,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setUnitCategory(initialUnitTask.category);
         setUnitShiftPhase(initialUnitTask.shiftPhase);
         setUnitTime(initialUnitTask.time || '0715');
+        setUnitTimingType(initialUnitTask.timingType || (initialUnitTask.time ? 'fixed' : 'period'));
         setUnitFrequency(initialUnitTask.frequency);
         setUnitRecurrenceRule(initialUnitTask.recurrenceRule);
         setUnitResultType(initialUnitTask.resultType);
@@ -262,6 +293,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskFrequency('daily');
         setTaskInstructions('');
         setTaskPriority('normal');
+        setCoverageType('FUNDED'); setCoverageStartDate(''); setCoverageEndDate(''); setCoverageAdditional(false); setCoverageNote('');
         setUnitTitle('');
         setUnitInstructions('');
         setResFirstName('');
@@ -297,10 +329,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     return validateTimedCareShift({ shifts: state.shifts, roles, shiftId, roleId, time });
   };
 
-  const careTaskTimeError = isNoSpecificTime
+  const careTaskTimeError = taskTimingType !== 'fixed' || isNoSpecificTime
     ? validateCareShiftSelection({ shifts: state.shifts, roles, shiftId, roleId })
     : getShiftTimeError(taskTime);
-  const unitTaskTimeError = getShiftTimeError(unitTime);
+  const unitTaskTimeError = unitTimingType === 'fixed' ? getShiftTimeError(unitTime) : null;
   const selectedWoundShift = clinicalShifts.find(shift => shift.id === woundShiftId);
   const woundShiftTimeError = clinicalShifts.length === 0
     ? 'No active LPN/RN shift is configured. Create one in Settings → Roles & Shifts before saving this wound protocol.'
@@ -367,10 +399,27 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   };
 
   // Submission Handlers
+  const captureMutationError = (error: unknown) => {
+    if (error instanceof DomainConflictError) setMutationConflict(error.result);
+    else setMutationConflict({ status: 'CRITICAL', title: 'TaskSheet Could Not Save Safely', message: `${error instanceof Error ? error.message : 'An unexpected local data error occurred.'} Your entries remain available in this form. Review them and try again.` });
+  };
+  const requestClose = () => {
+    if (hasUnsavedChanges) setShowUnsavedWarning(true);
+    else onClose();
+  };
+
   const handleSaveCareTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim() || !residentId || careTaskTimeError || pausedResidentNeedsAcknowledgement) return;
-
+    setMutationConflict(null);
+    const resolvedTaskTime = taskTimingType === 'period' ? undefined : taskTimingType === 'start_of_shift' ? currentShiftObj?.startTime : taskTimingType === 'end_of_shift' ? currentShiftObj?.endTime : taskTime;
+    const resolvedNoSpecificTime = taskTimingType === 'period';
+    const coverageDefinition = getCoverageDefinitions(state.settings.serviceCoverageDefinitions).find(item => item.code === coverageType);
+    if (!coverageDefinition) { setMutationConflict({ status: 'BLOCKED', title: 'Service Coverage Is Unavailable', message: 'Select an active Service Coverage classification before saving.' }); return; }
+    const serviceCoverage: TaskServiceCoverage = createCoverageSnapshot(coverageDefinition, { startDate: coverageStartDate, endDate: coverageEndDate, isAdditionalService: coverageAdditional, note: coverageNote });
+    if (serviceCoverage.startDate && serviceCoverage.endDate && serviceCoverage.endDate < serviceCoverage.startDate) { setMutationConflict({ status: 'BLOCKED', code: 'INVALID_DATE_RANGE', title: 'Invalid Coverage Period', message: 'Coverage end date must be on or after the start date.' }); return; }
+    if (mode === 'edit' && initialResidentTask && normalizeCoverage(initialResidentTask.serviceCoverage).type !== serviceCoverage.type && !coverageChangeConfirmed) { setMutationConflict({ status: 'WARNING', code: 'COVERAGE_CHANGE_IMPACT', title: 'Change Service Coverage?', message: `You are changing this task from ${normalizeCoverage(initialResidentTask.serviceCoverage).labelSnapshot} to ${serviceCoverage.labelSnapshot}. This changes how it appears on TaskSheets, bathing grids, resident summaries, filters, and reports.`, recommendedActions: [{ id: 'confirm_coverage', label: 'Change Coverage', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] }); return; }
+    try {
     if (mode === 'edit' && initialResidentTask) {
       db.updateResidentTask(initialResidentTask.id, {
         residentId,
@@ -379,22 +428,24 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         templateSlug: taskTemplateSlug,
         title: taskTitle.trim(),
         category: taskCategory,
-        time: isNoSpecificTime ? undefined : taskTime,
-        isNoSpecificTime,
+        time: resolvedTaskTime,
+        isNoSpecificTime: resolvedNoSpecificTime,
+        timingType: taskTimingType,
         frequency: taskFrequency,
         recurrenceRule: taskRecurrenceRule,
         attentionConfig: taskAttentionConfig,
         trackingConfig: taskTrackingConfig,
         instructions: taskInstructions.trim() || undefined,
         priority: taskPriority
-      });
+        ,serviceCoverage
+      }, { expectedRevision: state.revision });
     } else {
       // Check if identical active task already exists on resident
       const existingMatch = state.residentTasks.find(t =>
         t.residentId === residentId &&
         t.isActive !== false && (
-          (taskTemplateSlug && t.templateSlug === taskTemplateSlug && (isNoSpecificTime || t.time === taskTime)) ||
-          (t.title.trim().toLowerCase() === taskTitle.trim().toLowerCase() && (isNoSpecificTime || t.time === taskTime))
+          (taskTemplateSlug && t.templateSlug === taskTemplateSlug && (resolvedNoSpecificTime || t.time === resolvedTaskTime)) ||
+          (t.title.trim().toLowerCase() === taskTitle.trim().toLowerCase() && (resolvedNoSpecificTime || t.time === resolvedTaskTime))
         )
       );
 
@@ -406,15 +457,17 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           templateSlug: taskTemplateSlug || existingMatch.templateSlug,
           title: taskTitle.trim(),
           category: taskCategory,
-          time: isNoSpecificTime ? undefined : taskTime,
-          isNoSpecificTime,
+          time: resolvedTaskTime,
+          isNoSpecificTime: resolvedNoSpecificTime,
+          timingType: taskTimingType,
           frequency: taskFrequency,
           recurrenceRule: taskRecurrenceRule,
           attentionConfig: taskAttentionConfig,
           trackingConfig: taskTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority
-        });
+          ,serviceCoverage
+        }, { expectedRevision: state.revision });
       } else {
         db.addResidentTask({
           residentId,
@@ -423,17 +476,20 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           templateSlug: taskTemplateSlug,
           title: taskTitle.trim(),
           category: taskCategory,
-          time: isNoSpecificTime ? undefined : taskTime,
-          isNoSpecificTime,
+          time: resolvedTaskTime,
+          isNoSpecificTime: resolvedNoSpecificTime,
+          timingType: taskTimingType,
           frequency: taskFrequency,
           recurrenceRule: taskRecurrenceRule,
           attentionConfig: taskAttentionConfig,
           trackingConfig: taskTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority
-        });
+          ,serviceCoverage
+        }, { expectedRevision: state.revision });
       }
     }
+    } catch (error) { captureMutationError(error); return; }
 
     onSuccess?.();
     onClose();
@@ -443,19 +499,22 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     e.preventDefault();
     if (!unitTitle.trim() || !shiftId || unitTaskTimeError) return;
 
-    if (mode === 'edit' && initialUnitTask) {
+    setMutationConflict(null);
+    const resolvedUnitTime = unitTimingType === 'period' ? undefined : unitTimingType === 'start_of_shift' ? currentShiftObj?.startTime : unitTimingType === 'end_of_shift' ? currentShiftObj?.endTime : unitTime;
+    try { if (mode === 'edit' && initialUnitTask) {
       db.updateUnitTask(initialUnitTask.id, {
         shiftId,
         roleId: roleId || undefined,
         title: unitTitle.trim(),
         category: unitCategory,
         shiftPhase: unitShiftPhase,
-        time: unitTime,
+        time: resolvedUnitTime,
+        timingType: unitTimingType,
         frequency: unitFrequency,
         recurrenceRule: unitRecurrenceRule,
         resultType: unitResultType,
         instructions: unitInstructions.trim() || undefined
-      });
+      }, { expectedRevision: state.revision });
     } else {
       db.addUnitTask({
         shiftId,
@@ -463,13 +522,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         title: unitTitle.trim(),
         category: unitCategory,
         shiftPhase: unitShiftPhase,
-        time: unitTime,
+        time: resolvedUnitTime,
+        timingType: unitTimingType,
         frequency: unitFrequency,
         recurrenceRule: unitRecurrenceRule,
         resultType: unitResultType,
         instructions: unitInstructions.trim() || undefined
-      });
-    }
+      }, { expectedRevision: state.revision });
+    } } catch (error) { captureMutationError(error); return; }
 
     onSuccess?.();
     onClose();
@@ -478,25 +538,29 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const handleAddResident = (e: React.FormEvent) => {
     e.preventDefault();
     if (!resFirstName.trim() || !resLastName.trim() || !resRoomNumber.trim()) return;
-
-    const newRes = db.addResident({
-      firstName: resFirstName.trim(),
-      lastName: resLastName.trim(),
-      roomNumber: resRoomNumber.trim(),
-      status: 'active',
-      notes: resNotes.trim() || undefined
-    });
-
-    setResidentId(newRes.id);
-    onSuccess?.();
-    onClose();
+    try {
+      setResidentSaveError('');
+      const newRes = db.addResident({
+        firstName: resFirstName.trim(),
+        lastName: resLastName.trim(),
+        roomNumber: resRoomNumber.trim(),
+        status: resStatus,
+        notes: resNotes.trim() || undefined
+      });
+      setResidentId(newRes.id);
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      setResidentSaveError((error as Error).message);
+    }
   };
 
   const handleAddFYI = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fyiText.trim()) return;
 
-    if (mode === 'edit' && initialFYI) {
+    setMutationConflict(null);
+    try { if (mode === 'edit' && initialFYI) {
       db.updateFYI(initialFYI.id, {
         residentId: fyiScope === 'resident' && residentId ? residentId : undefined,
         roleId: fyiRoleId || undefined,
@@ -513,9 +577,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         text: fyiText.trim(),
         category: fyiCategory,
         importance: fyiImportance,
-        effectiveDate: new Date().toISOString().split('T')[0]
+        effectiveDate: getTodayLocalDateString()
       });
-    }
+    } } catch (error) { captureMutationError(error); return; }
 
     onSuccess?.();
     onClose();
@@ -524,6 +588,11 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const handleAddWound = (e: React.FormEvent) => {
     e.preventDefault();
     if (!woundSiteLocation.trim() || !residentId || !woundShiftId || woundShiftTimeError) return;
+    if (!woundInstructions.trim() && (woundStatus === 'active' || woundStatus === 'healing')) { setMutationConflict({ status: 'BLOCKED', code: 'MISSING_WOUND_PROTOCOL', title: 'Dressing Plan Is Required', message: `${woundSiteLocation.trim()} needs treatment/dressing instructions before it can be scheduled. Enter the protocol, or save it as resolved/discontinued if no future care is required.` }); return; }
+    if (mode === 'edit' && initialWound && ['active', 'healing'].includes(initialWound.status) && ['resolved', 'discontinued'].includes(woundStatus) && !woundStopConfirmed) {
+      setMutationConflict({ status: 'WARNING', code: 'WOUND_NOT_ACTIVE', title: 'Future Wound Care Will Stop', message: `Marking ${woundSiteLocation.trim()} as ${woundStatus} will remove this recurring wound protocol from future operational TaskSheets. Existing historical data is preserved.`, affectedRecords: [{ id: initialWound.id, type: 'wound', label: `${initialWound.siteLocation} · ${initialWound.frequency}` }], recommendedActions: [{ id: 'confirm_stop', label: 'Confirm & Stop Future Care', kind: 'primary' }, { id: 'cancel', label: 'Keep Wound Active', kind: 'cancel' }] });
+      return;
+    }
 
     const structuredFields = {
       protocol: woundInstructions.trim() || undefined,
@@ -535,7 +604,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
       discontinuedAt: woundStatus === 'discontinued' ? new Date().toISOString() : undefined,
     };
 
-    if (mode === 'edit' && initialWound) {
+    setMutationConflict(null);
+    try { if (mode === 'edit' && initialWound) {
       db.updateWound(initialWound.id, {
         residentId,
         shiftId: woundShiftId,
@@ -547,7 +617,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         bathingRelation: woundBathingRelation,
         ...structuredFields,
         instructions: undefined
-      });
+      }, { expectedRevision: state.revision });
     } else {
       db.addWound({
         residentId,
@@ -560,8 +630,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         bathingRelation: woundBathingRelation,
         ...structuredFields,
         instructions: undefined
-      });
-    }
+      }, { expectedRevision: state.revision });
+    } } catch (error) { captureMutationError(error); return; }
 
     onSuccess?.();
     onClose();
@@ -591,7 +661,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={requestClose}
       title={modalTitle}
       subtitle={
         selectedType && (currentResidentObj || currentShiftObj)
@@ -600,6 +670,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
       }
       maxWidth="2xl"
     >
+      <div onChangeCapture={() => setHasUnsavedChanges(true)}>
+      {showUnsavedWarning && <div className="mb-4"><ConflictNotice result={{ status: 'WARNING', title: 'Unsaved Changes', message: 'You have changes that have not been saved. Keep editing to preserve your entries, or discard them and close this form.', recommendedActions: [{ id: 'keep_editing', label: 'Keep Editing', kind: 'primary' }, { id: 'discard', label: 'Discard Changes', kind: 'cancel' }] }} onAction={action => { if (action === 'discard') onClose(); else setShowUnsavedWarning(false); }} /></div>}
+      {mutationConflict && <div className="mb-4"><ConflictNotice result={mutationConflict} onAction={action => { if (action === 'confirm_stop') setWoundStopConfirmed(true); if (action === 'confirm_coverage') setCoverageChangeConfirmed(true); setMutationConflict(null); }} /></div>}
       {/* 1. SELECTION SCREEN */}
       {!selectedType && mode === 'add' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
@@ -896,30 +969,22 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           {/* Time Field */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                Scheduled Time (Military 24h)
-              </label>
-              <label className="flex items-center space-x-1 text-[11px] text-slate-500 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isNoSpecificTime}
-                  onChange={(e) => setIsNoSpecificTime(e.target.checked)}
-                  className="rounded text-teal-600 focus:ring-teal-500 w-3 h-3"
-                />
-                <span>No time / flexible</span>
-              </label>
-            </div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Timing Type</label>
+            <select value={taskTimingType} onChange={event => { const value = event.target.value as TaskTimingType; setTaskTimingType(value); setIsNoSpecificTime(value === 'period'); }} className="mb-2 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-teal-500">
+              <option value="fixed">Fixed Clock Time</option><option value="start_of_shift">Start of Shift</option><option value="end_of_shift">End of Shift</option><option value="period">During Shift / No Specific Time</option>
+            </select>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{taskTimingType === 'fixed' ? 'Scheduled Time (Military 24h)' : 'Resolved Time'}</label>
             <input
               type="text"
-              disabled={isNoSpecificTime}
-              value={taskTime}
+              disabled={taskTimingType !== 'fixed'}
+              value={taskTimingType === 'start_of_shift' ? currentShiftObj?.startTime || '' : taskTimingType === 'end_of_shift' ? currentShiftObj?.endTime || '' : taskTimingType === 'period' ? '' : taskTime}
               onChange={(e) => setTaskTime(e.target.value)}
               placeholder="0800"
               aria-invalid={!!careTaskTimeError}
               className={`w-full sm:w-48 px-3.5 py-2.5 bg-white disabled:bg-slate-100 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 tabular-nums font-mono font-bold ${careTaskTimeError ? 'border-red-400' : 'border-slate-300'}`}
             />
-            {timingPresetKind && !isNoSpecificTime && (
+            <p className="mt-1 text-[11px] text-slate-500">{taskTimingType === 'start_of_shift' ? 'Automatically follows the configured shift start.' : taskTimingType === 'end_of_shift' ? 'Automatically follows the configured shift end and is permitted at the exclusive boundary.' : taskTimingType === 'period' ? 'Prints within the shift without a fixed clock time.' : 'Fixed times remain unchanged when shift hours change.'}</p>
+            {timingPresetKind && taskTimingType === 'fixed' && (
               <div className="mt-2">
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
                   Facility {timingPresetKind === 'medication' ? 'medication' : 'meal'} times
@@ -964,6 +1029,25 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 setTaskFrequency(newFreq);
               }}
             />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-3">
+            <div>
+              <label htmlFor="resident-task-service-coverage" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Service Coverage</label>
+              <select id="resident-task-service-coverage" value={coverageType} onChange={event => { const code = event.target.value; setCoverageType(code); if (code === 'FUNDED') setCoverageAdditional(false); }} className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-teal-500">
+                {getCoverageDefinitions(state.settings.serviceCoverageDefinitions).map(item => <option key={item.id} value={item.code}>{item.icon ? `${item.icon} ` : ''}{item.name}</option>)}
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">Identifies why the service is provided. TaskSheet does not store prices, invoices, or payment information.</p>
+            </div>
+            {coverageType !== 'FUNDED' && <>
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={coverageAdditional} onChange={event => setCoverageAdditional(event.target.checked)} className="rounded border-slate-300 text-teal-700" />Additional to the resident's funded/authorized service</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs font-semibold text-slate-700">Effective Start Date<input type="date" value={coverageStartDate} onChange={event => setCoverageStartDate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" /></label>
+                <label className="text-xs font-semibold text-slate-700">Optional End Date<input type="date" value={coverageEndDate} min={coverageStartDate || undefined} onChange={event => setCoverageEndDate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" /></label>
+              </div>
+              <label className="block text-xs font-semibold text-slate-700">Coverage Note (Optional)<input value={coverageNote} onChange={event => setCoverageNote(event.target.value)} placeholder="Authorization/reference note; no billing details" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal" /></label>
+              {coverageType === 'TEMPORARY_EXCEPTION' && !coverageEndDate && <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800"><AlertTriangle className="h-3.5 w-3.5" />Temporary exceptions normally need an end date so they do not continue indefinitely.</p>}
+            </>}
           </div>
 
           {/* Instructions */}
@@ -1187,7 +1271,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <div className="pt-2 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
             >
               Cancel
@@ -1267,7 +1351,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 When in shift?
@@ -1283,13 +1367,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </select>
             </div>
 
+            <div><label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Timing Type</label><select value={unitTimingType} onChange={event => setUnitTimingType(event.target.value as TaskTimingType)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"><option value="fixed">Fixed Time</option><option value="start_of_shift">Shift Start</option><option value="end_of_shift">Shift End</option><option value="period">During Shift</option></select></div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 Time (Military 24h)
               </label>
               <input
                 type="text"
-                value={unitTime}
+                disabled={unitTimingType !== 'fixed'}
+                value={unitTimingType === 'start_of_shift' ? currentShiftObj?.startTime || '' : unitTimingType === 'end_of_shift' ? currentShiftObj?.endTime || '' : unitTimingType === 'period' ? '' : unitTime}
                 onChange={(e) => setUnitTime(e.target.value)}
                 placeholder="0715"
                 aria-invalid={!!unitTaskTimeError}
@@ -1334,7 +1421,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <div className="pt-2 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
             >
               Cancel
@@ -1391,25 +1478,30 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           <div>
-            <label htmlFor="wound-status" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Wound Protocol Status</label>
-            <select id="wound-status" value={woundStatus} onChange={event => setWoundStatus(event.target.value as typeof woundStatus)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm">
-              <option value="active">Active</option><option value="healing">Healing — remains operationally active</option><option value="resolved">Healed / Resolved</option><option value="discontinued">Discontinued</option>
+            <label htmlFor="resident-status" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Resident Status</label>
+            <select id="resident-status" value={resStatus} onChange={event => setResStatus(event.target.value as ResidentStatus)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm">
+              <option value="active">Active</option><option value="in_hospital">In Hospital</option><option value="out_on_pass">Out on Pass</option><option value="on_hold">On Hold</option><option value="inactive">Inactive / Not Yet Admitted</option>
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Room / Bed Number <span className="text-red-500">*</span>
+              Room / Occupancy Location <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={resRoomNumber}
               onChange={(e) => setResRoomNumber(e.target.value)}
-              placeholder="e.g. 101, 204B"
+              placeholder="Search or enter a configured label, e.g. L101A"
+              list="available-room-positions"
               required
               className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 font-mono"
             />
+            <datalist id="available-room-positions">{availablePositions.map(position => <option key={position.id} value={position.displayLabel}>{position.displayLabel} — Available</option>)}</datalist>
+            <p className="mt-1 text-[11px] text-slate-500">Select an available configured position. A unique new label creates a simple room automatically.</p>
           </div>
+
+          {residentSaveError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800">{residentSaveError}</div>}
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
@@ -1427,7 +1519,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <div className="pt-2 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
             >
               Cancel
@@ -1503,7 +1595,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <div className="pt-2 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
             >
               Cancel
@@ -1691,7 +1783,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <div className="pt-2 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
             >
               Cancel
@@ -1705,6 +1797,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
         </form>
       )}
+      </div>
     </Modal>
   );
 };

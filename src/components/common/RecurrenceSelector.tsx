@@ -18,7 +18,7 @@ import {
   RecurrenceEndType,
   RecurrenceFrequency
 } from '../../types';
-import { formatRecurrenceHuman, parseDateUTC, formatDateUTC } from '../../services/recurrence';
+import { formatRecurrenceHuman, parseDateUTC, formatDateUTC, getTodayLocalDateString } from '../../services/recurrence';
 
 export interface RecurrenceSelectorProps {
   value?: RecurrenceRule;
@@ -49,7 +49,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
   value,
   frequency: initialFreq,
   onChange,
-  defaultAnchorDate = new Date().toISOString().split('T')[0],
+  defaultAnchorDate = getTodayLocalDateString(),
   allowPrn = true,
 }) => {
   const [activeType, setActiveType] = useState<RecurrenceType>(

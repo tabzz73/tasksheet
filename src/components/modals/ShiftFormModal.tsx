@@ -3,6 +3,8 @@ import { Clock, Shield, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react
 import { Modal } from '../common/Modal';
 import { Shift, Role } from '../../types';
 import { db } from '../../db';
+import { analyzeShiftChange, DomainConflictError, validateMilitaryTime, ValidationResult } from '../../services/validation';
+import { ConflictNotice } from '../common/ConflictNotice';
 
 interface ShiftFormModalProps {
   isOpen: boolean;
@@ -29,10 +31,18 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
   const [endTime, setEndTime] = useState('1500');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<ValidationResult | null>(null);
+  const [warningAccepted, setWarningAccepted] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setError(null);
+      setConflict(null);
+      setWarningAccepted(false);
+      setHasUnsavedChanges(false);
+      setShowUnsavedWarning(false);
       if (initialShift) {
         if (mode === 'duplicate') {
           setName(`${initialShift.name} 2`);
@@ -66,6 +76,7 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setConflict(null);
 
     const trimmedName = name.trim();
     const trimmedCode = shortCode.trim();
@@ -82,13 +93,16 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
       setError('Please select a role for this shift.');
       return;
     }
-    if (!/^\d{4}$/.test(startTime) || !/^\d{4}$/.test(endTime)) {
-      setError('Please enter times in 4-digit 24-hour military format (e.g. 0700, 1900).');
+    const startValidation = validateMilitaryTime(startTime); const endValidation = validateMilitaryTime(endTime);
+    if (startValidation.status === 'BLOCKED' || endValidation.status === 'BLOCKED') {
+      setConflict(startValidation.status === 'BLOCKED' ? startValidation : endValidation);
       return;
     }
 
     try {
       if (mode === 'edit' && initialShift) {
+        const impact = analyzeShiftChange(db.getState(), initialShift.id, { name: trimmedName, shortCode: trimmedCode, roleId, startTime, endTime, description: description.trim() });
+        if (impact.status === 'BLOCKED' || (impact.status === 'WARNING' && !warningAccepted)) { setConflict(impact); return; }
         const updated = db.updateShift(initialShift.id, {
           name: trimmedName,
           shortCode: trimmedCode,
@@ -112,7 +126,8 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
       }
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to save shift.');
+      if (err instanceof DomainConflictError) setConflict(err.result);
+      else setError(err.message || 'TaskSheet could not safely save this shift. Your entries remain in the form; review them and try again.');
     }
   };
 
@@ -121,22 +136,25 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
 
   // Crosses midnight indication
   const crossesMidnight = startTime && endTime && startTime > endTime;
+  const requestClose = () => hasUnsavedChanges ? setShowUnsavedWarning(true) : onClose();
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={requestClose}
       title={title}
       subtitle="Configure shift name, shorthand code, authoritative role, and working hours."
       maxWidth="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} onChangeCapture={() => setHasUnsavedChanges(true)} className="space-y-4">
+        {showUnsavedWarning && <ConflictNotice result={{ status: 'WARNING', title: 'Unsaved Changes', message: 'You have shift changes that have not been saved. Keep editing to preserve them, or discard them and close.', recommendedActions: [{ id: 'keep_editing', label: 'Keep Editing', kind: 'primary' }, { id: 'discard', label: 'Discard Changes', kind: 'cancel' }] }} onAction={action => { if (action === 'discard') onClose(); else setShowUnsavedWarning(false); }} />}
         {error && (
           <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-800 flex items-start space-x-2 animate-in fade-in">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
+        {conflict && <ConflictNotice result={conflict} onAction={action => { if (action === 'continue') { setWarningAccepted(true); setConflict(null); } else if (action === 'cancel') setConflict(null); }} />}
 
         {/* Shift Name */}
         <div>
@@ -255,7 +273,7 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
         <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2.5">
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-colors"
           >
             Cancel

@@ -21,6 +21,7 @@ import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generato
 import { Shift, UnitTask, ResidentTask, Wound, FYI, PrintProfile } from '../../types';
 import { TaskActionMenu } from '../common/TaskActionMenu';
 import { TaskActionConfirmModal } from '../modals/TaskActionConfirmModal';
+import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
 import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskDetailsDrawer } from '../modals/TaskDetailsDrawer';
 import { PrintDocumentView } from '../print/PrintDocumentView';
@@ -34,7 +35,7 @@ import {
   TaskSnapshotItem 
 } from '../../services/printHistory';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
-import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule } from '../../services/recurrence';
+import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule, getTodayLocalDateString } from '../../services/recurrence';
 
 type WorkspaceTab = 'timeline' | 'residents' | 'preview';
 
@@ -113,6 +114,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   const [confirmModalState, setConfirmModalState] = useState<{
     isOpen: boolean;
     actionType: 'stop' | 'delete';
+    itemType: string;
     title: string;
     description: string;
     hasHistory: boolean;
@@ -120,11 +122,13 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   }>({
     isOpen: false,
     actionType: 'stop',
+    itemType: 'Care Task',
     title: '',
     description: '',
     hasHistory: false,
     onConfirm: () => {},
   });
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   // Toast state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -139,7 +143,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   const { shift, role, startUnitTasks, duringUnitTasks, endUnitTasks, residentAssignments, prnTasks, importantFYIs, metrics } = sheet;
   const clinicalRoleText = `${role.code || ''} ${role.name || ''}`.toLowerCase();
   const isClinicalShift = clinicalRoleText.includes('lpn') || clinicalRoleText.includes('rn') || clinicalRoleText.includes('nurse');
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayDateStr = getTodayLocalDateString();
   const endedUnitTasks = db.getState().unitTasks
     .filter(task => task.isActive !== false)
     .filter(task => task.shiftId ? task.shiftId === shiftId : task.roleId === role.id)
@@ -191,6 +195,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: 'stop',
+      itemType: 'Care Task',
       title: task.title,
       description: `Room ${res?.roomNumber || '—'} · ${res?.firstName} ${res?.lastName} · ${task.time || 'Flexible'}`,
       hasHistory: db.hasTaskHistory(task.id),
@@ -203,13 +208,19 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
 
   const handleRestartCareTask = (task: ResidentTask) => {
     if (!task.recurrenceRule) return;
-    if (!window.confirm(`Restart "${task.title}" beginning today (${todayDateStr})? The existing care-task record and recurrence pattern will be preserved.`)) return;
-    db.updateResidentTask(task.id, {
-      recurrenceRule: restartRecurrenceRule(task.recurrenceRule, todayDateStr),
-      isActive: true,
-      stoppedAt: undefined,
+    setConfirmRequest({
+      title: 'Restart Care Task?',
+      message: `Restart "${task.title}" beginning today (${todayDateStr})? The existing care-task record and recurrence pattern will be preserved.`,
+      confirmLabel: 'Restart Task',
+      onConfirm: () => {
+        db.updateResidentTask(task.id, {
+          recurrenceRule: restartRecurrenceRule(task.recurrenceRule!, todayDateStr),
+          isActive: true,
+          stoppedAt: undefined,
+        });
+        showToast(`Restarted "${task.title}" beginning ${todayDateStr}.`);
+      },
     });
-    showToast(`Restarted "${task.title}" beginning ${todayDateStr}.`);
   };
 
   const handleDeleteCareTask = (task: ResidentTask) => {
@@ -218,6 +229,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: hasHistory ? 'stop' : 'delete',
+      itemType: 'Care Task',
       title: task.title,
       description: `Room ${res?.roomNumber || '—'} · ${res?.firstName} ${res?.lastName}`,
       hasHistory,
@@ -239,6 +251,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: 'stop',
+      itemType: 'Unit Task',
       title: task.title,
       description: `${shift.name} · ${task.shiftPhase.toUpperCase()} · ${task.time || 'Flexible'}`,
       hasHistory: db.hasTaskHistory(task.id),
@@ -248,13 +261,19 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
 
   const handleRestartUnitTask = (task: UnitTask) => {
     if (!task.recurrenceRule) return;
-    if (!window.confirm(`Restart "${task.title}" beginning today (${todayDateStr})? The existing unit-routine record and recurrence pattern will be preserved.`)) return;
-    db.updateUnitTask(task.id, {
-      recurrenceRule: restartRecurrenceRule(task.recurrenceRule, todayDateStr),
-      isActive: true,
-      stoppedAt: undefined,
+    setConfirmRequest({
+      title: 'Restart Unit Task?',
+      message: `Restart "${task.title}" beginning today (${todayDateStr})? The existing unit-routine record and recurrence pattern will be preserved.`,
+      confirmLabel: 'Restart Task',
+      onConfirm: () => {
+        db.updateUnitTask(task.id, {
+          recurrenceRule: restartRecurrenceRule(task.recurrenceRule!, todayDateStr),
+          isActive: true,
+          stoppedAt: undefined,
+        });
+        showToast(`Restarted "${task.title}" beginning ${todayDateStr}.`);
+      },
     });
-    showToast(`Restarted "${task.title}" beginning ${todayDateStr}.`);
   };
 
   const handleDeleteUnitTask = (task: UnitTask) => {
@@ -262,6 +281,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: hasHistory ? 'stop' : 'delete',
+      itemType: 'Unit Task',
       title: task.title,
       description: `${shift.name} · ${task.time || 'Flexible'}`,
       hasHistory,
@@ -280,6 +300,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: 'delete',
+      itemType: 'Wound Protocol',
       title: `Wound Protocol: ${w.siteLocation}`,
       description: `Room ${res?.roomNumber || '—'} · ${res?.firstName} ${res?.lastName}`,
       hasHistory: false,
@@ -1053,12 +1074,15 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
           isOpen={confirmModalState.isOpen}
           onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))}
           actionType={confirmModalState.actionType}
+          itemType={confirmModalState.itemType}
           title={confirmModalState.title}
           itemDescription={confirmModalState.description}
           hasHistory={confirmModalState.hasHistory}
           onConfirm={confirmModalState.onConfirm}
         />
       )}
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 };

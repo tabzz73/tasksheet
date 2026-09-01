@@ -22,6 +22,8 @@ import { UpcomingScheduleDocument } from '../print/UpcomingScheduleDocument';
 import { WhatChangedDocument } from '../print/WhatChangedDocument';
 import { PrinterCalibrationDocument } from '../print/PrinterCalibrationDocument';
 import { PrintPackageView } from '../print/PrintPackageView';
+import { CustomReportModel } from '../../services/reports';
+import { CustomReportDocument } from '../print/CustomReportDocument';
 
 export type SpecializedPrintDoc = 
   | { type: 'bathing'; model: BathingScheduleModel }
@@ -32,7 +34,9 @@ export type SpecializedPrintDoc =
   | { type: 'upcoming'; currentDateStr: string }
   | { type: 'shift_config'; model: ShiftConfigReferenceModel }
   | { type: 'what_changed'; model: WhatChangedModel }
-  | { type: 'calibration' };
+  | { type: 'calibration' }
+  | { type: 'blank_template'; model: PrintDocumentModel }
+  | { type: 'custom_report'; model: CustomReportModel };
 
 interface PrintPreviewPageProps {
   model?: PrintDocumentModel | null;
@@ -70,7 +74,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
     if (specializedDoc.type === 'bathing') {
       isLandscape = true;
       docTitle = 'Bathing & Hygiene Schedule';
-      profileLabel = 'Letter Landscape · Operational Matrix';
+      profileLabel = `Letter Landscape · Operational Matrix · ~${specializedDoc.model.estimatedPages} page${specializedDoc.model.estimatedPages === 1 ? '' : 's'}`;
       subheaderText = `Week: ${specializedDoc.model.weekRange} · Facility Master Grid`;
     } else if (specializedDoc.type === 'wound') {
       isLandscape = true;
@@ -112,6 +116,16 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       docTitle = 'Printer Hardware Calibration Page';
       profileLabel = 'Letter Portrait · Hardware Alignment & Scale Test';
       subheaderText = 'Hardware Margins (10mm) · 100mm Scale Ruler · Grayscale Toner Density';
+    } else if (specializedDoc.type === 'blank_template') {
+      isLandscape = true;
+      docTitle = 'Blank TaskSheet Template';
+      profileLabel = 'Letter Landscape · Facility Header + Writing Areas Only';
+      subheaderText = `${specializedDoc.model.header.formattedDate} · No resident data included`;
+    } else if (specializedDoc.type === 'custom_report') {
+      isLandscape = specializedDoc.model.definition.layout === 'landscape' || (specializedDoc.model.definition.layout === 'auto' && specializedDoc.model.columns.length > 6);
+      docTitle = specializedDoc.model.title;
+      profileLabel = `${specializedDoc.model.sourceLabel} · ${specializedDoc.model.rows.length} records · ~${specializedDoc.model.estimatedPages} pages`;
+      subheaderText = `${specializedDoc.model.coverage} · ${specializedDoc.model.filterSummary}`;
     }
   }
 
@@ -120,6 +134,12 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
   const paperH = isLandscape ? 816 : 1056;
   const paperPadding = isLandscape ? '11mm' : '12mm';
   const generationExceptions = packageModel?.exceptions || model?.exceptions || [];
+  const bathingCapacityExceptions = specializedDoc?.type === 'bathing'
+    ? specializedDoc.model.shiftLines.flatMap(line => specializedDoc.model.days
+        .map(day => ({ line, day, slot: line.days[day.dayNumber] }))
+        .filter(item => item.slot.overCapacity))
+    : [];
+  const hasPreviewWarnings = generationExceptions.length > 0 || bathingCapacityExceptions.length > 0;
 
   const handlePrint = () => window.print();
 
@@ -150,6 +170,10 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
           return <WhatChangedDocument model={specializedDoc.model} />;
         case 'calibration':
           return <PrinterCalibrationDocument />;
+        case 'blank_template':
+          return <PrintDocumentView document={specializedDoc.model} />;
+        case 'custom_report':
+          return <CustomReportDocument model={specializedDoc.model} />;
       }
     }
     return <div className="p-8 text-center text-slate-400">No document selected.</div>;
@@ -191,15 +215,13 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       </div>
 
       {/* ── SCREEN PREVIEW AREA (no-print) ── */}
-      {generationExceptions.length > 0 && (
+      {hasPreviewWarnings && (
         <div className="no-print fixed left-0 right-0 top-[56px] z-40 border-b border-amber-300 bg-amber-50 px-5 py-3 shadow-md">
           <div className="mx-auto flex max-w-6xl items-start space-x-2.5 text-amber-950">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
             <div className="min-w-0">
-              <p className="text-xs font-black">Exceptions / Needs Review — {generationExceptions.length} timed task{generationExceptions.length === 1 ? '' : 's'} withheld</p>
-              <p className="mt-0.5 text-[11px] text-amber-900">
-                {generationExceptions.map(exception => `${exception.roomNumber ? `Room ${exception.roomNumber}` : 'Unit task'} — ${exception.title} — ${exception.time} — ${exception.shiftCode} (${exception.shiftStart}–${exception.shiftEnd})`).join(' · ')}
-              </p>
+              {generationExceptions.length > 0 && <><p className="text-xs font-black">Exceptions / Needs Review — {generationExceptions.length} timed task{generationExceptions.length === 1 ? '' : 's'} withheld</p><p className="mt-0.5 text-[11px] text-amber-900">{generationExceptions.map(exception => `${exception.roomNumber ? `Room ${exception.roomNumber}` : 'Unit task'} — ${exception.title} — ${exception.time} — ${exception.shiftCode} (${exception.shiftStart}–${exception.shiftEnd})`).join(' · ')}</p></>}
+              {bathingCapacityExceptions.length > 0 && <><p className="text-xs font-black">Bathing Capacity / Needs Review — {bathingCapacityExceptions.length} over-capacity cell{bathingCapacityExceptions.length === 1 ? '' : 's'}</p><p className="mt-0.5 text-[11px] text-amber-900">{bathingCapacityExceptions.map(({ line, day, slot }) => `${line.shiftCode} ${day.label}: ${slot.scheduled} of ${slot.capacity}`).join(' · ')}</p></>}
             </div>
           </div>
         </div>
@@ -208,7 +230,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       <div
         className="no-print"
         style={{
-          paddingTop: generationExceptions.length > 0 ? '124px' : '56px',
+          paddingTop: hasPreviewWarnings ? '124px' : '56px',
           minHeight: '100vh',
           background: '#334155',
           display: 'flex',

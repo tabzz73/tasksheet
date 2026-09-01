@@ -3,6 +3,7 @@ import { db } from '../../db';
 import { isTaskDueOnDate } from '../recurrence';
 import { isTimeWithinShift, parseMilitaryTime } from '../scheduling/timeWindow';
 import { getResidentStatusLabel, isResidentStatusException } from '../residentStatus';
+import { isCoverageActiveOnDate } from '../coverage';
 
 export interface GeneratedResidentAssignment {
   resident: Resident;
@@ -141,7 +142,7 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
   );
 
   const shiftUnitTasks = candidateUnitTasks.filter(u => {
-    if (!u.time || isTimeWithinShift(u.time, shift.startTime, shift.endTime)) return true;
+    if (u.timingType === 'start_of_shift' || u.timingType === 'end_of_shift' || u.timingType === 'period' || !u.time || isTimeWithinShift(u.time, shift.startTime, shift.endTime)) return true;
     exceptions.push({
       taskId: u.id,
       taskType: 'unit_task',
@@ -171,10 +172,10 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
 
   // 2. Active Residents — hospital, pass, and hold care is suppressed.
   const activeResidents = state.residents
-    .filter(r => r.status === 'active')
+    .filter(r => r.status === 'active' && Boolean(r.occupancyPositionId) && !r.roomAssignmentNeedsReview)
     .sort((a, b) => sortRoomNumbers(a.roomNumber, b.roomNumber));
   const residentStatusExceptions: GeneratedResidentStatusException[] = state.residents
-    .filter(resident => isResidentStatusException(resident.status))
+    .filter(resident => isResidentStatusException(resident.status) && Boolean(resident.occupancyPositionId) && !resident.roomAssignmentNeedsReview)
     .sort((a, b) => sortRoomNumbers(a.roomNumber, b.roomNumber))
     .map(resident => ({
       residentId: resident.id,
@@ -196,10 +197,11 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
       .filter(t => t.isActive && t.residentId === res.id)
       .filter(t => (t.shiftId ? t.shiftId === shiftId : (t.roleId ? t.roleId === role.id : true)))
       .filter(t => isDateDue(dateStr, t.frequency, t.recurrenceRule, t.createdAt))
+      .filter(t => isCoverageActiveOnDate(t.serviceCoverage, dateStr))
       .sort((a, b) => (a.time || '9999').localeCompare(b.time || '9999'));
 
     const allMatchingTasks = candidateTasks.filter(t => {
-      if (!t.time || isTimeWithinShift(t.time, shift.startTime, shift.endTime)) return true;
+      if (t.timingType === 'start_of_shift' || t.timingType === 'end_of_shift' || t.timingType === 'period' || !t.time || isTimeWithinShift(t.time, shift.startTime, shift.endTime)) return true;
       exceptions.push({
         taskId: t.id,
         taskType: 'resident_task',
@@ -227,7 +229,7 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
       .filter(w => w.residentId === res.id && (w.status === 'active' || w.status === 'healing') && w.shiftId === shiftId)
       .filter(w => isDateDue(dateStr, w.frequency, w.recurrenceRule, w.createdAt));
     const wounds = candidateWounds.filter(w => {
-      if (w.time && isTimeWithinShift(w.time, shift.startTime, shift.endTime)) return true;
+      if (w.timingType === 'start_of_shift' || w.timingType === 'end_of_shift' || w.timingType === 'period' || (w.time && isTimeWithinShift(w.time, shift.startTime, shift.endTime))) return true;
       const configuredTime = w.time || 'Not set';
       exceptions.push({
         taskId: w.id,

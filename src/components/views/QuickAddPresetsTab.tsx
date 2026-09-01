@@ -17,6 +17,7 @@ import { db } from '../../db';
 import { FacilityQuickAddPreset, RecurrenceFrequency } from '../../types';
 import { DEFAULT_HCA_QUICK_ADD_PRESETS } from '../../data/defaultData';
 import { Modal } from '../common/Modal';
+import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
 
 interface QuickAddPresetsTabProps {
   onShowFeedback: (type: 'success' | 'error', text: string) => void;
@@ -28,6 +29,7 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
 
   const [editingPreset, setEditingPreset] = useState<FacilityQuickAddPreset | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   // Form State
   const [formLabel, setFormLabel] = useState('');
@@ -152,10 +154,16 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
 
   // Reset to default presets
   const handleReset = () => {
-    if (confirm('Reset Quick Add Presets to Alberta Starter Standard defaults?')) {
-      db.resetQuickAddPresets();
-      onShowFeedback('success', 'Reset Quick Add Presets to factory standard defaults.');
-    }
+    setConfirmRequest({
+      title: 'Reset Quick Add Presets?',
+      message: 'Reset Quick Add Presets to Alberta Starter Standard defaults? This replaces the current preset list, including any custom presets, with the factory defaults.',
+      confirmLabel: 'Reset Presets',
+      tone: 'danger',
+      onConfirm: () => {
+        db.resetQuickAddPresets();
+        onShowFeedback('success', 'Reset Quick Add Presets to factory standard defaults.');
+      },
+    });
   };
 
   const sortedPresets = [...presets].sort((a, b) => a.displayOrder - b.displayOrder);
@@ -350,6 +358,8 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 };

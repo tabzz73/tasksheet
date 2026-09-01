@@ -2,6 +2,8 @@ import { db } from '../../db';
 import { Facility, Resident, ResidentTask, Shift, Role, Wound } from '../../types';
 import { isDateDue, sortRoomNumbers } from '../generator';
 import { formatRecurrenceHuman, isRecurrenceScheduleEnded } from '../recurrence';
+import { coverageIndicator, formatCoverageLegend, isCoverageActiveOnDate } from '../coverage';
+import { PrintDocumentModel, PrintTableRow, formatDatePretty } from './index';
 
 // ─── 1. Bathing Schedule Types & Builder ─────────────────────────────────────
 
@@ -35,6 +37,22 @@ export interface BathingScheduleModel {
   rows: BathingResidentRow[];
   dailyTotals: Record<number, number>; // dayNumber -> total baths
   targetCapacityPerDay: number;
+  capacityPerShiftLine: number;
+  estimatedPages: number;
+  coverageLegend: string[];
+  shiftLines: Array<{
+    shiftId: string;
+    shiftCode: string;
+    shiftName: string;
+    displayOrder: number;
+    days: Record<number, {
+      rooms: string[];
+      scheduled: number;
+      capacity: number;
+      available: number;
+      overCapacity: boolean;
+    }>;
+  }>;
 }
 
 export function buildBathingScheduleModel(currentDateStr: string): BathingScheduleModel {
@@ -48,22 +66,26 @@ export function buildBathingScheduleModel(currentDateStr: string): BathingSchedu
   const shifts = state.shifts;
   const fyis = state.fyis.filter(f => f.status === 'active');
 
-  // Calculate the Monday-Sunday week bounds based on currentDateStr
+  // Calculate the configured operational week. The default is Monday.
   const current = new Date(currentDateStr + 'T12:00:00');
   const dayOfWeek = current.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  const distanceToMonday = (dayOfWeek + 6) % 7; // distance from Mon (0 if Mon)
+  const weekStartsOn = state.settings.operationalWeekStartsOn ?? 1;
+  const distanceToMonday = (dayOfWeek - weekStartsOn + 7) % 7;
   
   const monday = new Date(current);
   monday.setDate(current.getDate() - distanceToMonday);
 
   const days: Array<{ dayNumber: number; label: string; shortDate: string }> = [];
-  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weekdayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayLabels = Array.from({ length: 7 }, (_, index) => weekdayLabels[(weekStartsOn + index) % 7]);
+  const dayDates: Record<number, string> = {};
 
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const dayNumber = i + 1; // 1=Mon, 2=Tue, ..., 7=Sun
     const shortDate = d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+    dayDates[dayNumber] = d.toISOString().slice(0, 10);
     days.push({ dayNumber, label: dayLabels[i], shortDate });
   }
 
@@ -98,37 +120,18 @@ export function buildBathingScheduleModel(currentDateStr: string): BathingSchedu
 
     residentBathingTasks.forEach(t => {
       const shift = shifts.find(s => s.id === t.shiftId);
-      const shiftCode = shift?.shortCode || (shift?.name.includes('Day') ? 'D1' : 'E1');
-
-      if (t.frequency === 'daily') {
-        for (let i = 1; i <= 7; i++) {
-          slots[i] = {
-            dayNumber: i,
-            dayLabel: dayLabels[i - 1],
-            scheduled: true,
-            time: t.time || '0930',
-            shiftCode,
-            instructions: t.instructions,
-          };
-          dailyTotals[i] = (dailyTotals[i] || 0) + 1;
-        }
-      } else if (t.frequency === 'selected_days' || t.frequency === 'weekly') {
-        const selected = t.recurrenceRule?.selectedDays || [1, 4]; // default Mon/Thu
-        selected.forEach(d => {
-          // Normalize 0..6 (0=Sun) to 1..7 (1=Mon..7=Sun)
-          const normDay = d === 0 ? 7 : d;
-          if (normDay >= 1 && normDay <= 7) {
-            slots[normDay] = {
-              dayNumber: normDay,
-              dayLabel: dayLabels[normDay - 1],
-              scheduled: true,
-              time: t.time || '0930',
-              shiftCode,
-              instructions: t.instructions,
-            };
-            dailyTotals[normDay] = (dailyTotals[normDay] || 0) + 1;
-          }
-        });
+      const shiftCode = shift?.shortCode || 'Unassigned';
+      for (let i = 1; i <= 7; i++) {
+        if (!isDateDue(dayDates[i], t.frequency, t.recurrenceRule, t.createdAt)) continue;
+        slots[i] = {
+          dayNumber: i,
+          dayLabel: dayLabels[i - 1],
+          scheduled: true,
+          time: t.time || '',
+          shiftCode,
+          instructions: t.instructions,
+        };
+        dailyTotals[i] = (dailyTotals[i] || 0) + 1;
       }
     });
 
@@ -148,7 +151,53 @@ export function buildBathingScheduleModel(currentDateStr: string): BathingSchedu
       notes: prefFyi?.text || (residentBathingTasks[0]?.instructions) || res.notes,
       slots,
     };
-  });
+  }).filter(row => Object.values(row.slots).some(slot => slot.scheduled));
+
+  const capacityPerShiftLine = Math.max(1, state.settings.bathingCapacityPerShiftLine ?? 2);
+  const assignedBathingShiftIds = new Set(
+    tasks
+      .filter(task => `${task.title} ${task.category}`.toLowerCase().match(/bath|shower|hygiene/))
+      .map(task => task.shiftId)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const configuredBathingShiftIds = state.settings.bathingShiftIds;
+  const defaultBathingShiftIds = new Set(
+    shifts
+      .filter(shift => {
+        const role = state.roles.find(item => item.id === shift.roleId);
+        return shift.isActive !== false && (role?.code === 'HCA' || assignedBathingShiftIds.has(shift.id));
+      })
+      .map(shift => shift.id),
+  );
+  const bathingShiftIds = new Set(configuredBathingShiftIds === undefined ? defaultBathingShiftIds : configuredBathingShiftIds);
+  const shiftLines = shifts
+    .filter(shift => shift.isActive !== false && bathingShiftIds.has(shift.id))
+    .sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99) || a.startTime.localeCompare(b.startTime) || a.name.localeCompare(b.name))
+    .map(shift => {
+      const lineDays: BathingScheduleModel['shiftLines'][number]['days'] = {};
+      for (let dayNumber = 1; dayNumber <= 7; dayNumber++) {
+        const rooms = tasks
+          .filter(task => task.shiftId === shift.id && `${task.title} ${task.category}`.toLowerCase().match(/bath|shower|hygiene/))
+          .filter(task => isDateDue(dayDates[dayNumber], task.frequency, task.recurrenceRule, task.createdAt) && isCoverageActiveOnDate(task.serviceCoverage, dayDates[dayNumber]))
+          .map(task => { const room = residents.find(resident => resident.id === task.residentId)?.roomNumber; const indicator = coverageIndicator(task.serviceCoverage); return room ? `${room}${indicator ? ` ${indicator}` : ''}` : undefined; })
+          .filter((room): room is string => Boolean(room))
+          .sort(sortRoomNumbers);
+        lineDays[dayNumber] = {
+          rooms,
+          scheduled: rooms.length,
+          capacity: capacityPerShiftLine,
+          available: Math.max(0, capacityPerShiftLine - rooms.length),
+          overCapacity: rooms.length > capacityPerShiftLine,
+        };
+      }
+      return {
+        shiftId: shift.id,
+        shiftCode: shift.shortCode || shift.name,
+        shiftName: shift.name,
+        displayOrder: shift.displayOrder ?? 99,
+        days: lineDays,
+      };
+    });
 
   return {
     facility,
@@ -159,7 +208,11 @@ export function buildBathingScheduleModel(currentDateStr: string): BathingSchedu
     days,
     rows,
     dailyTotals,
-    targetCapacityPerDay: 6,
+    targetCapacityPerDay: capacityPerShiftLine * Math.max(1, shiftLines.length),
+    capacityPerShiftLine,
+    estimatedPages: Math.max(1, Math.ceil(shiftLines.length / (capacityPerShiftLine <= 2 ? 7 : capacityPerShiftLine <= 4 ? 5 : 4))),
+    coverageLegend: formatCoverageLegend(tasks.filter(task => `${task.title} ${task.category}`.toLowerCase().match(/bath|shower|hygiene/)).map(task => task.serviceCoverage)),
+    shiftLines,
   };
 }
 
@@ -612,5 +665,80 @@ export function buildShiftConfigReferenceModel(currentDateStr: string): ShiftCon
     formattedDate,
     generatedAt: new Date().toISOString(),
     shifts,
+  };
+}
+
+// ─── Blank TaskSheet Template ─────────────────────────────────────────────────
+
+const BLANK_TEMPLATE_ROW_COUNT = 28;
+
+/**
+ * A genuinely blank, no-resident-data worksheet: facility header plus a fixed
+ * number of empty writable rows in the standard TaskSheet column layout.
+ * Intended for manual/backup use (e.g. a system outage), never live resident data.
+ */
+export function buildBlankTaskSheetModel(dateStr: string): PrintDocumentModel {
+  const state = db.getState();
+  const facility = state.facility;
+  const branding = state.settings.branding;
+
+  const blankRows: PrintTableRow[] = Array.from({ length: BLANK_TEMPLATE_ROW_COUNT }, (_, i) => ({
+    id: `blank-row-${i}`,
+    workflowSection: 'resident_care',
+    rowType: 'standard',
+    time: '',
+    roomNumber: '',
+    residentName: '',
+    taskTitle: '',
+    category: '',
+    notesLineCount: 1,
+    priority: 'normal',
+  }));
+
+  return {
+    header: {
+      documentTitle: 'TASKSHEET',
+      documentSubtitle: 'BLANK TEMPLATE — NO RESIDENT DATA',
+      facility,
+      formattedDate: formatDatePretty(dateStr),
+      roleName: 'Any Role',
+      shiftCode: '',
+      shiftShortCode: '',
+      shiftName: 'Manual / Backup Use',
+      shiftTime: '',
+      headerStyle: branding?.headerStyle || 'standard',
+      shiftHeaderFormat: branding?.shiftHeaderFormat || 'short_code_only',
+      logoUrl: branding?.logoUrl,
+      watermarkStyle: branding?.watermarkStyle || 'none',
+    },
+    generatedAt: new Date().toISOString(),
+    profile: 'clinical_worksheet',
+    density: 'standard',
+    largePrint: false,
+    tableRows: blankRows,
+    woundRows: [],
+    conciseShiftAlerts: [],
+    startUnitTasks: [],
+    duringUnitTasks: [],
+    endUnitTasks: [],
+    importantSharedFYIs: [],
+    residentStatusExceptions: [],
+    residentGroups: [],
+    prnResidentGroups: [],
+    showQuickVitalsGrid: false,
+    quickVitalsResidents: [],
+    handoffNotesLinesCount: 0,
+    confidentialityNotice: state.settings.branding?.showConfidentialityNotice ? state.settings.branding.confidentialityNotice : undefined,
+    developerFooter: state.settings.developerFooterEnabled ? 'TaskSheet · SoftVibeSolutions' : undefined,
+    attentionLegend: [],
+    coverageLegend: [],
+    exceptions: [],
+    summary: {
+      totalResidentTasks: 0,
+      totalUnitTasks: 0,
+      importantFyiCount: 0,
+      estimatedPages: 1,
+      paperEfficiencyNote: 'Blank template',
+    },
   };
 }

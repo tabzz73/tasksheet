@@ -14,7 +14,7 @@ export const ResidentCareSummaryDocument: React.FC<ResidentCareSummaryDocumentPr
 
   return (
     <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4" style={printPageStyle(`resident-care-${resident.id}`)}>
-      <RepeatingPrintFooter pageName={`resident-care-${resident.id}`} orientation="portrait" coverage={`As of ${formattedDate}`} generatedAt={model.generatedAt} />
+      <RepeatingPrintFooter pageName={`resident-care-${resident.id}`} orientation="portrait" facilityName={facility.siteName} documentLabel="Resident Care Summary" dateLabel={`Generated ${formattedDate}`} generatedAt={model.generatedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>

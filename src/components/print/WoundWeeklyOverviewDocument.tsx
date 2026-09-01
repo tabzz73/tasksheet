@@ -4,7 +4,7 @@ import { printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
 
 export const WoundWeeklyOverviewDocument: React.FC<{ model: WeeklyWoundOverviewModel }> = ({ model }) => (
   <article className="tasksheet-print-document print-document" style={{ ...printPageStyle('weekly-wound-overview'), fontFamily: 'Arial, Helvetica, sans-serif', color: '#0f172a', fontSize: '8pt' }}>
-    <RepeatingPrintFooter pageName="weekly-wound-overview" orientation="landscape" coverage={model.weekRange} generatedAt={model.generatedAt} />
+    <RepeatingPrintFooter pageName="weekly-wound-overview" orientation="landscape" facilityName={model.facility.siteName} documentLabel="Weekly Wound Care" dateLabel={model.weekRange} generatedAt={model.generatedAt} />
     <header style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1.5pt solid #0f172a', paddingBottom: '5pt', marginBottom: '6pt' }}>
       <div><h1 style={{ margin: 0, fontSize: '16pt' }}>{model.title}</h1><div style={{ marginTop: '2pt', fontWeight: 700 }}>{model.weekRange}</div></div>
       <div style={{ textAlign: 'right' }}><strong>{model.facility.siteName}</strong><br />{model.facility.city}, {model.facility.province}</div>

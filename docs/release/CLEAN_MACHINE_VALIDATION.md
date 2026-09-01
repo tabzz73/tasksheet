@@ -18,5 +18,10 @@ Record Windows edition/build, device, install source, TaskSheet version, browser
 | CM-10 | Shift exceptions | Invalid stored/imported timed work never prints on wrong shift and is flagged | Pending |
 | CM-11 | Reprint | Reprint produces the expected current/snapshot behavior | Pending |
 | CM-12 | Uninstall/reinstall | Documented data retention/removal behavior is confirmed | Pending |
+| CM-13 | Electron storage location | Record the resolved Electron `userData` directory and the Chromium Local Storage location for the installed artifact; confirm the live store is local, not redirected to a shared/network location | Pending |
+| CM-14 | Windows-user separation | Data created under Windows account A is not silently exposed as the live database for Windows account B | Pending |
+| CM-15 | Storage corruption | After taking a verified backup, simulate a corrupt stored database safely; confirm TaskSheet does not activate malformed operational data and document recovery | Pending |
+| CM-16 | Application-data removal | After taking a verified backup and closing TaskSheet, remove the test account's TaskSheet application-data directory; confirm the next launch behavior, then restore the backup and verify recovery | Pending |
+| CM-17 | External backup location | Copy an inactive exported backup to an approved external/network location, restore from the copied file, and confirm TaskSheet does not use that location as its live database | Pending |
 
-Attach installation logs, screenshots, print samples, backup filename/hash, before/after record counts, and every defect ID. Any failed item must be classified under the pilot severity rules. Do not mark this checklist passed from a development-machine browser run.
+Attach installation logs, screenshots, print samples, backup filename/hash, before/after record counts, the resolved Electron storage paths, and every defect ID. Perform destructive storage tests only against fictional validation data after creating and verifying a recoverable backup. Any failed item must be classified under the pilot severity rules. Do not mark this checklist passed from a development-machine browser run.

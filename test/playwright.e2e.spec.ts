@@ -7,9 +7,28 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Settings' }).first().click();
     await page.getByRole('button', { name: /Data & Support/ }).click();
     await page.getByRole('button', { name: /Demo Workspace/ }).click();
-    page.once('dialog', dialog => dialog.accept());
     await page.getByRole('button', { name: 'Load Demo Workspace' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Load Demo Workspace' }).click();
     await page.evaluate(() => localStorage.setItem('tasksheet_welcome_dismissed', 'true'));
+  });
+
+  test('Journey 11 — Service Coverage classifications are available in Settings and resident task entry', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Settings' }).first().click();
+    await page.getByRole('button', { name: /Service Coverage/ }).click();
+    await expect(page.getByRole('heading', { name: 'Service Coverage' })).toBeVisible();
+    await expect(page.getByText(/Private Pay/).first()).toBeVisible();
+    await expect(page.getByText(/Complimentary/).first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Residents' }).first().click();
+    await page.getByRole('button', { name: 'Open resident Mary Smith' }).click();
+    await page.getByRole('button', { name: /Care Tasks \(/ }).click();
+    await page.getByRole('button', { name: 'Add Care Task' }).click();
+    const coverageSelect = page.getByLabel('Service Coverage');
+    await expect(coverageSelect).toBeVisible();
+    await coverageSelect.selectOption('PRIVATE_PAY');
+    await expect(page.getByText(/Additional to the resident's funded/i)).toBeVisible();
+    await expect(page.getByText(/does not store prices, invoices, or payment information/i)).toBeVisible();
   });
 
   test('Journey 1 — HCA: Navigate HCA Day, select MAP2 Partial Medication Assistance from search, and Print Simple Checklist', async ({ page }) => {
@@ -54,8 +73,9 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.getByRole('heading', { name: 'TASKSHEET' })).toBeVisible();
     const hcaPrintFooter = page.locator('.print-only style[data-print-footer]').last();
     const hcaFooterCss = await hcaPrintFooter.evaluate(element => element.textContent || '');
-    expect(hcaFooterCss).toContain('Coverage: D1');
-    expect(hcaFooterCss).toContain('counter(page) " / " counter(pages)');
+    expect(hcaFooterCss).toContain('HCA TaskSheet');
+    expect(hcaFooterCss).toContain('D1');
+    expect(hcaFooterCss).toContain('Page " counter(page) " of " counter(pages)');
     await expect(page.locator('.print-only .tasksheet-universal-document').last()).toHaveCSS('page', 'tasksheet-shift-simple_checklist-d1');
   });
 
@@ -91,7 +111,8 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     const lpnPrintFooter = page.locator('.print-only style[data-print-footer]').last();
     const lpnFooterCss = await lpnPrintFooter.evaluate(element => element.textContent || '');
     expect(lpnFooterCss).toContain('size: letter landscape');
-    expect(lpnFooterCss).toContain('Coverage: LP1');
+    expect(lpnFooterCss).toContain('LPN TaskSheet');
+    expect(lpnFooterCss).toContain('LP1');
     await expect(page.locator('.print-only .tasksheet-universal-document').last()).toHaveCSS('page', 'tasksheet-shift-clinical_worksheet-lp1');
   });
 
@@ -219,7 +240,8 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Preview' }).first().click();
     await expect(page.getByRole('heading', { name: 'WEEKLY WOUND CARE OVERVIEW' })).toBeVisible();
     const weeklyFooterCss = await page.locator('.print-only style[data-print-footer]').last().evaluate(element => element.textContent || '');
-    expect(weeklyFooterCss).toContain('Coverage:');
+    expect(weeklyFooterCss).toContain('Weekly Wound Care');
+    expect(weeklyFooterCss).toContain('Page " counter(page) " of " counter(pages)');
     await page.getByRole('button', { name: 'Back' }).click();
 
     await page.getByLabel('Wound supply report scope').selectOption('all_active');
@@ -245,5 +267,32 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.getByText('Mepitel').first()).toBeVisible();
     await expect(page.getByText('Mepore').first()).toBeVisible();
     await expect(page.getByText('Mesalt').first()).toBeVisible();
+  });
+
+  test('Journey 10 — Report Library previews a system preset and compact bathing grid', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /Print Center/i }).first().click();
+    await expect(page.getByRole('heading', { name: 'Report & Print Center' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Report Library' })).toBeVisible();
+
+    await page.getByRole('button', { name: /Resident Directory Active residents/i }).click();
+    await expect(page.getByRole('heading', { name: 'Resident Directory' })).toBeVisible();
+    const reportFooterCss = await page.locator('.print-only style[data-print-footer]').last().evaluate(element => element.textContent || '');
+    expect(reportFooterCss).toContain('Page " counter(page) " of " counter(pages)');
+    await page.getByRole('button', { name: 'Back' }).click();
+
+    await page.getByRole('button', { name: 'Bathing', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Bathing Capacity.*Open Slots/i })).toBeVisible();
+    const weekPicker = page.getByLabel('Select bathing week');
+    await weekPicker.fill('2026-09-02');
+    await page.getByRole('button', { name: 'Previous bathing week' }).click();
+    await expect(weekPicker).toHaveValue('2026-08-26');
+    await page.getByRole('button', { name: 'Next bathing week' }).click();
+    await expect(weekPicker).toHaveValue('2026-09-02');
+    await page.getByRole('button', { name: 'Preview Schedule' }).click();
+    await expect(page.getByRole('heading', { name: 'Weekly Bathing Schedule' })).toBeVisible();
+    await expect(page.getByText(/Capacity: \d+ per shift line\/day/).first()).toBeVisible();
+    await expect(page.locator('[data-weekday="Monday"]').first()).toBeVisible();
+    await expect(page.locator('[data-weekday="Sunday"]').first()).toBeVisible();
   });
 });

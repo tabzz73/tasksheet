@@ -1,6 +1,7 @@
 import React from 'react';
 import { PRINT_TYPOGRAPHY_STANDARD } from '../../constants/printTypography';
-import { formatPrintDate, printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
+import { formatPrintTimestamp, printPageStyle, RepeatingPrintFooter } from './RepeatingPrintFooter';
+import { localDateFromTimestamp } from '../../services/recurrence';
 
 // --- Data Model ----------------------------------------------------------------
 
@@ -191,7 +192,7 @@ export const FyiBinderPrintDocument: React.FC<FyiBinderPrintDocumentProps> = ({ 
       fontFamily: PRINT_TYPOGRAPHY_STANDARD.fontFamily,
       fontSize: PRINT_TYPOGRAPHY_STANDARD.bodySize, color: '#111827', background: '#ffffff', lineHeight: PRINT_TYPOGRAPHY_STANDARD.lineHeight,
     }}>
-      <RepeatingPrintFooter pageName="fyi-binder" orientation="portrait" coverage={`${model.scopeLabel} · As of ${formatPrintDate(model.confirmedCurrentAt || model.generatedAt)}`} generatedAt={model.generatedAt} />
+      <RepeatingPrintFooter pageName="fyi-binder" orientation="portrait" facilityName={f.siteName} documentLabel={`FYI Binder · Version ${model.binderVersion}`} dateLabel={`Generated ${formatPrintTimestamp(model.generatedAt)}`} secondaryLabel={model.scopeLabel} generatedAt={model.generatedAt} />
       {/* DOCUMENT HEADER */}
       <div style={{ borderBottom: '2pt solid #111827', paddingBottom: '10pt', marginBottom: '12pt' }}>
         <div style={{ marginBottom: '6pt' }}>
@@ -224,7 +225,7 @@ export const FyiBinderPrintDocument: React.FC<FyiBinderPrintDocumentProps> = ({ 
           <span style={{ fontSize: '8.5pt', color: '#374151' }}>Scope: {model.scopeLabel}</span>
           {model.confirmedCurrentAt && (
             <span style={{ fontSize: '8pt', color: '#374151' }}>
-              Confirmed Current: {formatDate(model.confirmedCurrentAt.split('T')[0])}
+              Confirmed Current: {formatDate(localDateFromTimestamp(model.confirmedCurrentAt))}
             </span>
           )}
         </div>

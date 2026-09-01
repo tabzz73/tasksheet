@@ -9,12 +9,10 @@ import {
   WoundScheduleModel 
 } from './specializedDocs';
 
-export type PackageDocType = 
-  | 'shift_document' 
-  | 'bathing_grid' 
-  | 'wound_schedule' 
-  | 'fyi_reference' 
-  | 'blank_handoff';
+export type PackageDocType =
+  | 'shift_document'
+  | 'bathing_grid'
+  | 'wound_schedule';
 
 export interface PrintPackageItem {
   id: string;
@@ -46,14 +44,10 @@ export interface PrintPackageModel {
 
 export interface HcaPackageOptions {
   includeBathingGrid?: boolean;
-  includeFyiReference?: boolean;
-  includeBlankHandoff?: boolean;
 }
 
 export interface LpnPackageOptions {
   includeWoundSchedule?: boolean;
-  includeFyiReference?: boolean;
-  includeBlankHandoff?: boolean;
 }
 
 /**
@@ -62,7 +56,7 @@ export interface LpnPackageOptions {
  */
 export function buildHcaDailyPackage(
   dateStr: string,
-  options: HcaPackageOptions = { includeBathingGrid: true, includeFyiReference: true, includeBlankHandoff: false }
+  options: HcaPackageOptions = { includeBathingGrid: true }
 ): PrintPackageModel {
   const state = db.getState();
   const facility = state.facility;
@@ -148,7 +142,7 @@ export function buildHcaDailyPackage(
  */
 export function buildLpnClinicalPackage(
   dateStr: string,
-  options: LpnPackageOptions = { includeWoundSchedule: true, includeFyiReference: true, includeBlankHandoff: false }
+  options: LpnPackageOptions = { includeWoundSchedule: true }
 ): PrintPackageModel {
   const state = db.getState();
   const facility = state.facility;

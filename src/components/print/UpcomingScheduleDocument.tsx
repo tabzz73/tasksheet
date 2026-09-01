@@ -38,7 +38,7 @@ export const UpcomingScheduleDocument: React.FC<UpcomingScheduleDocumentProps> =
 
   return (
     <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4" style={printPageStyle('upcoming-seven-day')}>
-      <RepeatingPrintFooter pageName="upcoming-seven-day" orientation="landscape" coverage={weekRange} generatedAt={generatedAt.current} />
+      <RepeatingPrintFooter pageName="upcoming-seven-day" orientation="landscape" facilityName={facility.siteName} documentLabel="Upcoming Care Schedule" dateLabel={weekRange} generatedAt={generatedAt.current} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-2 flex items-start justify-between">
         <div>

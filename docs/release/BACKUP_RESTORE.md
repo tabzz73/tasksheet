@@ -22,6 +22,6 @@ Back up before the pilot, before upgrades, before bulk imports/configuration cha
 
 ## Important behavior
 
-Restore is a full replacement, not a merge. Current application state is overwritten. The current implementation parses JSON and checks only that `facility`, `roles`, and `shifts` exist before saving, so file provenance and post-restore verification are mandatory. There is no automatic rollback; recovery depends on the pre-restore backup.
+Restore is a full replacement, not a merge. Before committing, TaskSheet parses the complete file, verifies core schema objects and collection shapes, rejects malformed shift identity/time data, runs current migrations, and performs the durable storage write. If validation or the final storage write fails, the previously active database remains authoritative. File provenance, a pre-restore backup, and post-restore verification are still mandatory because successful restore intentionally replaces the current database.
 
 Do not email or place backups in unapproved public locations. Treat the file according to facility privacy, access-control, retention, and secure-disposal policy.

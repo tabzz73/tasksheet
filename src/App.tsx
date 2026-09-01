@@ -23,6 +23,8 @@ import { GeneratedShiftSheet, generateShiftSheet } from './services/generator';
 import { recordPrint, buildTaskSnapshot } from './services/printHistory';
 import { buildResidentCareSummaryModel } from './services/print/specializedDocs';
 import { getDemoState } from './services/demoMode';
+import { getTodayLocalDateString } from './services/recurrence';
+import { ConfirmDialog, ConfirmDialogRequest } from './components/common/ConfirmDialog';
 
 export function App() {
   const [dbState, setDbState] = useState<AppDatabaseState>(db.getState());
@@ -34,9 +36,10 @@ export function App() {
     }
     return 'dashboard';
   });
-  const [currentDate, setCurrentDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [currentDate, setCurrentDate] = useState<string>(() => getTodayLocalDateString());
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [navigationResetToken, setNavigationResetToken] = useState(0);
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   // Active sub-views
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null);
@@ -99,17 +102,29 @@ export function App() {
   const demoState = getDemoState(dbState);
 
   const handleStartRealSetup = () => {
-    if (!window.confirm('Clear the fictional Cedar Grove facility, demo shifts, residents, tasks, FYIs, and wounds, then begin real facility setup? The built-in task catalog will remain.')) return;
-    db.startRealSetup();
-    setActiveShiftId(null);
-    setActiveResidentId(null);
-    setIsPresentationMode(false);
-    setCurrentTab('settings');
+    setConfirmRequest({
+      title: 'Clear Demo & Start Real Setup?',
+      message: 'Clear the fictional Cedar Grove facility, demo shifts, residents, tasks, FYIs, and wounds, then begin real facility setup? The built-in task catalog will remain.',
+      confirmLabel: 'Clear Demo & Start Setup',
+      tone: 'danger',
+      onConfirm: () => {
+        db.startRealSetup();
+        setActiveShiftId(null);
+        setActiveResidentId(null);
+        setIsPresentationMode(false);
+        setCurrentTab('settings');
+      },
+    });
   };
 
   const handleClearDemoData = () => {
-    if (!window.confirm('Remove all fictional demo records? Your manually entered facility, shifts, residents, tasks, and settings will be preserved.')) return;
-    db.clearDemoData();
+    setConfirmRequest({
+      title: 'Clear Demo Data?',
+      message: 'Remove all fictional demo records? Your manually entered facility, shifts, residents, tasks, and settings will be preserved.',
+      confirmLabel: 'Clear Demo Data',
+      tone: 'danger',
+      onConfirm: () => db.clearDemoData(),
+    });
   };
 
   // Full-screen print preview replaces the entire app layout
@@ -365,6 +380,8 @@ export function App() {
           }}
         />
       )}
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 }

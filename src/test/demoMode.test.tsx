@@ -207,6 +207,41 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
     expect(getDemoState(state).showDemoIndicator).toBe(false);
   });
 
+  it('preserves a manually created task assigned to a demo shift when demo data is cleared', () => {
+    db.loadDemoData();
+    const demoShift = db.getState().shifts.find(shift => shift.source === 'demo');
+    expect(demoShift).toBeDefined();
+
+    const manualResident = db.addResident({
+      firstName: 'Manual',
+      lastName: 'OnDemoShift',
+      roomNumber: 'M02',
+      status: 'active',
+    });
+    const manualTask = db.addResidentTask({
+      residentId: manualResident.id,
+      shiftId: demoShift!.id,
+      title: 'Manually Assigned Care Task',
+      category: 'AM Care',
+      frequency: 'daily',
+      time: '0800',
+    });
+    expect(manualTask.source).toBe('manual');
+
+    db.clearDemoData();
+    const state = db.getState();
+
+    // The manual task must never be deleted just because it referenced a demo shift.
+    expect(state.residents.map(r => r.id)).toContain(manualResident.id);
+    expect(state.residentTasks.map(t => t.id)).toContain(manualTask.id);
+
+    const survivingTask = state.residentTasks.find(t => t.id === manualTask.id)!;
+    // Its shiftId is cleared (the demo shift no longer exists) but its role is
+    // preserved so it keeps generating for an equivalent real shift.
+    expect(survivingTask.shiftId).toBeUndefined();
+    expect(survivingTask.roleId).toBe(demoShift!.roleId);
+  });
+
   it('migrates an RC1 backup with Cedar Grove demo data into explicit Demo Mode', () => {
     db.loadDemoData();
     const legacyBackup = JSON.parse(db.backupDatabase());

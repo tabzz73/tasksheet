@@ -1,8 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { HcaChecklistDocument } from '../components/print/HcaChecklistDocument';
-import { LpnClinicalDocument } from '../components/print/LpnClinicalDocument';
+import { PrintDocumentView } from '../components/print/PrintDocumentView';
 import { ALBERTA_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { ROLE_HCA_ID, ROLE_LPN_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID } from '../data/defaultData';
 import { db } from '../db';
@@ -68,7 +67,9 @@ describe('resident paper tracking tasks', () => {
     expect(task.writableFields[0].label).toContain('BM:');
     expect(task.attentionTags).toEqual(expect.arrayContaining(['[OB]', '[DOC]']));
 
-    const html = renderToStaticMarkup(<HcaChecklistDocument model={model} />);
+    // Render the actual production print component (UniversalTableDocument via
+    // PrintDocumentView), not a bespoke document that never ships.
+    const html = renderToStaticMarkup(<PrintDocumentView document={model} />);
     expect(html).toContain('Bowel Movement Tracking');
     expect(html).toContain('Medium');
     expect(html).toContain('Observe / Monitor');
@@ -94,7 +95,7 @@ describe('resident paper tracking tasks', () => {
 
     const model = PrintService.createDocumentModel(generateShiftSheet('2026-08-26', SHIFT_LPN_DAY_ID), 'clinical_worksheet');
     expect(model.residentGroups[0].tasks[0].writableFields[0].label).toContain('Pain: ______/10');
-    expect(renderToStaticMarkup(<LpnClinicalDocument model={model} />)).toContain('PAINAD');
+    expect(renderToStaticMarkup(<PrintDocumentView document={model} />)).toContain('PAINAD');
 
     for (const kind of ['rai', 'bowel', 'fluid', 'weight', 'sleep', 'food', 'behavior', 'pain'] as const) {
       expect(buildResidentTrackingFields({ kind })[0]?.label).toBeTruthy();

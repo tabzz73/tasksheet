@@ -22,16 +22,13 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
 
   // Inclusion state
   const [includeSpecializedGrid, setIncludeSpecializedGrid] = useState(true);
-  const [includeFyiReference, setIncludeFyiReference] = useState(true);
 
   const model = isHca
     ? buildHcaDailyPackage(dateStr, {
         includeBathingGrid: includeSpecializedGrid,
-        includeFyiReference,
       })
     : buildLpnClinicalPackage(dateStr, {
         includeWoundSchedule: includeSpecializedGrid,
-        includeFyiReference,
       });
 
   const handleGenerate = () => {
@@ -128,7 +125,7 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
           <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest">
             Optional Attachments
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <label className="flex items-start space-x-2.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs">
               <input
                 type="checkbox"
@@ -145,22 +142,10 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
                 </p>
               </div>
             </label>
-
-            <label className="flex items-start space-x-2.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs">
-              <input
-                type="checkbox"
-                checked={includeFyiReference}
-                onChange={e => setIncludeFyiReference(e.target.checked)}
-                className="mt-0.5 rounded text-teal-600 focus:ring-teal-500"
-              />
-              <div>
-                <span className="font-bold text-slate-800">Include Active FYIs</span>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Embed relevant standing precautions into each shift section
-                </p>
-              </div>
-            </label>
           </div>
+          <p className="text-[10px] text-slate-500">
+            Relevant resident and unit FYIs are always included automatically within each shift sheet.
+          </p>
         </div>
 
         {/* ── FOOTER ESTIMATE & CTA ── */}

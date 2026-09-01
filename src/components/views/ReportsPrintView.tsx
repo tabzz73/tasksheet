@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
+import { formatLocalDate, getTodayLocalDateString } from '../../services/recurrence';
 import {
   detectChanges,
   formatGeneratedAt,
@@ -46,13 +47,13 @@ function formatDateHeader(dateStr: string): string {
 }
 
 function isToday(dateStr: string): boolean {
-  return dateStr === new Date().toISOString().split('T')[0];
+  return dateStr === getTodayLocalDateString();
 }
 
 function isTomorrow(dateStr: string): boolean {
   const t = new Date();
   t.setDate(t.getDate() + 1);
-  return dateStr === t.toISOString().split('T')[0];
+  return dateStr === formatLocalDate(t);
 }
 
 import {
@@ -62,6 +63,7 @@ import {
   buildWoundSupplyReorderModel,
   getWoundWeek,
   buildShiftConfigReferenceModel,
+  buildBlankTaskSheetModel,
 } from '../../services/print/specializedDocs';
 import { 
   buildWhatChangedModel, 
@@ -69,6 +71,7 @@ import {
 } from '../../services/printHistory';
 import { PrintPackageModel, buildHcaDailyPackage, buildLpnClinicalPackage } from '../../services/print/packages';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
+import { ReportCatalogPanel } from './ReportCatalogPanel';
 
 /** Collect all task-like items with rich clinical context for delta tracking */
 function buildStructuredTasksFromSheet(sheet: GeneratedShiftSheet): TaskSnapshotItem[] {
@@ -145,6 +148,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   const [printing, setPrinting] = useState(false);
   const [packageConfigurationError, setPackageConfigurationError] = useState<string | null>(null);
   const [woundWeekAnchor, setWoundWeekAnchor] = useState(currentDate);
+  const [bathingWeekAnchor, setBathingWeekAnchor] = useState(currentDate);
   const [woundSupplyScope, setWoundSupplyScope] = useState<'current_week' | 'all_active'>('current_week');
 
   React.useEffect(() => {
@@ -152,10 +156,11 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
     setSelectedShiftIds(new Set());
     setPackageConfigurationError(null);
     setWoundWeekAnchor(currentDate);
+    setBathingWeekAnchor(currentDate);
   }, [navigationResetToken]);
 
   const state = db.getState();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayLocalDateString();
 
   const handleDateChange = (d: string) => {
     setSelectedDate(d);
@@ -236,7 +241,6 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   const handleHcaPackage = () => {
     const pkg = buildHcaDailyPackage(selectedDate, {
       includeBathingGrid: true,
-      includeFyiReference: true,
     });
     if (pkg.configurationWarnings.length > 0) {
       setPackageConfigurationError(pkg.configurationWarnings.join(' '));
@@ -250,7 +254,6 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   const handleLpnPackage = () => {
     const pkg = buildLpnClinicalPackage(selectedDate, {
       includeWoundSchedule: true,
-      includeFyiReference: true,
     });
     if (pkg.configurationWarnings.length > 0) {
       setPackageConfigurationError(pkg.configurationWarnings.join(' '));
@@ -277,14 +280,14 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12">
+    <div className="space-y-6 max-w-6xl mx-auto pb-12">
 
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
         <div>
           <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center space-x-2.5">
             <Printer className="w-6 h-6 text-teal-600" />
-            <span>Print Center</span>
+            <span>Report &amp; Print Center</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Generate · preview · print — the final stage of TaskSheet's core workflow.
@@ -297,6 +300,8 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
         )}
       </div>
+
+      <ReportCatalogPanel selectedDate={selectedDate} onPreview={onPrintSpecializedDoc} />
 
       {packageConfigurationError && (
         <div className="flex items-start space-x-2.5 rounded-xl border border-rose-300 bg-rose-50 p-3 text-rose-950" role="alert">
@@ -637,24 +642,30 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
 
         <div className="divide-y divide-slate-100">
           {/* 1. Bathing Schedule Grid */}
-          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
             <div className="flex items-start space-x-3">
               <Clock className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
               <div>
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-bold text-slate-900">Bathing & Hygiene Schedule Grid</p>
+                  <p className="text-sm font-bold text-slate-900">Weekly Bathing Grid</p>
                   <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">Letter Landscape</span>
                 </div>
-                <p className="text-xs text-slate-500">Room-first weekly matrix (Mon–Sun) · Assistance precautions & daily capacity balance</p>
+                <p className="text-xs text-slate-500">AcuiCare-style room-only grid · all configured lines · capacity and open slots</p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <button type="button" aria-label="Previous bathing week" onClick={() => setBathingWeekAnchor(stepDate(bathingWeekAnchor, -7))} className="p-1.5 border border-slate-300 rounded-md hover:bg-white"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                  <button type="button" onClick={() => setBathingWeekAnchor(today)} className="px-2.5 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold hover:bg-white">Current Week</button>
+                  <button type="button" aria-label="Next bathing week" onClick={() => setBathingWeekAnchor(stepDate(bathingWeekAnchor, 7))} className="p-1.5 border border-slate-300 rounded-md hover:bg-white"><ChevronRight className="w-3.5 h-3.5" /></button>
+                  <label className="text-[11px] font-bold text-slate-600">Select Week <input aria-label="Select bathing week" type="date" value={bathingWeekAnchor} onChange={event => setBathingWeekAnchor(event.target.value)} className="ml-1 px-2 py-1 border border-slate-300 rounded-md bg-white" /></label>
+                </div>
               </div>
             </div>
             <button
               type="button"
-              onClick={() => onPrintSpecializedDoc({ type: 'bathing', model: buildBathingScheduleModel(selectedDate) })}
+              onClick={() => onPrintSpecializedDoc({ type: 'bathing', model: buildBathingScheduleModel(bathingWeekAnchor) })}
               className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print Schedule</span>
+              <span>Preview Schedule</span>
             </button>
           </div>
 
@@ -756,11 +767,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (shiftSheets.length > 0) {
-                  handlePrintSingle(shiftSheets[0].sheet);
-                }
-              }}
+              onClick={() => onPrintSpecializedDoc({ type: 'blank_template', model: buildBlankTaskSheetModel(selectedDate) })}
               className="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />

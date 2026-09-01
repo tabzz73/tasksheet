@@ -22,13 +22,15 @@ import {
 } from 'lucide-react';
 import { db } from '../../db';
 import { Resident, ResidentTask, Wound, FYI, ResidentStatus } from '../../types';
+import { coverageIndicator, normalizeCoverage } from '../../services/coverage';
 import { TaskActionMenu } from '../common/TaskActionMenu';
 import { TaskActionConfirmModal } from '../modals/TaskActionConfirmModal';
+import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
 import { TaskDetailsDrawer } from '../modals/TaskDetailsDrawer';
 import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
-import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule } from '../../services/recurrence';
+import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule, getTodayLocalDateString } from '../../services/recurrence';
 
 interface ResidentProfileViewProps {
   residentId: string;
@@ -77,6 +79,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
   const [confirmModalState, setConfirmModalState] = useState<{
     isOpen: boolean;
     actionType: 'stop' | 'delete';
+    itemType: string;
     title: string;
     description: string;
     hasHistory: boolean;
@@ -84,11 +87,13 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
   }>({
     isOpen: false,
     actionType: 'stop',
+    itemType: 'Care Task',
     title: '',
     description: '',
     hasHistory: false,
     onConfirm: () => {}
   });
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -109,7 +114,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
 
   // Safe Isolation: Query ONLY by immutable resident UUID (zero bleed on room reuse)
   const allResidentTasks = state.residentTasks.filter(t => t.residentId === resident.id);
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayDateStr = getTodayLocalDateString();
   const endedTasks = allResidentTasks.filter(t =>
     t.isActive !== false && isRecurrenceScheduleEnded(t.recurrenceRule, t.frequency, todayDateStr, t.createdAt)
   );
@@ -167,6 +172,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: 'stop',
+      itemType: 'Care Task',
       title: task.title,
       description: `Room ${resident.roomNumber} · ${resident.firstName} ${resident.lastName} · ${task.time || 'Flexible'}`,
       hasHistory: db.hasTaskHistory(task.id),
@@ -186,14 +192,20 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
 
   const handleRestartCareTask = (task: ResidentTask) => {
     if (!task.recurrenceRule) return;
-    if (!window.confirm(`Restart "${task.title}" beginning today (${todayDateStr})? The existing task record and recurrence pattern will be preserved.`)) return;
-    db.updateResidentTask(task.id, {
-      recurrenceRule: restartRecurrenceRule(task.recurrenceRule, todayDateStr),
-      isActive: true,
-      stoppedAt: undefined,
+    setConfirmRequest({
+      title: 'Restart Care Task?',
+      message: `Restart "${task.title}" beginning today (${todayDateStr})? The existing task record and recurrence pattern will be preserved.`,
+      confirmLabel: 'Restart Task',
+      onConfirm: () => {
+        db.updateResidentTask(task.id, {
+          recurrenceRule: restartRecurrenceRule(task.recurrenceRule!, todayDateStr),
+          isActive: true,
+          stoppedAt: undefined,
+        });
+        setToastMessage(`Restarted "${task.title}" beginning ${todayDateStr}.`);
+        setTimeout(() => setToastMessage(null), 4000);
+      },
     });
-    setToastMessage(`Restarted "${task.title}" beginning ${todayDateStr}.`);
-    setTimeout(() => setToastMessage(null), 4000);
   };
 
   const handleDeleteCareTask = (task: ResidentTask) => {
@@ -201,6 +213,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: hasHistory ? 'stop' : 'delete',
+      itemType: 'Care Task',
       title: task.title,
       description: `Room ${resident.roomNumber} · ${resident.firstName} ${resident.lastName}`,
       hasHistory,
@@ -233,23 +246,36 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
 
   const handleRestartWound = (w: Wound) => {
     if (!w.recurrenceRule) return;
-    if (!window.confirm(`Restart the ${w.siteLocation} wound protocol schedule beginning today (${todayDateStr})? This does not change the clinical wound status.`)) return;
-    db.updateWound(w.id, { recurrenceRule: restartRecurrenceRule(w.recurrenceRule, todayDateStr) });
-    setToastMessage(`Restarted the ${w.siteLocation} wound schedule beginning ${todayDateStr}.`);
-    setTimeout(() => setToastMessage(null), 4000);
+    setConfirmRequest({
+      title: 'Restart Wound Schedule?',
+      message: `Restart the ${w.siteLocation} wound protocol schedule beginning today (${todayDateStr})? This does not change the clinical wound status.`,
+      confirmLabel: 'Restart Schedule',
+      onConfirm: () => {
+        db.updateWound(w.id, { recurrenceRule: restartRecurrenceRule(w.recurrenceRule!, todayDateStr) });
+        setToastMessage(`Restarted the ${w.siteLocation} wound schedule beginning ${todayDateStr}.`);
+        setTimeout(() => setToastMessage(null), 4000);
+      },
+    });
   };
 
   const handleResolveWound = (w: Wound) => {
-    if (!window.confirm(`Mark the ${w.siteLocation} wound protocol as resolved? Confirm this matches the current clinical record and facility process.`)) return;
-    db.updateWound(w.id, { status: 'resolved', updatedAt: new Date().toISOString() });
-    setToastMessage(`Marked the ${w.siteLocation} wound protocol resolved.`);
-    setTimeout(() => setToastMessage(null), 4000);
+    setConfirmRequest({
+      title: 'Mark Wound Resolved?',
+      message: `Mark the ${w.siteLocation} wound protocol as resolved? Confirm this matches the current clinical record and facility process.`,
+      confirmLabel: 'Mark Resolved',
+      onConfirm: () => {
+        db.updateWound(w.id, { status: 'resolved', updatedAt: new Date().toISOString() });
+        setToastMessage(`Marked the ${w.siteLocation} wound protocol resolved.`);
+        setTimeout(() => setToastMessage(null), 4000);
+      },
+    });
   };
 
   const handleDeleteWound = (w: Wound) => {
     setConfirmModalState({
       isOpen: true,
       actionType: 'delete',
+      itemType: 'Wound Protocol',
       title: `Wound Protocol: ${w.siteLocation}`,
       description: `Room ${resident.roomNumber} · ${resident.firstName} ${resident.lastName} · ${w.firstAction}`,
       hasHistory: false,
@@ -275,6 +301,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
     setConfirmModalState({
       isOpen: true,
       actionType: 'delete',
+      itemType: 'FYI',
       title: `Standing FYI Note`,
       description: f.text,
       hasHistory: false,
@@ -651,6 +678,13 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
             </button>
           </div>
 
+          {activeTasks.length > 0 && <div className="border-b border-slate-200 bg-white px-5 py-3">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Service Coverage</p>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {[...new Set(activeTasks.map(task => normalizeCoverage(task.serviceCoverage).type))].map(type => { const tasks = activeTasks.filter(task => normalizeCoverage(task.serviceCoverage).type === type); const coverage = normalizeCoverage(tasks[0].serviceCoverage); return <span key={type} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">{coverageIndicator(coverage) ? `${coverageIndicator(coverage)} ` : ''}{coverage.labelSnapshot} · {tasks.length}</span>; })}
+            </div>
+          </div>}
+
           <div className="divide-y divide-slate-100">
             {displayedTasks.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs">
@@ -673,8 +707,9 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                           onClick={() => setDrawerTask(t)}
                           className={`font-bold text-sm cursor-pointer hover:underline ${isStopped ? 'text-slate-600 line-through' : isEnded ? 'text-violet-950' : 'text-slate-900'}`}
                         >
-                          {t.title}
-                        </span>
+                           {t.title}
+                         </span>
+                        {coverageIndicator(t.serviceCoverage) && <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-black text-amber-900" title={normalizeCoverage(t.serviceCoverage).labelSnapshot}>{coverageIndicator(t.serviceCoverage)} {normalizeCoverage(t.serviceCoverage).labelSnapshot}</span>}
                         {t.time && <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600">{t.time}</span>}
                         <span className="text-xs text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded">
                           {formatRecurrenceHuman(t.recurrenceRule, t.frequency)}
@@ -914,12 +949,15 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
           isOpen={confirmModalState.isOpen}
           onClose={() => setConfirmModalState(prev => ({ ...prev, isOpen: false }))}
           actionType={confirmModalState.actionType}
+          itemType={confirmModalState.itemType}
           title={confirmModalState.title}
           itemDescription={confirmModalState.description}
           hasHistory={confirmModalState.hasHistory}
           onConfirm={confirmModalState.onConfirm}
         />
       )}
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 };

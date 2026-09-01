@@ -19,6 +19,7 @@ import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
 import { AddEntityType } from '../modals/GlobalAddModal';
 import { CardNavigationButton } from '../common/CardNavigationButton';
+import { getTodayLocalDateString } from '../../services/recurrence';
 
 interface ShiftsViewProps {
   currentDate: string;
@@ -51,7 +52,7 @@ function formatDateHeader(dateStr: string): string {
 }
 
 function isToday(dateStr: string): boolean {
-  return dateStr === new Date().toISOString().split('T')[0];
+  return dateStr === getTodayLocalDateString();
 }
 
 export const ShiftsView: React.FC<ShiftsViewProps> = ({
@@ -95,7 +96,7 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
     catch { return null; }
   }).filter((s): s is GeneratedShiftSheet => s !== null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayLocalDateString();
 
   // ── Shared print handler so printer icon doesn't open workspace
   const handlePrintDirect = (e: React.MouseEvent, sheet: GeneratedShiftSheet) => {

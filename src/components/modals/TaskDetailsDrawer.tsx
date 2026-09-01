@@ -15,7 +15,7 @@ import {
 import { Modal } from '../common/Modal';
 import { db } from '../../db';
 import { ResidentTask, UnitTask, Resident, Shift, Role } from '../../types';
-import { formatRecurrenceHuman, isRecurrenceScheduleEnded } from '../../services/recurrence';
+import { formatRecurrenceHuman, isRecurrenceScheduleEnded, getTodayLocalDateString } from '../../services/recurrence';
 import { getIndicatorBadgeDetails } from '../../services/attention';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 
@@ -54,7 +54,7 @@ export const TaskDetailsDrawer: React.FC<TaskDetailsDrawerProps> = ({
   const isEnded = !isStopped && isRecurrenceScheduleEnded(
     task.recurrenceRule,
     task.frequency,
-    new Date().toISOString().split('T')[0],
+    getTodayLocalDateString(),
     task.createdAt,
   );
 

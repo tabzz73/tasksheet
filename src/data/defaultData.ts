@@ -1,4 +1,4 @@
-import { Facility, FacilityCareTimingSettings, FacilitySettings, FacilityQuickAddPreset, Role, Shift, BinderState, QuickVitalsColumnConfig, PrintProfileConfig } from '../types';
+import { Facility, FacilityCareTimingSettings, FacilitySettings, FacilityQuickAddPreset, Role, Shift, BinderState, QuickVitalsColumnConfig, PrintProfileConfig, ServiceCoverageDefinition } from '../types';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 
 export const DEFAULT_FACILITY: Facility = {
@@ -277,6 +277,15 @@ export const DEFAULT_CARE_TIMING_PRESETS: FacilityCareTimingSettings = {
   ],
 };
 
+export const DEFAULT_SERVICE_COVERAGE_DEFINITIONS: ServiceCoverageDefinition[] = [
+  { id: 'coverage-funded', code: 'FUNDED', name: 'Funded / Authorized', shortCode: '', isExceptional: false, isActive: true, isSystem: true, sortOrder: 1 },
+  { id: 'coverage-private-pay', code: 'PRIVATE_PAY', name: 'Private Pay', shortCode: '$', icon: '$', isExceptional: true, isActive: true, isSystem: true, sortOrder: 2 },
+  { id: 'coverage-complimentary', code: 'COMPLIMENTARY', name: 'Complimentary', shortCode: 'COMP', icon: '★', isExceptional: true, isActive: true, isSystem: true, sortOrder: 3 },
+  { id: 'coverage-facility', code: 'FACILITY_INCLUDED', name: 'Facility Included', shortCode: 'INC', isExceptional: true, isActive: true, isSystem: true, sortOrder: 4 },
+  { id: 'coverage-temporary', code: 'TEMPORARY_EXCEPTION', name: 'Temporary Exception', shortCode: '!', icon: '!', isExceptional: true, isActive: true, isSystem: true, sortOrder: 5 },
+  { id: 'coverage-custom', code: 'CUSTOM', name: 'Custom / Other', shortCode: 'OTHER', isExceptional: true, isActive: true, isSystem: true, sortOrder: 6 },
+];
+
 export const DEFAULT_SETTINGS: FacilitySettings = {
   timezone: 'America/Edmonton',
   timeFormat: '24h',
@@ -297,6 +306,7 @@ export const DEFAULT_SETTINGS: FacilitySettings = {
   attentionRules: DEFAULT_ATTENTION_RULES,
   smartSuggestionsEnabled: true,
   careTimingPresets: DEFAULT_CARE_TIMING_PRESETS,
+  serviceCoverageDefinitions: DEFAULT_SERVICE_COVERAGE_DEFINITIONS,
   welcomeHero: {
     showWelcomePage: 'on_first_launch',
     showWhyTaskSheetContent: true,

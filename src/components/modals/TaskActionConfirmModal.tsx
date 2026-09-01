@@ -6,6 +6,8 @@ interface TaskActionConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   actionType: 'stop' | 'delete';
+  /** Entity kind shown in the dialog heading, e.g. "Care Task", "Unit Task", "Wound Protocol", "FYI". */
+  itemType: string;
   title: string;
   itemDescription: string;
   hasHistory?: boolean;
@@ -16,18 +18,20 @@ export const TaskActionConfirmModal: React.FC<TaskActionConfirmModalProps> = ({
   isOpen,
   onClose,
   actionType,
+  itemType,
   title,
   itemDescription,
   hasHistory = false,
   onConfirm
 }) => {
   const isStop = actionType === 'stop';
+  const itemLabel = itemType.toLowerCase();
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isStop ? 'Stop This Task?' : 'Delete This Care Task?'}
+      title={isStop ? `Stop This ${itemType}?` : `Delete This ${itemType}?`}
       maxWidth="md"
     >
       <div className="space-y-4">
@@ -46,20 +50,20 @@ export const TaskActionConfirmModal: React.FC<TaskActionConfirmModalProps> = ({
         {isStop ? (
           <div className="text-xs text-slate-600 space-y-2">
             <p>
-              The task will no longer generate future assignments on shift sheets.
+              This {itemLabel} will no longer generate future assignments on shift sheets.
             </p>
             <p className="font-medium text-slate-800">
-              ✓ All previous completion records and history will be retained.
+              ✓ Its record is retained here and can be reactivated or restarted later.
             </p>
           </div>
         ) : (
           <div className="text-xs text-slate-600 space-y-2">
             <p>
-              This will stop future assignments for this task. Existing historical completion records will not be reassigned to another resident.
+              This will permanently remove this {itemLabel}. It will no longer generate assignments or appear on any generated TaskSheet.
             </p>
             {hasHistory && (
               <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-[11px]">
-                <strong>Clinical Note:</strong> This task has prior completion history. Stopping the task is recommended over deletion to preserve documentation integrity.
+                <strong>Note:</strong> This {itemLabel} has prior activity in TaskSheet. Stopping it is recommended over deleting so its record is preserved for review.
               </div>
             )}
           </div>
@@ -88,12 +92,12 @@ export const TaskActionConfirmModal: React.FC<TaskActionConfirmModalProps> = ({
             {isStop ? (
               <>
                 <PauseCircle className="w-3.5 h-3.5" />
-                <span>Stop This Task</span>
+                <span>Stop {itemType}</span>
               </>
             ) : (
               <>
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete Task</span>
+                <span>Delete {itemType}</span>
               </>
             )}
           </button>

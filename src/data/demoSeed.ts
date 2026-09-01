@@ -1,9 +1,9 @@
 import { Resident, ResidentTask, UnitTask, FYI, Wound, Completion } from '../types';
 import { ROLE_HCA_ID, ROLE_LPN_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID } from './defaultData';
+import { getTodayLocalDateString } from '../services/recurrence';
 
 export function generateDemoData() {
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = getTodayLocalDateString();
 
   // 16 Fictional Residents
   const residents: Resident[] = [
@@ -11,7 +11,7 @@ export function generateDemoData() {
       id: 'res-101',
       firstName: 'Arthur',
       lastName: 'Pendleton',
-      roomNumber: '101',
+      roomNumber: '101A',
       status: 'active',
       notes: 'Independent with walker; loves reading the morning paper.',
       source: 'demo'
@@ -20,7 +20,7 @@ export function generateDemoData() {
       id: 'res-102',
       firstName: 'Beatrice',
       lastName: 'Montgomery',
-      roomNumber: '102',
+      roomNumber: '101B',
       status: 'active',
       notes: 'Requires 1-person assist for transfers. Hard of hearing on left side.',
       source: 'demo'
@@ -29,7 +29,7 @@ export function generateDemoData() {
       id: 'res-103a',
       firstName: 'Charles',
       lastName: 'Davenport',
-      roomNumber: '103A',
+      roomNumber: 'L102',
       status: 'active',
       notes: 'Diabetic routine; prefers morning BG check before coffee.',
       source: 'demo'
@@ -38,7 +38,7 @@ export function generateDemoData() {
       id: 'res-103b',
       firstName: 'Donald',
       lastName: 'Fletcher',
-      roomNumber: '103B',
+      roomNumber: '103LF',
       status: 'active',
       notes: 'Low sodium diet. Uses rollator walker with supervision.',
       source: 'demo'
@@ -65,7 +65,7 @@ export function generateDemoData() {
       id: 'res-204',
       firstName: 'Eleanor',
       lastName: 'Vance',
-      roomNumber: '204',
+      roomNumber: 'N204',
       status: 'in_hospital',
       notes: 'Admitted to Foothills Medical Centre for observation. Care tasks suspended.',
       source: 'demo'
@@ -83,7 +83,7 @@ export function generateDemoData() {
       id: 'res-301',
       firstName: 'Robert',
       lastName: 'Chen',
-      roomNumber: '301',
+      roomNumber: 'Memory-03',
       status: 'out_on_pass',
       notes: 'Out on day pass with family. Expected return 1800.',
       source: 'demo'

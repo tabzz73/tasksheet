@@ -33,6 +33,12 @@ import { CareTimingSettingsTab } from './CareTimingSettingsTab';
 import { AppInformationTab } from './AppInformationTab';
 import { DeveloperInformationTab } from './DeveloperInformationTab';
 import { WoundSupplyCatalogTab } from './WoundSupplyCatalogTab';
+import { RoomSetupTab } from './RoomSetupTab';
+import { ServiceCoverageSettingsTab } from './ServiceCoverageSettingsTab';
+import { DomainConflictError, ValidationResult } from '../../services/validation';
+import { ConflictNotice } from '../common/ConflictNotice';
+import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
+import { getTodayLocalDateString } from '../../services/recurrence';
 import { ChevronDown, Code2, Printer, Sparkles, ShieldAlert } from 'lucide-react';
 import { formatShiftHeader } from '../../services/print';
 import {
@@ -49,7 +55,7 @@ interface SettingsViewProps {
   navigationResetToken?: number;
 }
 
-type SettingsTab = 'facility' | 'care_timings' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'wound_supplies' | 'demo' | 'backup' | 'app_info' | 'developer_info';
+type SettingsTab = 'facility' | 'rooms' | 'care_timings' | 'service_coverage' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'wound_supplies' | 'demo' | 'backup' | 'app_info' | 'developer_info';
 
 const SETTINGS_NAV_GROUPS: Array<{
   label: string;
@@ -64,8 +70,10 @@ const SETTINGS_NAV_GROUPS: Array<{
     label: 'Facility',
     items: [
       { id: 'facility', label: 'Facility Setup', description: 'Identity, address and print branding', icon: Building2 },
+      { id: 'rooms', label: 'Rooms & Occupancy', description: 'Room labels, beds and availability', icon: Building2 },
       { id: 'shifts', label: 'Roles & Shifts', description: 'Operational schedules and coverage', icon: Users },
       { id: 'care_timings', label: 'Care Timing Presets', description: 'Medication and meal schedules', icon: Clock },
+      { id: 'service_coverage', label: 'Service Coverage', description: 'Funded and additional service classifications', icon: Shield },
       { id: 'preferences', label: 'Preferences', description: 'Clock, display and startup behavior', icon: Clock },
     ],
   },
@@ -149,6 +157,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
 
   // Messages
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [settingsConflict, setSettingsConflict] = useState<ValidationResult | null>(null);
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   useEffect(() => {
     setActiveTab('facility');
@@ -208,10 +218,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
   };
 
   const handleToggleShiftActive = (shift: Shift) => {
-    try {
-      if (shift.isActive !== false) {
+    const runDeactivate = () => {
+      try {
         db.deactivateShift(shift.id);
         showFeedback('success', `Deactivated shift "${shift.shortCode} — ${shift.name}".`);
+      } catch (err: any) {
+        showFeedback('error', err.message || 'Failed to toggle shift.');
+      }
+    };
+    try {
+      if (shift.isActive !== false) {
+        const impact = db.analyzeShiftDeactivation(shift.id);
+        if (impact.status === 'WARNING') {
+          setConfirmRequest({
+            title: `Deactivate ${shift.shortCode}?`,
+            message: impact.message,
+            confirmLabel: 'Deactivate Anyway',
+            tone: 'danger',
+            onConfirm: runDeactivate,
+          });
+          return;
+        }
+        runDeactivate();
       } else {
         db.reactivateShift(shift.id);
         showFeedback('success', `Reactivated shift "${shift.shortCode} — ${shift.name}".`);
@@ -222,14 +250,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
   };
 
   const handleDeleteShift = (shift: Shift) => {
-    if (confirm(`Delete shift "${shift.shortCode} — ${shift.name}"? This action cannot be undone.`)) {
-      const res = db.deleteShift(shift.id);
-      if (res.success) {
-        showFeedback('success', `Shift "${shift.shortCode} — ${shift.name}" deleted.`);
-      } else {
-        showFeedback('error', res.error || 'Failed to delete shift.');
-      }
-    }
+    setConfirmRequest({
+      title: 'Delete Shift?',
+      message: `Delete shift "${shift.shortCode} — ${shift.name}"? This action cannot be undone.`,
+      confirmLabel: 'Delete Shift',
+      tone: 'danger',
+      onConfirm: () => {
+        const res = db.deleteShift(shift.id);
+        if (res.success) {
+          showFeedback('success', `Shift "${shift.shortCode} — ${shift.name}" deleted.`);
+        } else {
+          showFeedback('error', res.error || 'Failed to delete shift.');
+        }
+      },
+    });
   };
 
   const handleMoveShift = (shiftId: string, direction: 'up' | 'down') => {
@@ -303,10 +337,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
   const citySuggestions = CANADIAN_CITIES_BY_PROVINCE[facility.province] || [];
 
   const handleSaveSettings = (updates: Partial<FacilitySettings>) => {
-    const newSettings = { ...settings, ...updates };
-    setSettings(newSettings);
-    db.updateSettings(updates);
-    showFeedback('success', 'Preferences updated.');
+    try {
+      setSettingsConflict(null);
+      db.updateSettings(updates);
+      setSettings({ ...settings, ...updates });
+      showFeedback('success', 'Preferences updated.');
+    } catch (error) {
+      if (error instanceof DomainConflictError) setSettingsConflict(error.result);
+      else showFeedback('error', error instanceof Error ? error.message : 'TaskSheet could not safely update this setting.');
+    }
   };
 
   const handleExportCatalog = () => {
@@ -315,7 +354,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `TaskSheet_Standard_Catalog_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `TaskSheet_Standard_Catalog_${getTodayLocalDateString()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showFeedback('success', 'Standard catalog exported (0 resident records included).');
@@ -339,10 +378,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
   };
 
   const handleResetCatalog = () => {
-    if (window.confirm('Reset catalog to the Alberta Starter Catalog v1.0 standard templates? Custom templates will be preserved.')) {
-      db.resetCatalog();
-      showFeedback('success', 'Standard catalog refreshed to Alberta Starter Catalog v1.0.');
-    }
+    setConfirmRequest({
+      title: 'Reset Care Task Catalog?',
+      message: 'Reset catalog to the Alberta Starter Catalog v1.0 standard templates? Custom templates will be preserved.',
+      confirmLabel: 'Reset Catalog',
+      tone: 'danger',
+      onConfirm: () => {
+        db.resetCatalog();
+        showFeedback('success', 'Standard catalog refreshed to Alberta Starter Catalog v1.0.');
+      },
+    });
   };
 
   const handleToggleTemplate = (slug: string) => {
@@ -356,7 +401,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `TaskSheet_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `TaskSheet_Backup_${getTodayLocalDateString()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showFeedback('success', 'Full database backup downloaded.');
@@ -365,43 +410,71 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
   const handleRestoreBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Clear immediately so re-selecting the same file always re-triggers this handler,
+    // regardless of whether the confirmation below is accepted or cancelled.
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        db.restoreDatabase(event.target?.result as string);
-        showFeedback('success', 'Database restored successfully from backup.');
-      } catch (err: any) {
-        showFeedback('error', `Restore failed: ${err.message}`);
-      }
-    };
-    reader.readAsText(file);
+    setConfirmRequest({
+      title: 'Restore From Backup?',
+      message: 'Restore from this backup file? This replaces the entire current facility, residents, tasks, wounds, and FYIs with the contents of the backup file. This cannot be undone.',
+      confirmLabel: 'Restore Backup',
+      tone: 'danger',
+      onConfirm: () => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            db.restoreDatabase(event.target?.result as string);
+            showFeedback('success', 'Database restored successfully from backup.');
+          } catch (err: any) {
+            showFeedback('error', `Restore failed: ${err.message}`);
+          }
+        };
+        reader.readAsText(file);
+      },
+    });
   };
 
   const handleLoadDemo = () => {
-    if (window.confirm('Load the fictional Cedar Grove demo workspace? Manual facility data and records will be preserved. If setup is still blank, Cedar Grove will be used until you clear the demo.')) {
-      db.loadDemoData();
-      setFacility(prepareFacilityForEditing(db.getState().facility));
-      setSettings(db.getState().settings);
-      showFeedback('success', 'Demo workspace loaded. Demo records and shifts are visibly identified and can be cleared here.');
-    }
+    setConfirmRequest({
+      title: 'Load Demo Workspace?',
+      message: 'Load the fictional Cedar Grove demo workspace? Manual facility data and records will be preserved. If setup is still blank, Cedar Grove will be used until you clear the demo.',
+      confirmLabel: 'Load Demo Workspace',
+      onConfirm: () => {
+        db.loadDemoData();
+        setFacility(prepareFacilityForEditing(db.getState().facility));
+        setSettings(db.getState().settings);
+        showFeedback('success', 'Demo workspace loaded. Demo records and shifts are visibly identified and can be cleared here.');
+      },
+    });
   };
 
   const handleClearDemo = () => {
     if (settings.dataMode === 'demo') {
-      if (window.confirm('Clear the fictional Cedar Grove facility, demo shifts, residents, tasks, FYIs, and wounds, then begin real facility setup? The built-in task catalog will remain.')) {
-        db.startRealSetup();
-        setFacility(prepareFacilityForEditing(db.getState().facility));
-        setSettings(db.getState().settings);
-        setActiveTab('facility');
-        showFeedback('success', 'Demo configuration cleared. Enter your real facility details and create HCA/LPN shifts.');
-      }
+      setConfirmRequest({
+        title: 'Clear Demo & Start Real Setup?',
+        message: 'Clear the fictional Cedar Grove facility, demo shifts, residents, tasks, FYIs, and wounds, then begin real facility setup? The built-in task catalog will remain.',
+        confirmLabel: 'Clear Demo & Start Setup',
+        tone: 'danger',
+        onConfirm: () => {
+          db.startRealSetup();
+          setFacility(prepareFacilityForEditing(db.getState().facility));
+          setSettings(db.getState().settings);
+          setActiveTab('facility');
+          showFeedback('success', 'Demo configuration cleared. Enter your real facility details and create HCA/LPN shifts.');
+        },
+      });
       return;
     }
-    if (window.confirm('Clear all demo residents, assignments, and test FYIs? Manual facility data, shifts, records, and the standard catalog will remain intact.')) {
-      db.clearDemoData();
-      showFeedback('success', 'Demo records removed. Manual production records and the standard catalog remain active.');
-    }
+    setConfirmRequest({
+      title: 'Clear Demo Data?',
+      message: 'Clear all demo residents, assignments, and test FYIs? Manual facility data, shifts, records, and the standard catalog will remain intact.',
+      confirmLabel: 'Clear Demo Data',
+      tone: 'danger',
+      onConfirm: () => {
+        db.clearDemoData();
+        showFeedback('success', 'Demo records removed. Manual production records and the standard catalog remain active.');
+      },
+    });
   };
 
   // Filtered Catalog Items for Manager
@@ -441,6 +514,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
           <span>{feedbackMessage.text}</span>
         </div>
       )}
+      {settingsConflict && <ConflictNotice result={settingsConflict} onAction={() => setSettingsConflict(null)} />}
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)] gap-6 items-start">
         <aside className="hidden lg:block sticky top-5 max-h-[calc(100vh-7.5rem)] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-3" aria-label="Settings sections">
@@ -996,6 +1071,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
         </form>
       )}
 
+      {activeTab === 'rooms' && <RoomSetupTab onShowFeedback={showFeedback} />}
+
       {/* PRINT PROFILES & LAYOUT */}
       {activeTab === 'print_profiles' && (
         <PrintProfileEditorTab onShowFeedback={showFeedback} />
@@ -1010,6 +1087,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
       {activeTab === 'care_timings' && (
         <CareTimingSettingsTab onShowFeedback={showFeedback} />
       )}
+      {activeTab === 'service_coverage' && <ServiceCoverageSettingsTab onShowFeedback={showFeedback} />}
 
       {/* TASK ATTENTION RULES */}
       {activeTab === 'attention_rules' && (
@@ -1432,6 +1510,45 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
               </select>
               <p className="mt-1 text-[11px] text-slate-500">Controls weekly wound and operational report date ranges.</p>
             </div>
+
+            <div>
+              <label htmlFor="bathing-capacity" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Bathing Capacity Per Shift / Day
+              </label>
+              <input
+                id="bathing-capacity"
+                type="number"
+                min={1}
+                max={20}
+                value={settings.bathingCapacityPerShiftLine ?? 2}
+                onChange={(event) => handleSaveSettings({ bathingCapacityPerShiftLine: Math.max(1, Number(event.target.value) || 1) })}
+                className="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">Used by weekly bathing capacity and open-slot reports. Default: 2.</p>
+            </div>
+
+            <fieldset>
+              <legend className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                Bathing-Capable Shifts
+              </legend>
+              <div className="rounded-lg border border-slate-200 divide-y divide-slate-100 bg-slate-50">
+                {state.shifts.filter(shift => shift.isActive !== false).sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99)).map(shift => {
+                  const defaultIds = state.shifts.filter(item => item.isActive !== false && state.roles.find(role => role.id === item.roleId)?.code === 'HCA').map(item => item.id);
+                  const selectedIds = settings.bathingShiftIds ?? defaultIds;
+                  const selected = selectedIds.includes(shift.id);
+                  return <label key={shift.id} className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-white">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={(event) => handleSaveSettings({ bathingShiftIds: event.target.checked ? [...selectedIds, shift.id] : selectedIds.filter(id => id !== shift.id) })}
+                    />
+                    <span className="font-mono font-black text-xs">{shift.shortCode}</span>
+                    <span className="text-xs text-slate-600">{shift.name}</span>
+                  </label>;
+                })}
+              </div>
+              <p className="mt-1 text-[11px] text-slate-500">Each selected line appears in the weekly grid, including days with zero scheduled bathing assignments.</p>
+            </fieldset>
 
           </div>
         </div>

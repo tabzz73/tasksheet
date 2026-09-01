@@ -273,6 +273,7 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
           isOpen={confirmModal.isOpen}
           onClose={() => setConfirmModal({ isOpen: false, fyi: null })}
           actionType="delete"
+          itemType="FYI"
           title="Standing FYI Note"
           itemDescription={confirmModal.fyi?.text || ''}
           hasHistory={false}

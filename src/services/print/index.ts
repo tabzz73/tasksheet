@@ -5,6 +5,7 @@ import { DEFAULT_VITALS_COLUMNS, DEFAULT_HCA_PRINT_PROFILE, DEFAULT_LPN_PRINT_PR
 import { db } from '../../db';
 import { buildFyiBinderPrintModel } from './binderBuilder';
 import type { FyiBinderPrintDocumentModel } from '../../components/print/FyiBinderPrintDocument';
+import { coverageIndicator, formatCoverageLegend } from '../coverage';
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -38,8 +39,7 @@ export interface ShiftHeaderData {
 
 /**
  * formatShiftHeader — Single authoritative formatter for TaskSheet shift header display.
- * Used identically by UniversalTableDocument, HcaChecklistDocument, LpnClinicalDocument,
- * and the Settings Live Header Layout Preview.
+ * Used identically by UniversalTableDocument and the Settings Live Header Layout Preview.
  *
  * Rules:
  * - 'short_code_only' (Default): {shiftShortCode} · {shiftTime}
@@ -198,6 +198,7 @@ export interface PrintDocumentModel {
   confidentialityNotice?: string;
   developerFooter?: string;
   attentionLegend?: { code: string; label: string }[];
+  coverageLegend?: string[];
   /** Screen-only configuration exceptions withheld by the generator. */
   exceptions: ShiftGenerationException[];
   summary: {
@@ -652,7 +653,7 @@ export class PrintService {
         return {
           id: t.id,
           time: t.time || '\u2014',
-          title: t.title,
+          title: `${coverageIndicator(t.serviceCoverage)} ${t.title}`.trim(),
           category: t.category,
           instruction: instruction || undefined,
           timingNote: undefined, // wounds only use timingNote via woundGroups
@@ -716,7 +717,7 @@ return {
       const tasks: PrintTask[] = assignment.tasks.map(t => ({
         id: t.id,
         time: 'PRN',
-        title: t.title,
+        title: `${coverageIndicator(t.serviceCoverage)} ${t.title}`.trim(),
         category: t.category,
         instruction: normalizeInstruction(t.instructions || 'Administer/perform as required.'),
         timingNote: undefined,
@@ -893,6 +894,13 @@ return {
     });
 
     rawResidentItems.forEach(item => {
+      // The HCA (simple_checklist) profile has no dedicated Vitals/Results column,
+      // so a structured write-in prompt (e.g. bowel/RAI tracking, BG, weight) would
+      // otherwise never appear anywhere on the printed sheet. Fold it into Important
+      // Information instead so the paper tracking prompt is never silently dropped.
+      const importantInformation = !isClinical && item.structuredResult
+        ? [item.importantInfo, item.structuredResult.label.replace(/\n/g, '  ')].filter(Boolean).join(' · ')
+        : item.importantInfo;
       tableRows.push({
         id: item.id,
         workflowSection: 'resident_care',
@@ -904,7 +912,7 @@ return {
         taskTitle: item.taskTitle,
         category: item.category,
         attentionTags: item.attentionTags,
-        importantInformation: item.importantInfo,
+        importantInformation,
         structuredResult: item.structuredResult,
         notesLineCount: isClinical ? 1 : 0,
         priority: item.priority,
@@ -1073,6 +1081,7 @@ return {
         : undefined,
       developerFooter: state.settings.developerFooterEnabled ? 'TaskSheet · SoftVibeSolutions' : undefined,
       attentionLegend: attentionLegend.length > 0 ? attentionLegend : undefined,
+      coverageLegend: formatCoverageLegend([...sheet.residentAssignments, ...(sheet.prnTasks || [])].flatMap(assignment => assignment.tasks.map(task => task.serviceCoverage))),
       exceptions: sheet.exceptions,
       summary: {
         totalResidentTasks,

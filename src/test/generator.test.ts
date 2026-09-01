@@ -54,16 +54,9 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
       recurrenceRule: { type: 'SELECTED_WEEKDAYS', basis: 'selected_weekdays', weekdays: [1], selectedDays: [1] },
       bathingRelation: 'independent',
     });
-    db.addWound({
-      residentId: resident.id,
-      shiftId: SHIFT_LPN_DAY_ID,
-      time: '2200',
-      siteLocation: 'Invalid evening wound',
-      status: 'active',
-      firstAction: 'treatment',
-      frequency: 'daily',
-      bathingRelation: 'independent',
-    });
+    const legacyBackup = JSON.parse(db.backupDatabase());
+    legacyBackup.wounds.push({ id: 'legacy-invalid-evening-wound', residentId: resident.id, shiftId: SHIFT_LPN_DAY_ID, time: '2200', timingType: 'fixed', siteLocation: 'Invalid evening wound', status: 'active', firstAction: 'treatment', frequency: 'daily', bathingRelation: 'independent', createdAt: '2026-08-01', source: 'imported' });
+    db.restoreDatabase(JSON.stringify(legacyBackup));
 
     const mondayDay = generateShiftSheet('2026-08-31', SHIFT_LPN_DAY_ID);
     const mondayNight = generateShiftSheet('2026-08-31', SHIFT_LPN_NIGHT_ID);
@@ -80,14 +73,10 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
   it('keeps legacy unassigned wounds off shift sheets and flags them on the wound schedule', () => {
     db.clearAllOperationalData();
     const resident = db.addResident({ firstName: 'Legacy', lastName: 'Protocol', roomNumber: '211', status: 'active' });
-    const wound = db.addWound({
-      residentId: resident.id,
-      siteLocation: 'Right forearm',
-      status: 'active',
-      firstAction: 'assessment',
-      frequency: 'daily',
-      bathingRelation: 'independent',
-    });
+    const legacyBackup = JSON.parse(db.backupDatabase());
+    const wound = { id: 'legacy-unassigned-wound', residentId: resident.id, siteLocation: 'Right forearm', status: 'active' as const, firstAction: 'assessment' as const, frequency: 'daily' as const, bathingRelation: 'independent' as const, createdAt: '2026-08-01', source: 'imported' };
+    legacyBackup.wounds.push(wound);
+    db.restoreDatabase(JSON.stringify(legacyBackup));
 
     expect(generateShiftSheet('2026-08-24', SHIFT_LPN_DAY_ID).residentAssignments.flatMap(item => item.wounds)).toHaveLength(0);
     const schedule = buildWoundScheduleModel('2026-08-24');
@@ -178,7 +167,7 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
       isActive: true,
     });
 
-    for (const time of ['0700', '1459', '1500', '1715', '0659']) {
+    for (const time of ['0700', '1459']) {
       db.addResidentTask({
         residentId: resident.id,
         shiftId: shift.id,
@@ -188,15 +177,6 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
         time,
       });
     }
-    db.addResidentTask({
-      residentId: resident.id,
-      shiftId: shift.id,
-      title: 'Imported invalid task',
-      category: 'Boundary Test',
-      frequency: 'daily',
-      time: '1716',
-      source: 'imported',
-    });
     db.addUnitTask({
       shiftId: shift.id,
       title: 'Valid unit boundary',
@@ -205,14 +185,10 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
       frequency: 'daily',
       time: '0700',
     });
-    db.addUnitTask({
-      shiftId: shift.id,
-      title: 'Invalid unit boundary',
-      category: 'Boundary Test',
-      shiftPhase: 'end',
-      frequency: 'daily',
-      time: '1500',
-    });
+    const importedBackup = JSON.parse(db.backupDatabase());
+    for (const time of ['1500', '1715', '0659', '1716']) importedBackup.residentTasks.push({ id: `legacy-${time}`, residentId: resident.id, shiftId: shift.id, title: time === '1716' ? 'Imported invalid task' : `Resident ${time}`, category: 'Boundary Test', frequency: 'daily', time, timingType: 'fixed', isActive: true, createdAt: '2026-08-01', source: 'imported' });
+    importedBackup.unitTasks.push({ id: 'legacy-unit-1500', shiftId: shift.id, title: 'Invalid unit boundary', category: 'Boundary Test', shiftPhase: 'end', frequency: 'daily', time: '1500', timingType: 'fixed', isActive: true, createdAt: '2026-08-01', source: 'imported' });
+    db.restoreDatabase(JSON.stringify(importedBackup));
 
     const sheet = generateShiftSheet('2026-08-25', shift.id);
     const printedTimes = sheet.residentAssignments.flatMap(a => a.tasks.map(t => t.time));
@@ -251,7 +227,7 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
       endTime: '0700',
       isActive: true,
     });
-    for (const time of ['2300', '0000', '0659', '0700']) {
+    for (const time of ['2300', '0000', '0659']) {
       db.addResidentTask({
         residentId: resident.id,
         shiftId: shift.id,
@@ -261,6 +237,9 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
         time,
       });
     }
+    const overnightBackup = JSON.parse(db.backupDatabase());
+    overnightBackup.residentTasks.push({ id: 'legacy-night-0700', residentId: resident.id, shiftId: shift.id, title: 'Night 0700', category: 'Boundary Test', frequency: 'daily', time: '0700', timingType: 'fixed', isActive: true, createdAt: '2026-08-01', source: 'imported' });
+    db.restoreDatabase(JSON.stringify(overnightBackup));
 
     const sheet = generateShiftSheet('2026-08-25', shift.id);
     const printedTimes = sheet.residentAssignments.flatMap(a => a.tasks.map(t => t.time));
@@ -300,17 +279,12 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
     expect(validSheet.residentAssignments.flatMap(a => a.tasks).some(t => t.id === residentTask.id)).toBe(true);
     expect(validSheet.duringUnitTasks.some(t => t.id === unitTask.id)).toBe(true);
 
-    db.updateResidentTask(residentTask.id, { time: '1715' });
-    db.updateUnitTask(unitTask.id, { time: '1715' });
-
+    expect(() => db.updateResidentTask(residentTask.id, { time: '1715' })).toThrow(/outside/i);
+    expect(() => db.updateUnitTask(unitTask.id, { time: '1715' })).toThrow(/outside/i);
     const editedSheet = generateShiftSheet('2026-08-25', shift.id);
-    expect(editedSheet.residentAssignments.flatMap(a => a.tasks).some(t => t.id === residentTask.id)).toBe(false);
-    expect(editedSheet.duringUnitTasks.some(t => t.id === unitTask.id)).toBe(false);
-    expect(editedSheet.exceptions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ taskId: residentTask.id, taskType: 'resident_task', time: '1715' }),
-      expect.objectContaining({ taskId: unitTask.id, taskType: 'unit_task', time: '1715' }),
-    ]));
-    expect(editedSheet.metrics.exceptionCount).toBe(2);
+    expect(editedSheet.residentAssignments.flatMap(a => a.tasks).some(t => t.id === residentTask.id)).toBe(true);
+    expect(editedSheet.duringUnitTasks.some(t => t.id === unitTask.id)).toBe(true);
+    expect(editedSheet.metrics.exceptionCount).toBe(0);
   });
 
   it('correctly derives Role from configured Shift without re-asking user', () => {
@@ -886,7 +860,7 @@ describe('Alberta Standard Starter Catalog Tests', () => {
     const today = '2026-08-25';
 
     // 1. Test HCA Daily Package
-    const hcaPkg = buildHcaDailyPackage(today, { includeBathingGrid: true, includeFyiReference: true });
+    const hcaPkg = buildHcaDailyPackage(today, { includeBathingGrid: true });
     expect(hcaPkg.packageType).toBe('hca_daily_package');
     expect(hcaPkg.items.length).toBeGreaterThanOrEqual(2); // at least D1/D2 + Bathing grid
     
@@ -901,7 +875,7 @@ describe('Alberta Standard Starter Catalog Tests', () => {
     expect(hcaPkg.estimatedTotalPages).toBeGreaterThanOrEqual(2);
 
     // 2. Test LPN Clinical Package
-    const lpnPkg = buildLpnClinicalPackage(today, { includeWoundSchedule: true, includeFyiReference: true });
+    const lpnPkg = buildLpnClinicalPackage(today, { includeWoundSchedule: true });
     expect(lpnPkg.packageType).toBe('lpn_clinical_package');
     expect(lpnPkg.items.length).toBeGreaterThanOrEqual(2); // at least LP1 + Wound schedule
 
@@ -1124,7 +1098,7 @@ describe('Alberta Standard Starter Catalog Tests', () => {
 
     it('generates multiple scheduled tasks for multi-meal assignments and compression stocking pairs', () => {
       const today = '2026-08-25';
-      const testResId = 'res-test-quickadd-001';
+      const testResId = db.addResident({ firstName: 'Quick', lastName: 'Add', roomNumber: 'QA1', status: 'active' }).id;
 
       // 1. Add AM Care
       db.addResidentTask({

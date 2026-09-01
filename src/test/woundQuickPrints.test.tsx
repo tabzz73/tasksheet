@@ -47,9 +47,10 @@ describe('dedicated wound print workflows', () => {
 
   it('excludes healed, discontinued, and inactive-resident wounds from both quick reports', () => {
     const active = db.addResident({ firstName: 'Active', lastName: 'Resident', roomNumber: '201', status: 'active' });
-    const inactive = db.addResident({ firstName: 'Inactive', lastName: 'Resident', roomNumber: '202', status: 'inactive' });
+    const inactive = db.addResident({ firstName: 'Inactive', lastName: 'Resident', roomNumber: '202', status: 'active' });
     const add = (residentId: string, status: 'active' | 'resolved' | 'discontinued', location: string) => db.addWound({ residentId, shiftId: SHIFT_LPN_DAY_ID, time: '1000', siteLocation: location, status, firstAction: 'treatment', frequency: 'daily', bathingRelation: 'independent', supplies: [{ name: `${location} supply` }] });
     add(active.id, 'active', 'Included'); add(active.id, 'resolved', 'Healed'); add(active.id, 'discontinued', 'Stopped'); add(inactive.id, 'active', 'Inactive resident');
+    db.updateResident(inactive.id, { status: 'inactive' });
 
     expect(buildWeeklyWoundOverviewModel('2026-08-31').rows.map(row => row.location)).toEqual(['Included']);
     expect(buildWoundSupplyReorderModel('2026-08-31', 'all_active').rows.map(row => row.supplyName)).toEqual(['Included supply']);

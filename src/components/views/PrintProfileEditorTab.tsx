@@ -16,6 +16,7 @@ import {
 import { db } from '../../db';
 import { PrintProfileConfig, QuickVitalsColumnConfig, PrintDensity } from '../../types';
 import { DEFAULT_HCA_PRINT_PROFILE, DEFAULT_LPN_PRINT_PROFILE, DEFAULT_VITALS_COLUMNS } from '../../data/defaultData';
+import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
 
 interface PrintProfileEditorTabProps {
   onShowFeedback: (type: 'success' | 'error', text: string) => void;
@@ -26,6 +27,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
   const savedProfiles = state.settings.printProfiles || [DEFAULT_HCA_PRINT_PROFILE, DEFAULT_LPN_PRINT_PROFILE];
 
   const [selectedProfileType, setSelectedProfileType] = useState<'simple_checklist' | 'clinical_worksheet'>('clinical_worksheet');
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
   
   // Find current profile or fallback to defaults
   const currentProfile = savedProfiles.find(p => p.profileType === selectedProfileType) || 
@@ -91,18 +93,24 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
 
   // Reset to default
   const handleReset = () => {
-    if (confirm(`Reset ${config.name} to Alberta standard defaults?`)) {
-      const defaultProf = config.profileType === 'simple_checklist' 
-        ? DEFAULT_HCA_PRINT_PROFILE 
-        : DEFAULT_LPN_PRINT_PROFILE;
-      setConfig({ ...defaultProf });
-      
-      const otherProfiles = savedProfiles.filter(p => p.profileType !== config.profileType);
-      db.updateFacilitySettings({
-        printProfiles: [...otherProfiles, defaultProf],
-      });
-      onShowFeedback('success', `Reset ${config.name} to standard defaults.`);
-    }
+    setConfirmRequest({
+      title: 'Reset Print Profile?',
+      message: `Reset ${config.name} to Alberta standard defaults? Your customizations to this profile will be lost.`,
+      confirmLabel: 'Reset Profile',
+      tone: 'danger',
+      onConfirm: () => {
+        const defaultProf = config.profileType === 'simple_checklist'
+          ? DEFAULT_HCA_PRINT_PROFILE
+          : DEFAULT_LPN_PRINT_PROFILE;
+        setConfig({ ...defaultProf });
+
+        const otherProfiles = savedProfiles.filter(p => p.profileType !== config.profileType);
+        db.updateFacilitySettings({
+          printProfiles: [...otherProfiles, defaultProf],
+        });
+        onShowFeedback('success', `Reset ${config.name} to standard defaults.`);
+      },
+    });
   };
 
   const isClinical = config.profileType === 'clinical_worksheet';
@@ -493,6 +501,8 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
           </div>
         </div>
       </div>
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 };

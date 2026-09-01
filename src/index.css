@@ -200,19 +200,15 @@
 
   th, td {
     border: 0.75pt solid #cbd5e1 !important;
-    padding: 3pt 4pt !important;
   }
 
-  /* Preserve the workload-driven density in the physical printout. */
-  .tasksheet-universal-document[data-print-density="compact"] th,
-  .tasksheet-universal-document[data-print-density="compact"] td {
-    padding: 2pt 3pt !important;
-  }
-
-  .tasksheet-universal-document[data-print-density="spacious"] th,
-  .tasksheet-universal-document[data-print-density="spacious"] td {
-    padding: 4.5pt 5pt !important;
-  }
+  /*
+   * Padding is intentionally NOT forced here: UniversalTableDocument sets
+   * per-row padding inline based on both document density AND row type
+   * (compact/standard/expanded — e.g. wider padding for multi-line vitals
+   * rows). Forcing a single padding value here would win over that per-row
+   * value and silently shrink expanded rows on the physical printout.
+   */
 
   th {
     background-color: #f1f5f9 !important;

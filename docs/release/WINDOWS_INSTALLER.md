@@ -11,6 +11,8 @@
 
 MSI/MSIX is outside the 1.0 pilot scope and may be added later for facility IT deployment.
 
+TaskSheet 1.0 supports one standalone Windows workstation. The live operational database must remain local to that workstation. Inactive exported backup files may be stored on a facility-approved network share or external location. See [Supported Deployment](SUPPORTED_DEPLOYMENT_1.0.md) and [Installation Guide](INSTALLATION_GUIDE.md).
+
 ## Chain-of-custody enforcement
 
 Run only:

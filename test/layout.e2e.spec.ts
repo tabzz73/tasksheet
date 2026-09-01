@@ -11,7 +11,7 @@ test('Welcome cards remain below the top application bar while scrolling', async
   const header = page.locator('header');
   const content = page.locator('main');
   await expect(header).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Clearer shifts. Better organized tasks. Simpler TaskSheets.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Clearer shifts. Organized tasks. Print-ready TaskSheets.' })).toBeVisible();
 
   await expect(content).toHaveCSS('overflow-y', 'auto');
   await expect(content).toHaveCSS('isolation', 'isolate');

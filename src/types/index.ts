@@ -28,6 +28,31 @@ export type UnitTaskResultType =
   | 'checkbox_note';
 
 export type ShiftPhase = 'start' | 'during' | 'end';
+export type TaskTimingType = 'fixed' | 'start_of_shift' | 'end_of_shift' | 'period';
+export type ServiceCoverageCode = 'FUNDED' | 'PRIVATE_PAY' | 'COMPLIMENTARY' | 'FACILITY_INCLUDED' | 'TEMPORARY_EXCEPTION' | 'CUSTOM';
+
+export interface ServiceCoverageDefinition {
+  id: string;
+  code: ServiceCoverageCode | string;
+  name: string;
+  shortCode: string;
+  icon?: string;
+  isExceptional: boolean;
+  isActive: boolean;
+  isSystem?: boolean;
+  sortOrder: number;
+}
+
+export interface TaskServiceCoverage {
+  type: ServiceCoverageCode | string;
+  labelSnapshot: string;
+  shortCodeSnapshot: string;
+  iconSnapshot?: string;
+  startDate?: string;
+  endDate?: string;
+  isAdditionalService?: boolean;
+  note?: string;
+}
 
 export type TaskPriority = 'normal' | 'high' | 'urgent';
 
@@ -190,6 +215,49 @@ export interface FacilityCareTimingSettings {
   mealTimes: FacilityTimePreset[];
 }
 
+export type ReportDataSource =
+  | 'residents'
+  | 'resident_care'
+  | 'recurring_care'
+  | 'care_tasks'
+  | 'unit_tasks'
+  | 'shifts'
+  | 'rooms'
+  | 'fyis'
+  | 'wounds'
+  | 'wound_supplies'
+  | 'care_catalog'
+  | 'bathing';
+
+export type ReportFilterOperator = 'equals' | 'not_equals' | 'contains' | 'is_true' | 'is_false' | 'is_empty' | 'not_empty';
+
+export interface ReportFilterDefinition {
+  field: string;
+  operator: ReportFilterOperator;
+  value?: string | number | boolean;
+}
+
+export interface ReportSortDefinition {
+  field: string;
+  direction: 'asc' | 'desc';
+  naturalRoom?: boolean;
+}
+
+export interface SavedPrintPreset {
+  id: string;
+  name: string;
+  dataSource: ReportDataSource;
+  columns: string[];
+  filters: ReportFilterDefinition[];
+  grouping?: string;
+  sorting: ReportSortDefinition[];
+  layout: 'auto' | 'portrait' | 'landscape';
+  density: 'compact' | 'standard';
+  dateRange?: { start: string; end: string };
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface FacilitySettings {
   timezone: string;
   timeFormat: '24h' | '12h';
@@ -205,6 +273,15 @@ export interface FacilitySettings {
   smartSuggestionsEnabled?: boolean;
   welcomeHero?: WelcomeHeroSettings;
   careTimingPresets?: FacilityCareTimingSettings;
+  /** User-defined report configurations only; generated resident content is never stored. */
+  savedPrintPresets?: SavedPrintPreset[];
+  /** Default capacity per bathing shift line/day for weekly planning. */
+  bathingCapacityPerShiftLine?: number;
+  /** Explicit bathing-capable shift lines. Defaults to active HCA plus currently assigned bathing shifts. */
+  bathingShiftIds?: string[];
+  /** Facilities may explicitly permit more than one bathing occurrence per resident/day. */
+  allowMultipleBathingSameDay?: boolean;
+  serviceCoverageDefinitions?: ServiceCoverageDefinition[];
 }
 
 export interface Role {
@@ -236,12 +313,49 @@ export interface Resident {
   firstName: string;
   lastName: string;
   roomNumber: string;
+  /** Stable occupancy reference. roomNumber remains the exact printable display label. */
+  occupancyPositionId?: UUID;
+  /** Imported/migrated records that cannot be placed safely are held from operational sheets. */
+  roomAssignmentNeedsReview?: boolean;
+  bathingFrequencyPerWeek?: number;
   status: ResidentStatus;
   notes?: string;
   admittedAt?: string;
   returnDate?: string;
   source?: 'manual' | 'imported' | 'demo';
   sourceBatchId?: string;
+}
+
+export interface FacilityRoom {
+  id: UUID;
+  physicalRoomLabel: string;
+  area?: string;
+  active: boolean;
+  mode: 'simple' | 'structured';
+  createdAt: string;
+  updatedAt?: string;
+  source?: 'manual' | 'imported' | 'demo';
+}
+
+export interface OccupancyPosition {
+  id: UUID;
+  roomId: UUID;
+  positionLabel?: string;
+  /** Authoritative, facility-entered label used everywhere in TaskSheet. */
+  displayLabel: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  source?: 'manual' | 'imported' | 'demo';
+}
+
+export interface ResidentPlacementHistory {
+  id: UUID;
+  residentId: UUID;
+  occupancyPositionId: UUID;
+  displayLabel: string;
+  startedAt: string;
+  endedAt?: string;
 }
 
 export type RecurrenceType =
@@ -297,6 +411,8 @@ export interface ResidentTask {
   category: string;
   time?: string; // e.g. '0800'
   isNoSpecificTime?: boolean;
+  timingType?: TaskTimingType;
+  serviceCoverage?: TaskServiceCoverage;
   frequency: RecurrenceFrequency;
   recurrenceRule?: RecurrenceRule;
   instructions?: string;
@@ -328,6 +444,7 @@ export interface UnitTask {
   category: string;
   shiftPhase: ShiftPhase;
   time?: string; // e.g. '0715'
+  timingType?: TaskTimingType;
   frequency: RecurrenceFrequency;
   recurrenceRule?: RecurrenceRule;
   // resultType is retained only for print-template paper write-in field rendering.
@@ -411,6 +528,7 @@ export interface Wound {
   shiftId?: UUID;
   /** Scheduled 24-hour time within the assigned LPN/RN shift. */
   time?: string;
+  timingType?: TaskTimingType;
   siteLocation: string;
   status: 'active' | 'healing' | 'resolved' | 'discontinued';
   firstAction: 'treatment' | 'assessment' | 'dressing_change';
@@ -511,11 +629,18 @@ export interface BinderState {
 }
 
 export interface AppDatabaseState {
+  /** Persistent data-schema version. Independent from the application release version. */
+  schemaVersion?: number;
+  /** Monotonic local mutation revision used by optimistic conflict checks. */
+  revision?: number;
   facility: Facility;
   settings: FacilitySettings;
   roles: Role[];
   shifts: Shift[];
   residents: Resident[];
+  rooms: FacilityRoom[];
+  occupancyPositions: OccupancyPosition[];
+  residentPlacementHistory: ResidentPlacementHistory[];
   residentTasks: ResidentTask[];
   unitTasks: UnitTask[];
   fyis: FYI[];

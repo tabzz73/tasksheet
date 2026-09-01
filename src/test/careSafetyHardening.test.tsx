@@ -48,19 +48,20 @@ describe('care configuration and resident status safety', () => {
     });
     const statuses = ['active', 'in_hospital', 'out_on_pass', 'on_hold', 'inactive', 'discharged', 'deceased'] as const;
     const residents = statuses.map((status, index) => db.addResident({
-      firstName: status, lastName: 'Resident', roomNumber: `${201 + index}`, status,
+      firstName: status, lastName: 'Resident', roomNumber: `${201 + index}`, status: 'active',
     }));
-    residents.forEach(resident => db.addResidentTask({
-      residentId: resident.id, shiftId: shift.id, title: `${resident.status} care`,
+    residents.forEach((resident, index) => db.addResidentTask({
+      residentId: resident.id, shiftId: shift.id, title: `${statuses[index]} care`,
       category: 'Care', frequency: 'daily', time: '0800',
     }));
+    residents.forEach((resident, index) => db.updateResident(resident.id, { status: statuses[index] }));
 
     const sheet = generateShiftSheet('2026-08-26', shift.id);
     expect(sheet.residentAssignments.flatMap(item => item.tasks.map(task => task.title))).toEqual(['active care']);
     expect(sheet.residentStatusExceptions.map(item => item.status)).toEqual(['in_hospital', 'out_on_pass', 'on_hold']);
     expect(sheet.metrics.residentStatusExceptionCount).toBe(3);
 
-    const heldResident = residents.find(resident => resident.status === 'on_hold')!;
+    const heldResident = residents.find(resident => resident.firstName === 'on_hold')!;
     db.updateResident(heldResident.id, { status: 'active' });
     const resumedSheet = generateShiftSheet('2026-08-26', shift.id);
     expect(resumedSheet.residentAssignments.flatMap(item => item.tasks.map(task => task.title))).toContain('on_hold care');

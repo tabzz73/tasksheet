@@ -1,13 +1,72 @@
-import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct } from '../types';
+import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition, ResidentPlacementHistory, ResidentStatus } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { generateDemoData } from '../data/demoSeed';
 import { WOUND_SUPPLY_CATALOG_SEED } from '../data/woundSupplyCatalog';
+import { analyzeShiftChange, analyzeShiftDeactivation, analyzeShiftDeletion, assertValid, DomainConflictError, validateBathingCapacityChange, validateFixedTimeForShift, validateMilitaryTime, validateTaskAssignment } from '../services/validation';
 
 const STORAGE_KEY = 'tasksheet_v1_db_state_v2';
 const LEGACY_STORAGE_KEY = 'tasksheet_v1_db_state';
+const CURRENT_SCHEMA_VERSION = 3;
 const LEGACY_CERTIFICATION_PAIN_PROMPT = 'record clinical value, result, follow-up, and initials on paper.';
+const CURRENT_OCCUPANCY_STATUSES = new Set<ResidentStatus>(['active', 'in_hospital', 'out_on_pass', 'on_hold']);
+
+const roomKey = (label: string) => label.trim().toLocaleLowerCase();
+const isObsoleteMissingRoomPreset = (preset: { id?: string; name?: string; dataSource?: string; filters?: Array<{ field?: string; operator?: string }> }) =>
+  preset.id === 'residents-without-room' || preset.name === 'Residents Without Room' ||
+  (preset.dataSource === 'residents' && Boolean(preset.filters?.some(filter => filter.field === 'room' && filter.operator === 'is_empty')));
+
+function migrateRoomModel(
+  rawResidents: Resident[] = [],
+  rawRooms: FacilityRoom[] = [],
+  rawPositions: OccupancyPosition[] = [],
+  rawHistory: ResidentPlacementHistory[] = [],
+): Pick<AppDatabaseState, 'residents' | 'rooms' | 'occupancyPositions' | 'residentPlacementHistory'> {
+  const now = new Date().toISOString();
+  const rooms = rawRooms.map(room => ({ ...room }));
+  const positions = rawPositions.map(position => ({ ...position }));
+  const history = rawHistory.map(item => ({ ...item }));
+  const currentOccupants = new Map<string, string>();
+
+  const ensureSimplePosition = (resident: Resident, label: string): OccupancyPosition => {
+    const existing = positions.find(position => roomKey(position.displayLabel) === roomKey(label));
+    if (existing) return existing;
+    const source = resident.source === 'demo' ? 'demo' : resident.source === 'imported' ? 'imported' : 'manual';
+    const room: FacilityRoom = {
+      id: generateUUID(), physicalRoomLabel: label, active: true, mode: 'simple', createdAt: now, source,
+    };
+    const position: OccupancyPosition = {
+      id: generateUUID(), roomId: room.id, displayLabel: label, active: true, createdAt: now, source,
+    };
+    rooms.push(room);
+    positions.push(position);
+    return position;
+  };
+
+  const residents = rawResidents.map(raw => {
+    const resident = { ...raw };
+    const label = resident.roomNumber?.trim() || '';
+    const isCurrent = CURRENT_OCCUPANCY_STATUSES.has(resident.status);
+    if (!label) return { ...resident, roomNumber: '', occupancyPositionId: undefined, roomAssignmentNeedsReview: isCurrent };
+
+    const referenced = positions.find(position => position.id === resident.occupancyPositionId);
+    const position = referenced || ensureSimplePosition(resident, label);
+    const displayLabel = referenced?.displayLabel || label;
+    if (!isCurrent) return { ...resident, roomNumber: displayLabel, occupancyPositionId: undefined, roomAssignmentNeedsReview: false };
+
+    const priorResidentId = currentOccupants.get(position.id);
+    if (priorResidentId && priorResidentId !== resident.id) {
+      return { ...resident, roomNumber: displayLabel, occupancyPositionId: undefined, roomAssignmentNeedsReview: true };
+    }
+    currentOccupants.set(position.id, resident.id);
+    if (!history.some(item => item.residentId === resident.id && item.occupancyPositionId === position.id && !item.endedAt)) {
+      history.push({ id: generateUUID(), residentId: resident.id, occupancyPositionId: position.id, displayLabel, startedAt: resident.admittedAt || now });
+    }
+    return { ...resident, roomNumber: displayLabel, occupancyPositionId: position.id, roomAssignmentNeedsReview: false };
+  });
+  return { residents, rooms, occupancyPositions: positions, residentPlacementHistory: history };
+}
 
 /**
  * Removes a known RC26 print-certification seed defect without changing real
@@ -103,11 +162,16 @@ function migrateCategoryName(cat: string, title?: string): string {
 
 function getInitialState(): AppDatabaseState {
   return {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    revision: 0,
     facility: { ...EMPTY_FACILITY },
     settings: DEFAULT_SETTINGS,
     roles: DEFAULT_ROLES,
     shifts: [],
     residents: [],
+    rooms: [],
+    occupancyPositions: [],
+    residentPlacementHistory: [],
     residentTasks: [],
     unitTasks: [],
     fyis: [],
@@ -157,6 +221,7 @@ class DatabaseService {
               medicationTimes: parsed.settings?.careTimingPresets?.medicationTimes || DEFAULT_CARE_TIMING_PRESETS.medicationTimes,
               mealTimes: parsed.settings?.careTimingPresets?.mealTimes || DEFAULT_CARE_TIMING_PRESETS.mealTimes,
             },
+            savedPrintPresets: (parsed.settings?.savedPrintPresets || []).filter((preset: { id?: string; name?: string; dataSource?: string; filters?: Array<{ field?: string; operator?: string }> }) => !isObsoleteMissingRoomPreset(preset)),
           };
           const defaultShiftIds = new Set(DEFAULT_SHIFTS.map(shift => shift.id));
 
@@ -219,12 +284,14 @@ class DatabaseService {
           const customTemplates = (parsed.catalogTaskTemplates || []).filter((t: CatalogTaskTemplate) => t.isStandardTemplate === false);
           const mergedTemplates: CatalogTaskTemplate[] = [...ALBERTA_TASK_TEMPLATES, ...customTemplates];
 
+          const roomModel = migrateRoomModel(parsed.residents || [], parsed.rooms || [], parsed.occupancyPositions || [], parsed.residentPlacementHistory || []);
           const loadedState: AppDatabaseState = {
+            schemaVersion: CURRENT_SCHEMA_VERSION,
             facility: parsed.facility || DEFAULT_FACILITY,
             settings: migratedSettings,
             roles: loadedRoles,
             shifts: migratedShifts,
-            residents: parsed.residents || [],
+            ...roomModel,
             residentTasks: migratedResidentTasks,
             unitTasks: parsed.unitTasks || [],
             fyis: parsed.fyis || [],
@@ -251,14 +318,16 @@ class DatabaseService {
   }
 
   private saveToStorage(newState: AppDatabaseState): void {
-    this.state = newState;
+    const persistedState: AppDatabaseState = { ...newState, schemaVersion: CURRENT_SCHEMA_VERSION, revision: (this.state?.revision ?? newState.revision ?? 0) + 1 };
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState));
       }
     } catch (e) {
       console.error('Failed to save database state to localStorage:', e);
+      throw new Error('TaskSheet could not save this change to local storage. The previous data remains active. Check available disk space and Windows storage permissions, then try again.');
     }
+    this.state = persistedState;
     this.notifyListeners();
   }
 
@@ -278,6 +347,17 @@ class DatabaseService {
 
   public getState(): AppDatabaseState {
     return this.state;
+  }
+
+  public getRevision(): number { return this.state.revision ?? 0; }
+
+  private assertExpectedRevision(expectedRevision?: number): void {
+    if (expectedRevision !== undefined && expectedRevision !== (this.state.revision ?? 0)) throw new DomainConflictError({
+      status: 'BLOCKED', code: 'STALE_RECORD', title: 'This Schedule Has Changed',
+      message: 'Another TaskSheet action updated facility data after you opened this form. Reload the latest schedule, review the change, and try again so a newer assignment is not overwritten.',
+      context: { expectedRevision, currentRevision: this.state.revision ?? 0 },
+      recommendedActions: [{ id: 'reload', label: 'Reload Latest', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }],
+    });
   }
 
   // Facility & Settings
@@ -301,6 +381,9 @@ class DatabaseService {
   }
 
   public updateSettings(settings: Partial<FacilitySettings>): void {
+    if (settings.bathingCapacityPerShiftLine !== undefined && settings.bathingCapacityPerShiftLine !== this.state.settings.bathingCapacityPerShiftLine) {
+      assertValid(validateBathingCapacityChange(this.state, settings.bathingCapacityPerShiftLine));
+    }
     this.saveToStorage({
       ...this.state,
       settings: { ...this.state.settings, ...settings }
@@ -378,6 +461,8 @@ class DatabaseService {
   public addShift(shift: Omit<Shift, 'id' | 'createdAt' | 'updatedAt'>): Shift {
     const trimmedCode = shift.shortCode ? shift.shortCode.trim() : '';
     if (!trimmedCode) throw new Error('Shift Short Name / Code is required.');
+    assertValid(validateMilitaryTime(shift.startTime));
+    assertValid(validateMilitaryTime(shift.endTime));
     
     const isAct = shift.isActive !== false;
     if (isAct) {
@@ -426,6 +511,10 @@ class DatabaseService {
     const targetShortCode = (updates.shortCode !== undefined ? updates.shortCode : current.shortCode).trim();
 
     if (!targetShortCode) throw new Error('Shift Short Name / Code cannot be empty.');
+    const proposedStart = updates.startTime ?? current.startTime;
+    const proposedEnd = updates.endTime ?? current.endTime;
+    assertValid(validateMilitaryTime(proposedStart));
+    assertValid(validateMilitaryTime(proposedEnd));
 
     if (targetIsActive) {
       const conflict = this.state.shifts.find(s => 
@@ -438,6 +527,9 @@ class DatabaseService {
       }
     }
 
+    const impact = analyzeShiftChange(this.state, id, { ...updates, startTime: proposedStart, endTime: proposedEnd });
+    assertValid(impact);
+
     const updatedShift: Shift = {
       ...current,
       ...updates,
@@ -446,9 +538,12 @@ class DatabaseService {
       updatedAt: new Date().toISOString()
     };
 
+    const timesChanged = proposedStart !== current.startTime || proposedEnd !== current.endTime;
     this.saveToStorage({
       ...this.state,
-      shifts: this.state.shifts.map(s => s.id === id ? updatedShift : s)
+      shifts: this.state.shifts.map(s => s.id === id ? updatedShift : s),
+      residentTasks: timesChanged ? this.state.residentTasks.map(task => task.shiftId !== id ? task : task.timingType === 'start_of_shift' ? { ...task, time: proposedStart, updatedAt: new Date().toISOString() } : task.timingType === 'end_of_shift' ? { ...task, time: proposedEnd, updatedAt: new Date().toISOString() } : task.timingType === 'period' ? { ...task, time: undefined, isNoSpecificTime: true, updatedAt: new Date().toISOString() } : task) : this.state.residentTasks,
+      unitTasks: timesChanged ? this.state.unitTasks.map(task => task.shiftId !== id ? task : task.timingType === 'start_of_shift' ? { ...task, time: proposedStart, updatedAt: new Date().toISOString() } : task.timingType === 'end_of_shift' ? { ...task, time: proposedEnd, updatedAt: new Date().toISOString() } : task.timingType === 'period' ? { ...task, time: undefined, updatedAt: new Date().toISOString() } : task) : this.state.unitTasks,
     });
     return updatedShift;
   }
@@ -479,6 +574,10 @@ class DatabaseService {
     });
   }
 
+  public analyzeShiftDeactivation(id: string) {
+    return analyzeShiftDeactivation(this.state, id);
+  }
+
   public deactivateShift(id: string): void {
     this.updateShift(id, { isActive: false });
   }
@@ -488,6 +587,8 @@ class DatabaseService {
   }
 
   public deleteShift(id: string): { success: boolean; error?: string } {
+    const dependencyResult = analyzeShiftDeletion(this.state, id);
+    if (dependencyResult.status === 'BLOCKED') return { success: false, error: dependencyResult.message };
     const assignedResidentTasks = this.state.residentTasks.filter(t => t.shiftId === id && t.isActive !== false);
     const assignedUnitTasks = this.state.unitTasks.filter(u => u.shiftId === id && u.isActive !== false);
     const assignedWounds = this.state.wounds.filter(w => w.shiftId === id && (w.status === 'active' || w.status === 'healing'));
@@ -521,22 +622,123 @@ class DatabaseService {
 
   // Residents (with strict Room-Reuse Isolation)
   public addResident(resident: Omit<Resident, 'id'>): Resident {
+    const roomLabel = resident.roomNumber?.trim() || '';
+    if (CURRENT_OCCUPANCY_STATUSES.has(resident.status) && !roomLabel) {
+      throw new Error('Room / Occupancy Location is required for a current resident.');
+    }
+    let rooms = [...this.state.rooms];
+    let positions = [...this.state.occupancyPositions];
+    let position = positions.find(item => roomKey(item.displayLabel) === roomKey(roomLabel));
+    if (roomLabel && !position) {
+      const now = new Date().toISOString();
+      const room: FacilityRoom = { id: generateUUID(), physicalRoomLabel: roomLabel, active: true, mode: 'simple', createdAt: now, source: resident.source || 'manual' };
+      position = { id: generateUUID(), roomId: room.id, displayLabel: roomLabel, active: true, createdAt: now, source: resident.source || 'manual' };
+      rooms = [...rooms, room];
+      positions = [...positions, position];
+    }
+    if (position && position.active === false && CURRENT_OCCUPANCY_STATUSES.has(resident.status)) throw new Error(`${position.displayLabel} is inactive and cannot receive a resident.`);
+    const occupant = position && this.state.residents.find(item => item.occupancyPositionId === position!.id && CURRENT_OCCUPANCY_STATUSES.has(item.status));
+    if (occupant && CURRENT_OCCUPANCY_STATUSES.has(resident.status)) throw new Error(`${position!.displayLabel} is occupied by ${occupant.firstName} ${occupant.lastName}. Choose an available room / bed.`);
+    const id = generateUUID();
+    const now = new Date().toISOString();
     const newResident: Resident = {
       ...resident,
-      id: generateUUID(),
+      id,
+      roomNumber: position?.displayLabel || roomLabel,
+      occupancyPositionId: CURRENT_OCCUPANCY_STATUSES.has(resident.status) ? position?.id : undefined,
+      roomAssignmentNeedsReview: false,
       source: resident.source || 'manual'
     };
+    const history = position && CURRENT_OCCUPANCY_STATUSES.has(resident.status)
+      ? [...this.state.residentPlacementHistory, { id: generateUUID(), residentId: id, occupancyPositionId: position.id, displayLabel: position.displayLabel, startedAt: resident.admittedAt || now }]
+      : this.state.residentPlacementHistory;
     this.saveToStorage({
       ...this.state,
-      residents: [...this.state.residents, newResident]
+      residents: [...this.state.residents, newResident], rooms, occupancyPositions: positions, residentPlacementHistory: history,
     });
     return newResident;
   }
 
   public updateResident(id: string, updates: Partial<Resident>): void {
+    const current = this.state.residents.find(resident => resident.id === id);
+    if (!current) throw new Error('Resident not found.');
+    const nextStatus = updates.status || current.status;
+    const nextIsCurrent = CURRENT_OCCUPANCY_STATUSES.has(nextStatus);
+    const currentIsCurrent = CURRENT_OCCUPANCY_STATUSES.has(current.status);
+    const requestedLabel = updates.roomNumber !== undefined ? updates.roomNumber.trim() : current.roomNumber;
+    if (nextIsCurrent && !requestedLabel) throw new Error('Room / Occupancy Location is required before this resident can be active.');
+
+    let rooms = [...this.state.rooms];
+    let positions = [...this.state.occupancyPositions];
+    let target = positions.find(position => roomKey(position.displayLabel) === roomKey(requestedLabel));
+    if (requestedLabel && !target) {
+      const now = new Date().toISOString();
+      const room: FacilityRoom = { id: generateUUID(), physicalRoomLabel: requestedLabel, active: true, mode: 'simple', createdAt: now, source: 'manual' };
+      target = { id: generateUUID(), roomId: room.id, displayLabel: requestedLabel, active: true, createdAt: now, source: 'manual' };
+      rooms = [...rooms, room]; positions = [...positions, target];
+    }
+    if (nextIsCurrent && target?.active === false) throw new Error(`${target.displayLabel} is inactive and cannot receive a resident.`);
+    const occupant = target && this.state.residents.find(resident => resident.id !== id && resident.occupancyPositionId === target!.id && CURRENT_OCCUPANCY_STATUSES.has(resident.status));
+    if (nextIsCurrent && occupant) throw new Error(`${target!.displayLabel} is occupied by ${occupant.firstName} ${occupant.lastName}.`);
+
+    const changingPosition = nextIsCurrent && target?.id !== current.occupancyPositionId;
+    let history = this.state.residentPlacementHistory.map(item =>
+      item.residentId === id && !item.endedAt && (!nextIsCurrent || changingPosition) ? { ...item, endedAt: new Date().toISOString() } : item
+    );
+    if (nextIsCurrent && target && (!currentIsCurrent || changingPosition)) {
+      history = [...history, { id: generateUUID(), residentId: id, occupancyPositionId: target.id, displayLabel: target.displayLabel, startedAt: new Date().toISOString() }];
+    }
     this.saveToStorage({
       ...this.state,
-      residents: this.state.residents.map(r => r.id === id ? { ...r, ...updates } : r)
+      rooms, occupancyPositions: positions, residentPlacementHistory: history,
+      residents: this.state.residents.map(r => r.id === id ? {
+        ...r, ...updates,
+        roomNumber: target?.displayLabel || requestedLabel,
+        occupancyPositionId: nextIsCurrent ? target?.id : undefined,
+        roomAssignmentNeedsReview: false,
+      } : r)
+    });
+  }
+
+  public addRoom(displayLabel: string, options: { physicalRoomLabel?: string; positionLabel?: string; area?: string; source?: FacilityRoom['source'] } = {}): OccupancyPosition {
+    const label = displayLabel.trim();
+    if (!label) throw new Error('Room / Bed display label is required.');
+    if (this.state.occupancyPositions.some(position => roomKey(position.displayLabel) === roomKey(label))) throw new Error(`${label} already exists in Room Setup.`);
+    const now = new Date().toISOString();
+    const physical = options.physicalRoomLabel?.trim() || label;
+    let room = this.state.rooms.find(item => roomKey(item.physicalRoomLabel) === roomKey(physical));
+    const rooms = room ? this.state.rooms : [...this.state.rooms, room = { id: generateUUID(), physicalRoomLabel: physical, area: options.area?.trim() || undefined, active: true, mode: options.positionLabel ? 'structured' : 'simple', createdAt: now, source: options.source || 'manual' }];
+    const position: OccupancyPosition = { id: generateUUID(), roomId: room.id, positionLabel: options.positionLabel?.trim() || undefined, displayLabel: label, active: true, createdAt: now, source: options.source || 'manual' };
+    this.saveToStorage({ ...this.state, rooms, occupancyPositions: [...this.state.occupancyPositions, position] });
+    return position;
+  }
+
+  public addMultiOccupancyRoom(physicalRoomLabel: string, positionLabels: string[], area?: string, displayOverrides: Record<string, string> = {}): OccupancyPosition[] {
+    const base = physicalRoomLabel.trim();
+    const labels = [...new Set(positionLabels.map(label => label.trim()).filter(Boolean))];
+    if (!base || !labels.length) throw new Error('Physical room and at least one occupancy position are required.');
+    const displays = labels.map(label => (displayOverrides[label] || `${base}${label}`).trim());
+    const duplicate = displays.find(display => this.state.occupancyPositions.some(position => roomKey(position.displayLabel) === roomKey(display)));
+    if (duplicate) throw new Error(`${duplicate} already exists in Room Setup.`);
+    const now = new Date().toISOString();
+    const room: FacilityRoom = { id: generateUUID(), physicalRoomLabel: base, area: area?.trim() || undefined, active: true, mode: 'structured', createdAt: now, source: 'manual' };
+    const positions = labels.map((label, index): OccupancyPosition => ({ id: generateUUID(), roomId: room.id, positionLabel: label, displayLabel: displays[index], active: true, createdAt: now, source: 'manual' }));
+    this.saveToStorage({ ...this.state, rooms: [...this.state.rooms, room], occupancyPositions: [...this.state.occupancyPositions, ...positions] });
+    return positions;
+  }
+
+  public updateOccupancyPosition(id: string, updates: Partial<Pick<OccupancyPosition, 'displayLabel' | 'active'>>): void {
+    const current = this.state.occupancyPositions.find(position => position.id === id);
+    if (!current) throw new Error('Room / bed not found.');
+    const label = updates.displayLabel?.trim() || current.displayLabel;
+    if (this.state.occupancyPositions.some(position => position.id !== id && roomKey(position.displayLabel) === roomKey(label))) throw new Error(`${label} already exists.`);
+    const occupant = this.state.residents.find(resident => resident.occupancyPositionId === id && CURRENT_OCCUPANCY_STATUSES.has(resident.status));
+    if (updates.active === false && occupant) throw new Error(`${current.displayLabel} is occupied by ${occupant.firstName} ${occupant.lastName} and cannot be deactivated.`);
+    this.saveToStorage({
+      ...this.state,
+      occupancyPositions: this.state.occupancyPositions.map(position => position.id === id ? { ...position, ...updates, displayLabel: label, updatedAt: new Date().toISOString() } : position),
+      residents: this.state.residents.map(resident => resident.occupancyPositionId === id ? { ...resident, roomNumber: label } : resident),
+      residentPlacementHistory: this.state.residentPlacementHistory.map(item => item.occupancyPositionId === id && !item.endedAt ? { ...item, displayLabel: label } : item),
     });
   }
 
@@ -546,17 +748,23 @@ class DatabaseService {
       residents: this.state.residents.filter(r => r.id !== id),
       residentTasks: this.state.residentTasks.filter(t => t.residentId !== id),
       wounds: this.state.wounds.filter(w => w.residentId !== id),
-      fyis: this.state.fyis.filter(f => f.residentId !== id)
+      fyis: this.state.fyis.filter(f => f.residentId !== id),
+      residentPlacementHistory: this.state.residentPlacementHistory.filter(item => item.residentId !== id)
     });
   }
 
   // Resident Tasks
-  public addResidentTask(task: Omit<ResidentTask, 'id' | 'createdAt' | 'isActive'>): ResidentTask {
+  public addResidentTask(task: Omit<ResidentTask, 'id' | 'createdAt' | 'isActive'>, options: { expectedRevision?: number } = {}): ResidentTask {
+    this.assertExpectedRevision(options.expectedRevision);
+    const createdAt = new Date().toISOString();
+    const timingType = task.timingType || (task.isNoSpecificTime || !task.time ? 'period' : 'fixed');
+    assertValid(validateTaskAssignment(this.state, { ...task, kind: 'resident_task', title: task.title, frequency: task.frequency, createdAt, timingType }));
     const newTask: ResidentTask = {
       ...task,
+      timingType,
       id: generateUUID(),
       isActive: true,
-      createdAt: new Date().toISOString(),
+      createdAt,
       source: task.source || 'manual'
     };
     this.saveToStorage({
@@ -567,13 +775,14 @@ class DatabaseService {
   }
 
   public addMultipleResidentTasks(tasks: Array<Omit<ResidentTask, 'id' | 'createdAt' | 'isActive'>>): ResidentTask[] {
-    const newTasks: ResidentTask[] = tasks.map(t => ({
-      ...t,
-      id: generateUUID(),
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      source: t.source || 'manual'
-    }));
+    let simulated = this.state;
+    const newTasks: ResidentTask[] = tasks.map(t => {
+      const createdAt = new Date().toISOString(); const timingType = t.timingType || (t.isNoSpecificTime || !t.time ? 'period' : 'fixed');
+      assertValid(validateTaskAssignment(simulated, { ...t, kind: 'resident_task', title: t.title, frequency: t.frequency, createdAt, timingType }));
+      const created: ResidentTask = { ...t, timingType, id: generateUUID(), isActive: true, createdAt, source: t.source || 'manual' };
+      simulated = { ...simulated, residentTasks: [...simulated.residentTasks, created] };
+      return created;
+    });
     this.saveToStorage({
       ...this.state,
       residentTasks: [...this.state.residentTasks, ...newTasks]
@@ -581,10 +790,14 @@ class DatabaseService {
     return newTasks;
   }
 
-  public updateResidentTask(id: string, updates: Partial<ResidentTask>): void {
+  public updateResidentTask(id: string, updates: Partial<ResidentTask>, options: { expectedRevision?: number } = {}): void {
+    this.assertExpectedRevision(options.expectedRevision);
+    const current = this.state.residentTasks.find(task => task.id === id); if (!current) throw new Error('Resident task not found.');
+    const next = { ...current, ...updates, timingType: updates.timingType || current.timingType || ((updates.isNoSpecificTime ?? current.isNoSpecificTime) || !(updates.time ?? current.time) ? 'period' : 'fixed') };
+    if (next.isActive !== false) assertValid(validateTaskAssignment(this.state, { ...next, kind: 'resident_task' }));
     this.saveToStorage({
       ...this.state,
-      residentTasks: this.state.residentTasks.map(t => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t)
+      residentTasks: this.state.residentTasks.map(t => t.id === id ? { ...next, updatedAt: new Date().toISOString() } : t)
     });
   }
 
@@ -601,6 +814,8 @@ class DatabaseService {
   }
 
   public reactivateResidentTask(id: string): void {
+    const current = this.state.residentTasks.find(task => task.id === id); if (!current) throw new Error('Resident task not found.');
+    assertValid(validateTaskAssignment(this.state, { ...current, isActive: true, kind: 'resident_task' }));
     this.saveToStorage({
       ...this.state,
       residentTasks: this.state.residentTasks.map(t => t.id === id ? { 
@@ -624,6 +839,7 @@ class DatabaseService {
       createdAt: new Date().toISOString(),
       updatedAt: undefined
     };
+    assertValid(validateTaskAssignment(this.state, { ...newTask, kind: 'resident_task' }));
     this.saveToStorage({
       ...this.state,
       residentTasks: [...this.state.residentTasks, newTask]
@@ -639,12 +855,16 @@ class DatabaseService {
   }
 
   // Unit Tasks
-  public addUnitTask(task: Omit<UnitTask, 'id' | 'createdAt' | 'isActive'>): UnitTask {
+  public addUnitTask(task: Omit<UnitTask, 'id' | 'createdAt' | 'isActive'>, options: { expectedRevision?: number } = {}): UnitTask {
+    this.assertExpectedRevision(options.expectedRevision);
+    const createdAt = new Date().toISOString(); const timingType = task.timingType || (!task.time ? 'period' : 'fixed');
+    assertValid(validateTaskAssignment(this.state, { ...task, kind: 'unit_task', title: task.title, frequency: task.frequency, createdAt, timingType }));
     const newTask: UnitTask = {
       ...task,
+      timingType,
       id: generateUUID(),
       isActive: true,
-      createdAt: new Date().toISOString(),
+      createdAt,
       source: task.source || 'manual'
     };
     this.saveToStorage({
@@ -654,10 +874,14 @@ class DatabaseService {
     return newTask;
   }
 
-  public updateUnitTask(id: string, updates: Partial<UnitTask>): void {
+  public updateUnitTask(id: string, updates: Partial<UnitTask>, options: { expectedRevision?: number } = {}): void {
+    this.assertExpectedRevision(options.expectedRevision);
+    const current = this.state.unitTasks.find(task => task.id === id); if (!current) throw new Error('Unit task not found.');
+    const next = { ...current, ...updates, timingType: updates.timingType || current.timingType || (!(updates.time ?? current.time) ? 'period' : 'fixed') };
+    if (next.isActive !== false) assertValid(validateTaskAssignment(this.state, { ...next, kind: 'unit_task' }));
     this.saveToStorage({
       ...this.state,
-      unitTasks: this.state.unitTasks.map(u => u.id === id ? { ...u, ...updates, updatedAt: new Date().toISOString() } : u)
+      unitTasks: this.state.unitTasks.map(u => u.id === id ? { ...next, updatedAt: new Date().toISOString() } : u)
     });
   }
 
@@ -674,6 +898,8 @@ class DatabaseService {
   }
 
   public reactivateUnitTask(id: string): void {
+    const current = this.state.unitTasks.find(task => task.id === id); if (!current) throw new Error('Unit task not found.');
+    assertValid(validateTaskAssignment(this.state, { ...current, isActive: true, kind: 'unit_task' }));
     this.saveToStorage({
       ...this.state,
       unitTasks: this.state.unitTasks.map(u => u.id === id ? { 
@@ -697,6 +923,7 @@ class DatabaseService {
       createdAt: new Date().toISOString(),
       updatedAt: undefined
     };
+    assertValid(validateTaskAssignment(this.state, { ...newTask, kind: 'unit_task' }));
     this.saveToStorage({
       ...this.state,
       unitTasks: [...this.state.unitTasks, newTask]
@@ -714,6 +941,8 @@ class DatabaseService {
 
   // FYIs (Standing Info)
   public addFYI(fyi: Omit<FYI, 'id' | 'createdAt' | 'version' | 'status'>): FYI {
+    const duplicate = this.state.fyis.find(item => item.status === 'active' && item.residentId === fyi.residentId && item.roleId === fyi.roleId && item.shiftId === fyi.shiftId && item.text.trim().toLowerCase() === fyi.text.trim().toLowerCase());
+    if (duplicate) throw new DomainConflictError({ status: 'BLOCKED', code: 'DUPLICATE_FYI', title: 'Duplicate FYI', message: 'The same FYI already exists at this resident/role/shift scope. Edit the existing FYI instead of creating another copy.', affectedRecords: [{ id: duplicate.id, type: 'fyi', label: duplicate.text }], recommendedActions: [{ id: 'edit_existing', label: 'Edit Existing FYI', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] });
     const newFYI: FYI = {
       ...fyi,
       id: generateUUID(),
@@ -738,6 +967,10 @@ class DatabaseService {
   }
 
   public updateFYI(id: string, updates: Partial<FYI>): void {
+    const current = this.state.fyis.find(item => item.id === id); if (!current) throw new Error('FYI not found.');
+    const next = { ...current, ...updates };
+    const duplicate = this.state.fyis.find(item => item.id !== id && item.status === 'active' && item.residentId === next.residentId && item.roleId === next.roleId && item.shiftId === next.shiftId && item.text.trim().toLowerCase() === next.text.trim().toLowerCase());
+    if (duplicate) throw new DomainConflictError({ status: 'BLOCKED', code: 'DUPLICATE_FYI', title: 'Duplicate FYI', message: 'The same FYI already exists at this scope. Review the existing FYI before saving.' });
     const nextVersion = this.state.binderState.version + 1;
     this.saveToStorage({
       ...this.state,
@@ -780,7 +1013,14 @@ class DatabaseService {
   }
 
   // Wounds
-  public addWound(wound: Omit<Wound, 'id' | 'createdAt'>): Wound {
+  public addWound(wound: Omit<Wound, 'id' | 'createdAt'>, options: { expectedRevision?: number } = {}): Wound {
+    this.assertExpectedRevision(options.expectedRevision);
+    if (!wound.siteLocation.trim()) throw new DomainConflictError({ status: 'BLOCKED', code: 'DUPLICATE_WOUND', title: 'Wound Site Is Required', message: 'Enter the anatomical wound location before saving the protocol.' });
+    const duplicate = this.state.wounds.find(item => item.residentId === wound.residentId && ['active', 'healing'].includes(item.status) && item.siteLocation.trim().toLowerCase() === wound.siteLocation.trim().toLowerCase());
+    if (duplicate) throw new DomainConflictError({ status: 'BLOCKED', code: 'DUPLICATE_WOUND', title: 'Active Wound Already Exists', message: `${wound.siteLocation} already has an active wound protocol for this resident. Edit that protocol instead.`, affectedRecords: [{ id: duplicate.id, type: 'wound', label: duplicate.siteLocation }] });
+    assertValid(validateTaskAssignment(this.state, { ...wound, kind: 'wound', title: `Wound Care · ${wound.siteLocation}`, category: 'Wound Care', timingType: wound.timingType || (wound.time ? 'fixed' : 'period') }));
+    const inactiveSupply = (wound.supplies || []).find(selection => selection.catalogId && this.state.woundSupplyCatalog.find(product => product.id === selection.catalogId)?.isActive === false);
+    if (inactiveSupply) throw new DomainConflictError({ status: 'BLOCKED', code: 'CATALOG_ITEM_INACTIVE', title: 'Wound Supply Is Inactive', message: `${inactiveSupply.name} is inactive in the Wound Supply Catalog. Choose an active product or reactivate it before saving.` });
     const newWound: Wound = {
       ...wound,
       id: generateUUID(),
@@ -794,10 +1034,18 @@ class DatabaseService {
     return newWound;
   }
 
-  public updateWound(id: string, updates: Partial<Wound>): void {
+  public updateWound(id: string, updates: Partial<Wound>, options: { expectedRevision?: number } = {}): void {
+    this.assertExpectedRevision(options.expectedRevision);
+    const current = this.state.wounds.find(wound => wound.id === id); if (!current) throw new Error('Wound protocol not found.');
+    const next = { ...current, ...updates, updatedAt: new Date().toISOString() };
+    if (['active', 'healing'].includes(next.status)) {
+      const duplicate = this.state.wounds.find(item => item.id !== id && item.residentId === next.residentId && ['active', 'healing'].includes(item.status) && item.siteLocation.trim().toLowerCase() === next.siteLocation.trim().toLowerCase());
+      if (duplicate) throw new DomainConflictError({ status: 'BLOCKED', code: 'DUPLICATE_WOUND', title: 'Active Wound Already Exists', message: `${next.siteLocation} already has another active wound protocol.` });
+      assertValid(validateTaskAssignment(this.state, { ...next, kind: 'wound', title: `Wound Care · ${next.siteLocation}`, category: 'Wound Care', timingType: next.timingType || (next.time ? 'fixed' : 'period') }));
+    }
     this.saveToStorage({
       ...this.state,
-      wounds: this.state.wounds.map(w => w.id === id ? { ...w, ...updates } : w)
+      wounds: this.state.wounds.map(w => w.id === id ? next : w)
     });
   }
 
@@ -976,6 +1224,29 @@ class DatabaseService {
       cleanFYIs.length === 0 &&
       cleanWounds.length === 0;
 
+    const mergedResidents = [...cleanResidents, ...demo.residents];
+    const manualResidentIds = new Set(cleanResidents.map(resident => resident.id));
+    const demoCreatedAt = new Date().toISOString();
+    const demoRooms: FacilityRoom[] = [
+      { id: 'demo-room-101', physicalRoomLabel: '101', active: true, mode: 'structured', createdAt: demoCreatedAt, source: 'demo' },
+      { id: 'demo-room-l102', physicalRoomLabel: 'L102', active: true, mode: 'simple', createdAt: demoCreatedAt, source: 'demo' },
+      { id: 'demo-room-103', physicalRoomLabel: '103', active: true, mode: 'structured', createdAt: demoCreatedAt, source: 'demo' },
+    ];
+    const demoPositions: OccupancyPosition[] = [
+      { id: 'demo-position-101a', roomId: 'demo-room-101', positionLabel: 'A', displayLabel: '101A', active: true, createdAt: demoCreatedAt, source: 'demo' },
+      { id: 'demo-position-101b', roomId: 'demo-room-101', positionLabel: 'B', displayLabel: '101B', active: true, createdAt: demoCreatedAt, source: 'demo' },
+      { id: 'demo-position-l102', roomId: 'demo-room-l102', displayLabel: 'L102', active: true, createdAt: demoCreatedAt, source: 'demo' },
+      { id: 'demo-position-103lf', roomId: 'demo-room-103', positionLabel: 'LF', displayLabel: '103LF', active: true, createdAt: demoCreatedAt, source: 'demo' },
+    ];
+    const retainedRooms = this.state.rooms.filter(room => room.source !== 'demo');
+    const retainedPositions = this.state.occupancyPositions.filter(position => position.source !== 'demo');
+    const existingLabels = new Set(retainedPositions.map(position => roomKey(position.displayLabel)));
+    const roomModel = migrateRoomModel(
+      mergedResidents,
+      [...retainedRooms, ...demoRooms],
+      [...retainedPositions, ...demoPositions.filter(position => !existingLabels.has(roomKey(position.displayLabel)))],
+      this.state.residentPlacementHistory.filter(item => manualResidentIds.has(item.residentId)),
+    );
     this.saveToStorage({
       ...this.state,
       facility: activatesDemoWorkspace ? { ...DEFAULT_FACILITY } : this.state.facility,
@@ -983,7 +1254,7 @@ class DatabaseService {
         ? { ...this.state.settings, dataMode: 'demo', firstRunCompleted: true }
         : this.state.settings,
       shifts: [...manualShifts, ...demoShifts.map(shift => ({ ...shift }))],
-      residents: [...cleanResidents, ...demo.residents],
+      ...roomModel,
       residentTasks: [...cleanResidentTasks, ...demo.residentTasks],
       unitTasks: [...cleanUnitTasks, ...demo.unitTasks],
       fyis: [...cleanFYIs, ...demo.fyis],
@@ -993,28 +1264,61 @@ class DatabaseService {
     });
   }
 
+  /**
+   * Reassigns a non-demo task off a demo shift being removed so it is preserved
+   * rather than orphaned: shiftId is cleared and roleId is backfilled from the
+   * removed shift so the task still matches its role on future generation.
+   */
+  private static reassignOffRemovedDemoShift<T extends { source?: string; shiftId?: string; roleId?: string }>(
+    items: T[],
+    demoShiftRoleIds: Map<string, string>,
+  ): T[] {
+    return items
+      .filter(item => item.source !== 'demo')
+      .map(item => {
+        if (!item.shiftId || !demoShiftRoleIds.has(item.shiftId)) return item;
+        return { ...item, shiftId: undefined, roleId: item.roleId || demoShiftRoleIds.get(item.shiftId) };
+      });
+  }
+
   public clearDemoData(): void {
     if (this.state.settings.dataMode === 'demo') {
       this.startRealSetup();
       return;
     }
-    const demoShiftIds = new Set(
-      this.state.shifts.filter(shift => shift.source === 'demo').map(shift => shift.id)
+    const demoShiftRoleIds = new Map(
+      this.state.shifts.filter(shift => shift.source === 'demo').map(shift => [shift.id, shift.roleId] as const)
+    );
+    const retainedResidents = this.state.residents.filter(r => r.source !== 'demo');
+    const retainedResidentIds = new Set(retainedResidents.map(resident => resident.id));
+    const roomModel = migrateRoomModel(
+      retainedResidents,
+      this.state.rooms.filter(room => room.source !== 'demo'),
+      this.state.occupancyPositions.filter(position => position.source !== 'demo'),
+      this.state.residentPlacementHistory.filter(item => retainedResidentIds.has(item.residentId)),
     );
     this.saveToStorage({
       ...this.state,
       shifts: this.state.shifts.filter(shift => shift.source !== 'demo'),
-      residents: this.state.residents.filter(r => r.source !== 'demo'),
-      residentTasks: this.state.residentTasks.filter(t => t.source !== 'demo' && !demoShiftIds.has(t.shiftId)),
-      unitTasks: this.state.unitTasks.filter(u => u.source !== 'demo' && !demoShiftIds.has(u.shiftId)),
+      ...roomModel,
+      residentTasks: DatabaseService.reassignOffRemovedDemoShift(this.state.residentTasks, demoShiftRoleIds),
+      unitTasks: DatabaseService.reassignOffRemovedDemoShift(this.state.unitTasks, demoShiftRoleIds),
       fyis: this.state.fyis.filter(f => f.source !== 'demo'),
       wounds: this.state.wounds.filter(w => w.source !== 'demo')
     });
   }
 
   public startRealSetup(): void {
-    const demoShiftIds = new Set(
-      this.state.shifts.filter(shift => shift.source === 'demo').map(shift => shift.id)
+    const demoShiftRoleIds = new Map(
+      this.state.shifts.filter(shift => shift.source === 'demo').map(shift => [shift.id, shift.roleId] as const)
+    );
+    const retainedResidents = this.state.residents.filter(resident => resident.source !== 'demo');
+    const retainedResidentIds = new Set(retainedResidents.map(resident => resident.id));
+    const roomModel = migrateRoomModel(
+      retainedResidents,
+      this.state.rooms.filter(room => room.source !== 'demo'),
+      this.state.occupancyPositions.filter(position => position.source !== 'demo'),
+      this.state.residentPlacementHistory.filter(item => retainedResidentIds.has(item.residentId)),
     );
     this.saveToStorage({
       ...this.state,
@@ -1029,13 +1333,9 @@ class DatabaseService {
         },
       },
       shifts: this.state.shifts.filter(shift => shift.source !== 'demo'),
-      residents: this.state.residents.filter(resident => resident.source !== 'demo'),
-      residentTasks: this.state.residentTasks.filter(task =>
-        task.source !== 'demo' && !demoShiftIds.has(task.shiftId)
-      ),
-      unitTasks: this.state.unitTasks.filter(task =>
-        task.source !== 'demo' && !demoShiftIds.has(task.shiftId)
-      ),
+      ...roomModel,
+      residentTasks: DatabaseService.reassignOffRemovedDemoShift(this.state.residentTasks, demoShiftRoleIds),
+      unitTasks: DatabaseService.reassignOffRemovedDemoShift(this.state.unitTasks, demoShiftRoleIds),
       fyis: this.state.fyis.filter(fyi => fyi.source !== 'demo'),
       wounds: this.state.wounds.filter(wound => wound.source !== 'demo'),
       legacyCompletions: [],
@@ -1063,6 +1363,7 @@ class DatabaseService {
     this.saveToStorage({
       ...this.state,
       residents: [],
+      residentPlacementHistory: [],
       residentTasks: [],
       unitTasks: [],
       fyis: [],
@@ -1087,8 +1388,22 @@ class DatabaseService {
   public restoreDatabase(jsonString: string): void {
     try {
       const parsed = JSON.parse(jsonString);
-      if (!parsed.facility || !parsed.roles || !parsed.shifts) {
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Backup root must be a TaskSheet database object.');
+      if (!parsed.facility || typeof parsed.facility !== 'object' || !Array.isArray(parsed.roles) || !Array.isArray(parsed.shifts)) {
         throw new Error('Backup data is missing core schema objects (facility, roles, shifts).');
+      }
+      for (const collection of ['residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds'] as const) {
+        if (parsed[collection] !== undefined && !Array.isArray(parsed[collection])) throw new Error(`Backup field “${collection}” must be a list.`);
+        parsed[collection] = parsed[collection] || [];
+      }
+      if (parsed.shifts.some((shift: Shift) => !shift?.id || !shift?.roleId || validateMilitaryTime(shift.startTime).status === 'BLOCKED' || validateMilitaryTime(shift.endTime).status === 'BLOCKED')) {
+        throw new Error('Backup contains a shift with missing identity/role or invalid military time. No data was restored.');
+      }
+      for (const collection of ['shifts', 'residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds'] as const) {
+        const ids = (parsed[collection] as Array<{ id?: string }>).map(item => item?.id).filter(Boolean);
+        if (new Set(ids).size !== ids.length) {
+          throw new Error(`Backup field “${collection}” contains duplicate record IDs. No data was restored.`);
+        }
       }
       const restoredCollections = [parsed.residents, parsed.residentTasks, parsed.unitTasks, parsed.fyis, parsed.wounds];
       const hasDemoRecords = restoredCollections.some(items =>
@@ -1108,7 +1423,9 @@ class DatabaseService {
           medicationTimes: parsed.settings?.careTimingPresets?.medicationTimes || DEFAULT_CARE_TIMING_PRESETS.medicationTimes,
           mealTimes: parsed.settings?.careTimingPresets?.mealTimes || DEFAULT_CARE_TIMING_PRESETS.mealTimes,
         },
+        savedPrintPresets: (parsed.settings?.savedPrintPresets || []).filter((preset: { id?: string; name?: string; dataSource?: string; filters?: Array<{ field?: string; operator?: string }> }) => !isObsoleteMissingRoomPreset(preset)),
       };
+      parsed.schemaVersion = CURRENT_SCHEMA_VERSION;
       parsed.residentTasks = (parsed.residentTasks || []).map((task: ResidentTask) =>
         sanitizeLegacyCertificationTracking(task)
       );
@@ -1118,6 +1435,7 @@ class DatabaseService {
       }));
       parsed.woundSupplyCatalog = mergeWoundSupplyCatalog(parsed.woundSupplyCatalog);
       parsed.wounds = (parsed.wounds || []).map((wound: Wound) => migrateWoundStructure(wound, parsed.woundSupplyCatalog));
+      Object.assign(parsed, migrateRoomModel(parsed.residents || [], parsed.rooms || [], parsed.occupancyPositions || [], parsed.residentPlacementHistory || []));
       this.saveToStorage(parsed);
     } catch (e: any) {
       throw new Error(`Failed to restore database: ${e.message}`);

@@ -9,7 +9,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b tsconfig.app.json tsconfig.node.json",
     "build": "tsc -b && vite build",
     "verify:release": "npm run typecheck && npm test && npm run build",
     "dist:win": "npm run verify:release && node scripts/build-pilot-installer.cjs",

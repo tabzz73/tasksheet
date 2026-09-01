@@ -8,7 +8,7 @@
 # Test and coverage output
 test-results/
 playwright-report/
-coverage/
+/coverage/
 
 # Logs and diagnostics
 logs/

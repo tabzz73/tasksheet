@@ -151,6 +151,29 @@ export interface DetectionResult {
 }
 
 /**
+ * Heuristic catastrophic-backtracking guard for facility-entered patterns: rejects a
+ * quantified group that itself contains another quantifier (e.g. (a+)+, (\w*)+,
+ * ([a-z]+){2,}) — the classic ReDoS shape that can hang the JS thread on certain text.
+ */
+export function isUnsafeAttentionPattern(pattern: string): boolean {
+  return /\([^()]*[+*][^()]*\)\s*(?:[+*]|\{\s*\d+\s*,?\s*\d*\s*\})/.test(pattern);
+}
+
+/** Returns a user-facing error message if the pattern is empty, unsafe, or invalid; null if OK. */
+export function validateAttentionPattern(pattern: string): string | null {
+  if (!pattern.trim()) return 'Pattern cannot be empty.';
+  if (isUnsafeAttentionPattern(pattern)) {
+    return 'This pattern contains a nested repeated group (for example "(a+)+"), which can freeze the app while matching certain text. Simplify the pattern and try again.';
+  }
+  try {
+    new RegExp(pattern, 'i');
+  } catch {
+    return 'This is not a valid pattern. Check the syntax and try again.';
+  }
+  return null;
+}
+
+/**
  * Smart Attention Detection Engine
  * Analyzes title and instructions against catalog rules / facility rules.
  */
@@ -170,6 +193,7 @@ export function detectAttentionIndicators(
   let docRefNote: string | undefined = undefined;
 
   rules.filter(r => r.isActive).forEach(rule => {
+    if (isUnsafeAttentionPattern(rule.pattern)) return;
     try {
       const regex = new RegExp(rule.pattern, 'i');
       if (regex.test(text)) {

@@ -14,8 +14,9 @@ import {
 } from 'lucide-react';
 import { db } from '../../db';
 import { FacilityAttentionRule, TaskAttentionIndicator, MealRelation } from '../../types';
-import { DEFAULT_ATTENTION_RULES, getIndicatorBadgeDetails } from '../../services/attention';
+import { DEFAULT_ATTENTION_RULES, getIndicatorBadgeDetails, validateAttentionPattern } from '../../services/attention';
 import { Modal } from '../common/Modal';
+import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
 
 interface AttentionRulesTabProps {
   onShowFeedback: (type: 'success' | 'error', text: string) => void;
@@ -37,6 +38,7 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
   const [formMealRelation, setFormMealRelation] = useState<MealRelation | undefined>(undefined);
   const [formEquipmentNote, setFormEquipmentNote] = useState('');
   const [formDocRefNote, setFormDocRefNote] = useState('');
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   // Toggle Global Smart Suggestions
   const handleToggleGlobalSuggestions = () => {
@@ -83,6 +85,12 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
     e.preventDefault();
     if (!formName.trim() || !formPattern.trim() || formIndicators.length === 0) return;
 
+    const patternError = validateAttentionPattern(formPattern.trim());
+    if (patternError) {
+      onShowFeedback('error', patternError);
+      return;
+    }
+
     if (editingRule) {
       const updated = rules.map(r => 
         r.id === editingRule.id
@@ -120,10 +128,16 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
 
   // Reset to Factory Default Rules
   const handleReset = () => {
-    if (confirm('Reset Task Attention Rules to Alberta Standard Clinical rules?')) {
-      db.resetAttentionRules();
-      onShowFeedback('success', 'Reset Task Attention Rules to factory standards.');
-    }
+    setConfirmRequest({
+      title: 'Reset Attention Rules?',
+      message: 'Reset Task Attention Rules to Alberta Standard Clinical rules? This replaces the current rule list, including any custom rules, with the factory defaults.',
+      confirmLabel: 'Reset Rules',
+      tone: 'danger',
+      onConfirm: () => {
+        db.resetAttentionRules();
+        onShowFeedback('success', 'Reset Task Attention Rules to factory standards.');
+      },
+    });
   };
 
   const filteredRules = rules.filter(r => 
@@ -395,6 +409,8 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   );
 };

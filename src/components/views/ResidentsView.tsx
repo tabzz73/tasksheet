@@ -195,19 +195,21 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
   };
 
   const handleStatusChange = (residentId: string, newStatus: ResidentStatus) => {
-    db.updateResident(residentId, { status: newStatus });
-    setActiveMenuResidentId(null);
-    setResidentMenuPosition(null);
-    showToast(`Resident status updated to ${getResidentStatusLabel(newStatus)}.`);
+    try {
+      db.updateResident(residentId, { status: newStatus });
+      setActiveMenuResidentId(null); setResidentMenuPosition(null);
+      showToast(`Resident status updated to ${getResidentStatusLabel(newStatus)}.`);
+    } catch (error) { showToast((error as Error).message); }
   };
 
   const handleMoveRoomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!moveRoomResident || !newRoomInput.trim()) return;
-    db.updateResident(moveRoomResident.id, { roomNumber: newRoomInput.trim() });
-    showToast(`Moved ${moveRoomResident.firstName} ${moveRoomResident.lastName} to Room ${newRoomInput.trim()}.`);
-    setMoveRoomResident(null);
-    setNewRoomInput('');
+    try {
+      db.updateResident(moveRoomResident.id, { roomNumber: newRoomInput.trim() });
+      showToast(`Moved ${moveRoomResident.firstName} ${moveRoomResident.lastName} to Room ${newRoomInput.trim()}.`);
+      setMoveRoomResident(null); setNewRoomInput('');
+    } catch (error) { showToast((error as Error).message); }
   };
 
   // Group rooms for the "Rooms" view
@@ -238,6 +240,8 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {allResidents.some(resident => resident.roomAssignmentNeedsReview) && <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-950"><div className="flex items-center gap-2 font-black"><AlertTriangle className="h-4 w-4"/>Room assignment needs correction</div><p className="mt-1">{allResidents.filter(resident => resident.roomAssignmentNeedsReview).length} imported or migrated resident record(s) have a missing or conflicting occupancy assignment and are withheld from operational TaskSheets. Use Move Room to assign an available position.</p></div>}
 
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -745,17 +749,15 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
             <form onSubmit={handleMoveRoomSubmit} className="mt-4 space-y-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  New Room Number
+                  New Room / Occupancy Location
                 </label>
-                <input
-                  type="text"
+                <select
                   required
                   value={newRoomInput}
                   onChange={(e) => setNewRoomInput(e.target.value)}
-                  placeholder="e.g. 254, 329B"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm font-bold font-mono focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none"
                   autoFocus
-                />
+                ><option value={moveRoomResident.roomNumber}>{moveRoomResident.roomNumber} — Current</option>{state.occupancyPositions.filter(position => position.active !== false && !state.residents.some(resident => resident.id !== moveRoomResident.id && resident.occupancyPositionId === position.id && ['active','in_hospital','out_on_pass','on_hold'].includes(resident.status))).sort((a,b) => sortRoomNumbers(a.displayLabel,b.displayLabel)).filter(position => position.displayLabel !== moveRoomResident.roomNumber).map(position => <option key={position.id} value={position.displayLabel}>{position.displayLabel} — Available</option>)}</select>
               </div>
 
               <div className="flex items-center justify-end space-x-2 pt-2">

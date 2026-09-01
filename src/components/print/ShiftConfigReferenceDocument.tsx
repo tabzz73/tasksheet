@@ -11,7 +11,7 @@ export const ShiftConfigReferenceDocument: React.FC<ShiftConfigReferenceDocument
 
   return (
     <div className="tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs space-y-4" style={printPageStyle('shift-configuration')}>
-      <RepeatingPrintFooter pageName="shift-configuration" orientation="portrait" coverage={`As of ${formattedDate}`} generatedAt={model.generatedAt} />
+      <RepeatingPrintFooter pageName="shift-configuration" orientation="portrait" facilityName={facility.siteName} documentLabel="Shift Configuration" dateLabel={`Generated ${formattedDate}`} generatedAt={model.generatedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>

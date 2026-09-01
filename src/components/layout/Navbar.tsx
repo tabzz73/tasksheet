@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
 import { Shift, Facility } from '../../types';
+import { formatLocalDate, getTodayLocalDateString } from '../../services/recurrence';
 
 interface NavbarProps {
   currentDate: string;
@@ -15,28 +16,30 @@ export const Navbar: React.FC<NavbarProps> = ({
   onDateChange,
   facility,
 }) => {
-  const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const today = getTodayLocalDateString();
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = formatLocalDate(tomorrowDate);
 
   return (
-    <header className="relative z-30 h-16 shrink-0 bg-white border-b border-slate-200/90 px-6 flex items-center justify-between no-print shadow-xs">
+    <header className="relative z-30 min-h-16 shrink-0 bg-white border-b border-slate-200/90 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 no-print shadow-xs">
       {/* Left: Facility & Current Context */}
-      <div className="flex items-center space-x-3">
-        <div>
-          <div className="flex items-center space-x-2.5">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">{facility.siteName}</h2>
-            <span className="px-2.5 py-0.5 text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200/60 rounded-full">
+      <div className="flex items-center space-x-3 min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight truncate">{facility.siteName}</h2>
+            <span className="hidden md:inline-flex shrink-0 px-2.5 py-0.5 text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200/60 rounded-full">
               TaskSheet Generator
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="hidden sm:block text-xs text-slate-500 mt-0.5 truncate">
             {facility.city}, {facility.province} · Main: {facility.mainPhone}
           </p>
         </div>
       </div>
 
       {/* Right: Date Selector Buttons */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 shrink-0">
         <div className="flex items-center bg-slate-50 p-1 rounded-lg border border-slate-200/80 text-xs font-medium">
           <button
             type="button"

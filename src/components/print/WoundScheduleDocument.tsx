@@ -12,7 +12,7 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
 
   return (
     <div className="wound-schedule-document tasksheet-print-document bg-white text-slate-900 font-sans print:p-0 select-text text-xs" style={printPageStyle('wound-schedule')}>
-      <RepeatingPrintFooter pageName="wound-schedule" orientation="landscape" coverage={formattedDate} generatedAt={generatedAt} />
+      <RepeatingPrintFooter pageName="wound-schedule" orientation="landscape" facilityName={facility.siteName} documentLabel="Wound Treatment Schedule" dateLabel={formattedDate} generatedAt={generatedAt} />
       {/* ── HEADER ── */}
       <div className="border-b-2 border-slate-900 pb-2 mb-3 flex items-start justify-between">
         <div>

@@ -16,7 +16,6 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
     conciseShiftAlerts, 
     residentStatusExceptions,
     confidentialityNotice, 
-    developerFooter, 
     attentionLegend, 
     summary,
     handoffNotesLinesCount 
@@ -24,7 +23,6 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
   
   const isClinical = model.profile === 'clinical_worksheet';
   const pageName = `shift-${model.profile}-${header.shiftCode || header.shiftName}`;
-  const coverage = `${header.shiftCode || header.shiftName} · ${header.formattedDate} · ${header.shiftTime}`;
   const density = model.density || 'standard';
   const isLargePrint = model.largePrint || false;
 
@@ -254,7 +252,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
         lineHeight: 'var(--print-line-height)',
       }}
     >
-      <RepeatingPrintFooter pageName={pageName} orientation={isClinical ? 'landscape' : 'portrait'} coverage={coverage} generatedAt={model.generatedAt} />
+      <RepeatingPrintFooter pageName={pageName} orientation={isClinical ? 'landscape' : 'portrait'} facilityName={header.facility.siteName} documentLabel={isClinical ? 'LPN TaskSheet' : 'HCA TaskSheet'} dateLabel={header.formattedDate} secondaryLabel={`${header.shiftCode || header.shiftName} · ${header.shiftTime}`} generatedAt={model.generatedAt} />
       {/* ── OPTIONAL WATERMARK OVERLAY ── */}
       {header.watermarkStyle && header.watermarkStyle !== 'none' && (
         <div
@@ -595,37 +593,7 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
         </div>
       )}
 
-      {/* ── 6. CONFIDENTIALITY & METADATA FOOTER ── */}
-      <div
-        style={{
-          marginTop: '8pt',
-          paddingTop: '3pt',
-          borderTop: '0.5pt solid #cbd5e1',
-          fontSize: 'var(--print-footer-size)',
-          color: '#64748b',
-          breakInside: 'avoid',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>TaskSheet · {header.shiftShortCode || header.shiftName} · {summary.paperEfficiencyNote}</span>
-          <span>Generated {header.formattedDate}</span>
-          {developerFooter && <span>{developerFooter}</span>}
-        </div>
-        {confidentialityNotice && (
-          <div
-            style={{
-              textAlign: 'center',
-              marginTop: '2pt',
-              fontSize: 'var(--print-footer-size)',
-              color: '#94a3b8',
-              letterSpacing: '0.03em',
-              fontStyle: 'italic',
-            }}
-          >
-            {confidentialityNotice}
-          </div>
-        )}
-      </div>
+      {confidentialityNotice && <div style={{ marginTop: '8pt', fontSize: 'var(--print-footer-size)', color: '#64748b', textAlign: 'center', fontStyle: 'italic', breakInside: 'avoid' }}>{confidentialityNotice}</div>}
     </div>
   );
 };

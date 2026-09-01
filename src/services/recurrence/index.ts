@@ -19,6 +19,38 @@ export function getDaysDifference(date1Str: string, date2Str: string): number {
 }
 
 /**
+ * Extracts the LOCAL calendar date ('YYYY-MM-DD') a timestamp falls on.
+ *
+ * `createdAt` fields are stored as raw UTC instants (`new Date().toISOString()`).
+ * Taking the UTC date directly (`isoString.split('T')[0]`) is wrong as a
+ * recurrence anchor: in any negative-UTC-offset timezone, anything created in
+ * the local evening already has a UTC date of "tomorrow", which would make a
+ * same-day recurrence rule report as not yet due on the day it was created.
+ */
+export function localDateFromTimestamp(isoString: string): string {
+  return formatLocalDate(new Date(isoString));
+}
+
+/**
+ * Formats a Date as 'YYYY-MM-DD' using its LOCAL calendar date, not UTC.
+ * Use this (not `new Date().toISOString().split('T')[0]`) for "today"/"tomorrow"
+ * anywhere in the app — the ISO-split form reads the UTC date, which is already
+ * the next calendar day for the second half of every evening in any
+ * negative-UTC-offset timezone (all of North and South America).
+ */
+export function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Today's date as 'YYYY-MM-DD' in the local timezone. */
+export function getTodayLocalDateString(): string {
+  return formatLocalDate(new Date());
+}
+
+/**
  * Calculates the exact day of month (1-31) for an ordinal weekday (e.g. 1st Monday, 2nd Tuesday, last Friday).
  * month is 1-indexed (1=Jan, 12=Dec).
  * weekday is 0=Sun, 1=Mon ... 6=Sat.
@@ -102,7 +134,7 @@ export function isTaskDueOnDate(
     return true;
   }
 
-  const anchorDateStr = rule.startDate || rule.anchorDate || (rule.specificDate || (createdAtStr ? createdAtStr.split('T')[0] : targetDateStr));
+  const anchorDateStr = rule.startDate || rule.anchorDate || (rule.specificDate || (createdAtStr ? localDateFromTimestamp(createdAtStr) : targetDateStr));
   
   // Date boundaries: before start date -> not due
   if (targetDateStr < anchorDateStr) {
@@ -268,7 +300,7 @@ export function isRecurrenceScheduleEnded(
     return false;
   }
 
-  const anchorDateStr = rule.startDate || rule.anchorDate || (createdAtStr ? createdAtStr.split('T')[0] : referenceDateStr);
+  const anchorDateStr = rule.startDate || rule.anchorDate || (createdAtStr ? localDateFromTimestamp(createdAtStr) : referenceDateStr);
   if (referenceDateStr <= anchorDateStr) return false;
 
   const baseRule: RecurrenceRule = {
