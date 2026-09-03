@@ -240,7 +240,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
         <div style={{
           width: '100%', maxWidth: `${(packageModel ? 1056 : paperW) + 40}px`,
           display: 'flex', justifyContent: 'space-between',
-          padding: '12px 8px 10px', fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontFamily: 'sans-serif',
+          padding: '12px 8px 10px', fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontFamily: 'var(--font-body)',
         }}>
           <span>{subheaderText}</span>
           <span>TaskSheet Print Engine V2</span>
