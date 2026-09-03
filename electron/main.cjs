@@ -1,9 +1,13 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('node:path');
+const persistence = require('./persistence.cjs');
 
 const APP_ID = 'com.softvibesolutions.tasksheet';
 
 app.setAppUserModelId(APP_ID);
+
+ipcMain.handle('db:load', () => persistence.load(app.getPath('userData')));
+ipcMain.handle('db:save', (_event, state) => persistence.save(app.getPath('userData'), state));
 
 function createMainWindow() {
   const mainWindow = new BrowserWindow({
@@ -19,6 +23,7 @@ function createMainWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   });
 

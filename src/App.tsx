@@ -18,13 +18,14 @@ import { PrintPreviewPage } from './components/views/PrintPreviewPage';
 import { buildResidentCareSummaryModel } from './services/print/specializedDocs';
 import { getDemoState } from './services/demoMode';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
+import { PersistenceStatusBanner } from './components/layout/PersistenceStatusBanner';
 import { useDbState } from './app/useDbState';
 import { useNavigation } from './app/useNavigation';
 import { useModalOrchestration } from './app/useModalOrchestration';
 import { usePrintFlow } from './app/usePrintFlow';
 
 export function App() {
-  const dbState = useDbState();
+  const { dbState, isReady } = useDbState();
   const nav = useNavigation();
   const modal = useModalOrchestration({
     activeResidentId: nav.activeResidentId,
@@ -59,6 +60,17 @@ export function App() {
       onConfirm: () => db.clearDemoData(),
     });
   };
+
+  // Initial load from the Electron file store crosses an IPC boundary and
+  // isn't instant. The synchronous (browser/dev/test) adapter is always
+  // ready immediately, so this never renders outside the packaged app.
+  if (!isReady) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F6F8FA] text-sm font-semibold text-[#475569]">
+        Loading facility data…
+      </div>
+    );
+  }
 
   // Full-screen print preview replaces the entire app layout
   if (printFlow.printPreviewModel) {
@@ -110,6 +122,8 @@ export function App() {
           facility={dbState.facility}
           pendingChangesCount={dbState.binderState.pendingChangesCount}
         />
+
+        <PersistenceStatusBanner />
 
         <DemoModeBanner
           state={demoState}
