@@ -50,6 +50,15 @@ export function getTodayLocalDateString(): string {
   return formatLocalDate(new Date());
 }
 
+/** True when a date-bounded item is in its active window for `today`
+ *  (inclusive on both ends). Shared by resident attention items, FYIs, and
+ *  anything else with an optional start/end (or effective/expiry) date pair. */
+export function isWithinActiveWindow(startDate: string | undefined, endDate: string | undefined, today: string): boolean {
+  if (startDate && startDate > today) return false;
+  if (endDate && endDate < today) return false;
+  return true;
+}
+
 /**
  * Calculates the exact day of month (1-31) for an ordinal weekday (e.g. 1st Monday, 2nd Tuesday, last Friday).
  * month is 1-indexed (1=Jan, 12=Dec).

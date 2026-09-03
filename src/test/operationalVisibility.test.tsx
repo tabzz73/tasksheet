@@ -1,0 +1,89 @@
+// @vitest-environment jsdom
+import React from 'react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { GlobalAddModal } from '../components/modals/GlobalAddModal';
+import { AddResidentAttentionModal } from '../components/modals/AddResidentAttentionModal';
+import { db } from '../db';
+import { SHIFT_HCA_DAY_ID } from '../data/defaultData';
+import { ResidentFollowUpCard } from '../components/dashboard/DashboardWidgets';
+
+describe('Resident Task Dashboard/Huddle visibility (opt-in)', () => {
+  beforeEach(() => db.resetToDemoState());
+  afterEach(() => cleanup());
+
+  it('defaults both checkboxes unchecked and does not surface the task on the Dashboard unless flagged', () => {
+    const resident = db.addResident({ firstName: 'RAI', lastName: 'Case', roomNumber: '250', status: 'active' });
+    render(
+      <GlobalAddModal
+        isOpen
+        initialType="care_task"
+        contextResidentId={resident.id}
+        contextShiftId={SHIFT_HCA_DAY_ID}
+        onClose={() => undefined}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Show Advanced Options/i }));
+    const dashboardCheckbox = screen.getByRole('checkbox', { name: /Show on Dashboard \(Resident Follow-up\)/i });
+    const huddleCheckbox = screen.getByRole('checkbox', { name: 'Show in Huddle' });
+    expect(dashboardCheckbox).toHaveProperty('checked', false);
+    expect(huddleCheckbox).toHaveProperty('checked', false);
+  });
+
+  it('saves showOnDashboard/showInHuddle when checked, and the task then appears on the Resident Follow-up card', () => {
+    const resident = db.addResident({ firstName: 'RAI', lastName: 'Tracked', roomNumber: '251', status: 'active' });
+    render(
+      <GlobalAddModal
+        isOpen
+        initialType="care_task"
+        contextResidentId={resident.id}
+        contextShiftId={SHIFT_HCA_DAY_ID}
+        onClose={() => undefined}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText(/Search .* catalog/i), { target: { value: 'RAI Tracking' } });
+    fireEvent.click(screen.getByRole('button', { name: /Show Advanced Options/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Show on Dashboard \(Resident Follow-up\)/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Show in Huddle' }));
+
+    const appearsIn = screen.getByText('Appears in:').parentElement!.textContent!;
+    expect(appearsIn).toContain('Dashboard');
+    expect(appearsIn).toContain('Huddle');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Task' }));
+
+    const saved = db.getState().residentTasks.find(t => t.title === 'RAI Tracking');
+    expect(saved).toBeDefined();
+    expect(saved!.showOnDashboard).toBe(true);
+    expect(saved!.showInHuddle).toBe(true);
+
+    cleanup();
+    render(<ResidentFollowUpCard state={db.getState()} today="2026-09-03" onOpenResident={() => undefined} />);
+    expect(screen.getByText('RAI Tracking')).not.toBeNull();
+  });
+});
+
+describe('Resident Attention Dashboard/Huddle visibility', () => {
+  beforeEach(() => db.resetToDemoState());
+  afterEach(() => cleanup());
+
+  it('defaults Show on Dashboard checked and Show in Huddle unchecked; unchecking Dashboard removes it from the Dashboard card', () => {
+    render(<AddResidentAttentionModal isOpen onClose={() => undefined} onSaved={() => undefined} />);
+
+    const dashboardCheckbox = screen.getByRole('checkbox', { name: 'Show on Dashboard' });
+    const huddleCheckbox = screen.getByRole('checkbox', { name: 'Show in Huddle' });
+    expect(dashboardCheckbox).toHaveProperty('checked', true);
+    expect(huddleCheckbox).toHaveProperty('checked', false);
+
+    fireEvent.change(screen.getByLabelText("What's being tracked"), { target: { value: 'Sleep Tracking' } });
+    fireEvent.click(dashboardCheckbox);
+    fireEvent.click(huddleCheckbox);
+    fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
+
+    const stored = db.getState().residents.flatMap(r => r.attentionItems || []).find(a => a.type === 'Sleep Tracking');
+    expect(stored?.showOnDashboard).toBe(false);
+    expect(stored?.showInHuddle).toBe(true);
+  });
+});

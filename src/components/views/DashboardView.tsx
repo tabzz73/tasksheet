@@ -19,6 +19,7 @@ import { DEFAULT_DASHBOARD_LAYOUT } from '../../data/defaultData';
 import {
   AwayFromUnitCard,
   ResidentAttentionCard,
+  ResidentFollowUpCard,
   LatestFyiCard,
   UnitSituationCard,
   CodeOfMonthCard,
@@ -201,6 +202,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               return <UnitSituationCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} onNavigateToBinder={onNavigateToBinder} />;
             case 'resident_attention':
               return <ResidentAttentionCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
+            case 'resident_follow_up':
+              return <ResidentFollowUpCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
             case 'latest_fyi':
               return <LatestFyiCard key={w.id} state={state} today={currentDate} onNavigateToBinder={onNavigateToBinder} />;
             case 'away_from_unit':

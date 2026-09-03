@@ -1,6 +1,6 @@
 import { Resident, ResidentTask, UnitTask, FYI, Wound, Role, Shift, RecurrenceFrequency, RecurrenceRule } from '../../types';
 import { db } from '../../db';
-import { isTaskDueOnDate } from '../recurrence';
+import { isTaskDueOnDate, isWithinActiveWindow } from '../recurrence';
 import { isTimeWithinShift, parseMilitaryTime } from '../scheduling/timeWindow';
 import { getResidentStatusLabel, isResidentStatusException } from '../residentStatus';
 import { isCoverageActiveOnDate } from '../coverage';
@@ -249,13 +249,42 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
       return false;
     });
 
-    // FYIs for this resident (matching role/shift scope)
-    const fyis = state.fyis.filter(
+    // FYIs for this resident (matching role/shift scope, in their active window)
+    const residentFyis = state.fyis.filter(
       f => f.status === 'active' &&
            f.residentId === res.id &&
            (!f.roleId || f.roleId === role.id) &&
-           (!f.shiftId || f.shiftId === shiftId)
+           (!f.shiftId || f.shiftId === shiftId) &&
+           isWithinActiveWindow(f.effectiveDate, f.expiryDate, dateStr)
     );
+
+    // Resident attention items explicitly scoped to a shift/role, folded in as
+    // resident-scoped FYI entries so they reuse the exact same print/Shift
+    // Workspace rendering as FYIs — no parallel UI. Items with neither a
+    // role nor shift set stay Dashboard-only (they are not "relevant" to any
+    // one shift, so they don't get blasted onto every printed sheet).
+    const attentionFyis: FYI[] = (res.attentionItems || [])
+      .filter(item => item.active && (item.roleId || item.shiftId))
+      .filter(item => (!item.roleId || item.roleId === role.id) && (!item.shiftId || item.shiftId === shiftId))
+      .filter(item => isWithinActiveWindow(item.startDate, item.endDate, dateStr))
+      .map(item => ({
+        id: item.id,
+        residentId: res.id,
+        roleId: item.roleId,
+        shiftId: item.shiftId,
+        text: item.note ? `${item.type} — ${item.note}` : item.type,
+        category: 'general',
+        importance: item.importance || 'normal',
+        effectiveDate: item.startDate,
+        expiryDate: item.endDate,
+        version: 1,
+        status: 'active',
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        source: item.source,
+      }));
+
+    const fyis = [...residentFyis, ...attentionFyis];
 
     if (regularTasks.length > 0 || wounds.length > 0 || fyis.length > 0) {
       residentAssignments.push({ resident: res, tasks: regularTasks, wounds, fyis });
@@ -273,7 +302,8 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
     f => f.status === 'active' &&
          !f.residentId &&
          (!f.roleId || f.roleId === role.id) &&
-         (!f.shiftId || f.shiftId === shiftId)
+         (!f.shiftId || f.shiftId === shiftId) &&
+         isWithinActiveWindow(f.effectiveDate, f.expiryDate, dateStr)
   );
 
   const totalUnitTasks = shiftUnitTasks.length;

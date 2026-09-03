@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db';
-import { ROLE_HCA_ID } from '../data/defaultData';
+import { ROLE_HCA_ID, SHIFT_HCA_DAY_ID } from '../data/defaultData';
 import {
   isWithinActiveWindow,
   getActiveResidentAttentionItems,
   getAwayResidents,
   getDashboardFyis,
+  getResidentFollowUpTasks,
   getWoundAttentionItems,
   getTodaysBathingCount,
 } from '../services/dashboard';
@@ -73,6 +74,31 @@ describe('getActiveResidentAttentionItems', () => {
     const resident = db.getState().residents.find(r => r.status === 'active')!;
     expect(() => db.addResidentAttentionItem(resident.id, { type: '  ', startDate: '2026-09-03' })).toThrow(/required/i);
   });
+
+  it('sorts urgent/high importance items ahead of normal ones, then by room', () => {
+    db.clearAllOperationalData();
+    const today = '2026-09-03';
+    const roomB = db.addResident({ firstName: 'B', lastName: 'Room', roomNumber: '110', status: 'active' });
+    const roomA = db.addResident({ firstName: 'A', lastName: 'Room', roomNumber: '105', status: 'active' });
+    db.addResidentAttentionItem(roomB.id, { type: 'Normal Note', startDate: today, importance: 'normal' });
+    db.addResidentAttentionItem(roomA.id, { type: 'Urgent Note', startDate: today, importance: 'urgent' });
+    db.addResidentAttentionItem(roomA.id, { type: 'No Importance Set', startDate: today });
+
+    const active = getActiveResidentAttentionItems(db.getState(), today);
+    expect(active.map(e => e.item.type)).toEqual(['Urgent Note', 'No Importance Set', 'Normal Note']);
+  });
+
+  it('excludes an item explicitly marked showOnDashboard: false, but keeps ones with the flag unset (opt-out, preserving prior behavior)', () => {
+    db.clearAllOperationalData();
+    const today = '2026-09-03';
+    const resident = db.addResident({ firstName: 'C', lastName: 'Room', roomNumber: '120', status: 'active' });
+    db.addResidentAttentionItem(resident.id, { type: 'Hidden Item', startDate: today, showOnDashboard: false });
+    db.addResidentAttentionItem(resident.id, { type: 'Default Visible Item', startDate: today });
+
+    const types = getActiveResidentAttentionItems(db.getState(), today).map(e => e.item.type);
+    expect(types).not.toContain('Hidden Item');
+    expect(types).toContain('Default Visible Item');
+  });
 });
 
 describe('getAwayResidents', () => {
@@ -118,6 +144,19 @@ describe('getDashboardFyis', () => {
     for (let i = 0; i < 8; i++) db.addFYI({ text: `Note ${i}`, category: 'general', importance: 'normal', effectiveDate: today });
     expect(getDashboardFyis(db.getState(), today, 3)).toHaveLength(3);
   });
+
+  it('excludes an FYI explicitly marked showOnDashboard: false, but keeps ones with the flag unset (opt-out, preserving prior behavior)', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    db.addFYI({ text: 'Hidden from dashboard', category: 'general', importance: 'normal', effectiveDate: today, showOnDashboard: false });
+    db.addFYI({ text: 'Default visible', category: 'general', importance: 'normal', effectiveDate: today });
+    db.addFYI({ text: 'Explicitly visible', category: 'general', importance: 'normal', effectiveDate: today, showOnDashboard: true });
+
+    const texts = getDashboardFyis(db.getState(), today, 10).map(f => f.text);
+    expect(texts).not.toContain('Hidden from dashboard');
+    expect(texts).toContain('Default visible');
+    expect(texts).toContain('Explicitly visible');
+  });
 });
 
 describe('getWoundAttentionItems', () => {
@@ -133,6 +172,59 @@ describe('getWoundAttentionItems', () => {
     const items = getWoundAttentionItems(db.getState(), today);
     expect(items.some(i => i.wound.siteLocation === 'Heel')).toBe(true);
     expect(items.some(i => i.wound.siteLocation === 'Sacrum')).toBe(false);
+  });
+});
+
+describe('getResidentFollowUpTasks', () => {
+  const today = '2026-09-03';
+
+  it('only includes tasks explicitly marked showOnDashboard: true — opt-in, unlike FYI/Attention', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'F', lastName: 'One', roomNumber: '150', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Flagged Follow-up', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Routine Task', category: 'Care', time: '0900', frequency: 'daily' });
+
+    const titles = getResidentFollowUpTasks(db.getState(), today).map(e => e.task.title);
+    expect(titles).toEqual(['Flagged Follow-up']);
+  });
+
+  it('labels a task with no recurrence end date as "Active", one ending today as "Ends today", and one with a future end date as "Through <date>"', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'F', lastName: 'Two', roomNumber: '151', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'RAI Tracking', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Ends Today Task', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, recurrenceRule: { endDate: today, endType: 'on_date' } });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Through Sep 10', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, recurrenceRule: { endDate: '2026-09-10', endType: 'on_date' } });
+
+    const entries = getResidentFollowUpTasks(db.getState(), today);
+    const byTitle = Object.fromEntries(entries.map(e => [e.task.title, e]));
+    expect(byTitle['RAI Tracking'].dateLabel).toBe('Active');
+    expect(byTitle['Ends Today Task'].dateLabel).toBe('Ends today');
+    expect(byTitle['Ends Today Task'].endingSoon).toBe(true);
+    expect(byTitle['Through Sep 10'].dateLabel).toBe('Through Sep 10');
+    expect(byTitle['Through Sep 10'].endingSoon).toBe(false);
+  });
+
+  it('excludes a flagged task whose recurrence end date has already passed', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'F', lastName: 'Three', roomNumber: '152', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Expired Follow-up', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, recurrenceRule: { endDate: '2026-08-01', endType: 'on_date' } });
+
+    expect(getResidentFollowUpTasks(db.getState(), today)).toHaveLength(0);
+  });
+
+  it('sorts by priority (urgent/high before normal), then by room', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const roomB = db.addResident({ firstName: 'F', lastName: 'B', roomNumber: '160', status: 'active' });
+    const roomA = db.addResident({ firstName: 'F', lastName: 'A', roomNumber: '155', status: 'active' });
+    db.addResidentTask({ residentId: roomB.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Normal Priority', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'normal' });
+    db.addResidentTask({ residentId: roomA.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urgent Priority', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'urgent' });
+
+    const titles = getResidentFollowUpTasks(db.getState(), today).map(e => e.task.title);
+    expect(titles).toEqual(['Urgent Priority', 'Normal Priority']);
   });
 });
 

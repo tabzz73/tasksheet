@@ -8,13 +8,18 @@ import {
   BinderRoleSection,
   BinderShiftGroup,
 } from '../../components/print/FyiBinderPrintDocument';
-import { getTodayLocalDateString } from '../recurrence';
+import { getTodayLocalDateString, isWithinActiveWindow } from '../recurrence';
+
+/** A binder entry plus the resident/role/shift scope it was sourced from \u2014
+ *  common shape for both FYI records and resident attention items opted
+ *  into the binder, so both can be grouped/sorted with the same logic. */
+type BinderSourceItem = BinderFyiEntry & { residentId?: string; roleId?: string; shiftId?: string };
 
 function formatMilitary(start: string, end: string): string {
   return start + '\u2013' + end;
 }
 
-function toEntry(f: FYI): BinderFyiEntry {
+function toEntry(f: FYI): BinderSourceItem {
   return {
     id: f.id,
     category: f.category,
@@ -22,18 +27,46 @@ function toEntry(f: FYI): BinderFyiEntry {
     text: f.text,
     effectiveDate: f.effectiveDate,
     expiryDate: f.expiryDate,
+    residentId: f.residentId,
+    roleId: f.roleId,
+    shiftId: f.shiftId,
   };
 }
 
+/** Resident attention items the staff opted into the FYI Binder, shaped as
+ *  binder entries. Reuses the resident's own type/note/dates rather than a
+ *  second parallel rendering path. */
+function attentionItemsAsBinderEntries(state: AppDatabaseState, today: string): BinderSourceItem[] {
+  const entries: BinderSourceItem[] = [];
+  for (const resident of state.residents) {
+    for (const item of resident.attentionItems || []) {
+      if (!item.active || !item.includeInFyiBinder) continue;
+      if (!isWithinActiveWindow(item.startDate, item.endDate, today)) continue;
+      entries.push({
+        id: item.id,
+        category: item.type,
+        importance: item.importance || 'normal',
+        text: item.note ? `${item.type} \u2014 ${item.note}` : item.type,
+        effectiveDate: item.startDate,
+        expiryDate: item.endDate,
+        residentId: resident.id,
+        roleId: item.roleId,
+        shiftId: item.shiftId,
+      });
+    }
+  }
+  return entries;
+}
+
 function groupByResident(
-  fyis: FYI[],
+  items: BinderSourceItem[],
   residents: Resident[]
 ): { unitFyis: BinderFyiEntry[]; residentGroups: BinderResidentGroup[] } {
   const unitFyis: BinderFyiEntry[] = [];
   const resMap = new Map<string, { group: BinderResidentGroup; room: string }>();
 
   // Sort important first, then by room
-  const sorted = [...fyis].sort((a, b) => {
+  const sorted = [...items].sort((a, b) => {
     const aImp = a.importance === 'urgent' ? 0 : a.importance === 'high' ? 1 : 2;
     const bImp = b.importance === 'urgent' ? 0 : b.importance === 'high' ? 1 : 2;
     if (aImp !== bImp) return aImp - bImp;
@@ -47,12 +80,12 @@ function groupByResident(
 
   for (const f of sorted) {
     if (!f.residentId) {
-      unitFyis.push(toEntry(f));
+      unitFyis.push(f);
       continue;
     }
     const res = residents.find(r => r.id === f.residentId);
     if (!res) {
-      unitFyis.push(toEntry(f));
+      unitFyis.push(f);
       continue;
     }
     const key = f.residentId;
@@ -66,7 +99,7 @@ function groupByResident(
         },
       });
     }
-    resMap.get(key)!.group.fyis.push(toEntry(f));
+    resMap.get(key)!.group.fyis.push(f);
   }
 
   // Sort resident groups by room number naturally
@@ -85,10 +118,13 @@ export function buildFyiBinderPrintModel(
   const now = new Date().toISOString();
   const today = getTodayLocalDateString();
 
-  // Filter: only active, not expired
-  const activeFyis = state.fyis.filter(f => {
-    if (f.status !== 'active') return false;
-    if (f.expiryDate && f.expiryDate < today) return false;
+  // Filter: only active, not expired. Merges in resident attention items the
+  // staff explicitly opted into the binder, so both render through the same
+  // grouping/sorting logic below.
+  const activeFyis: BinderSourceItem[] = [
+    ...state.fyis.filter(f => f.status === 'active' && !(f.expiryDate && f.expiryDate < today)).map(toEntry),
+    ...attentionItemsAsBinderEntries(state, today),
+  ].filter(f => {
     if (scopeRoleId && f.roleId && f.roleId !== scopeRoleId) return false;
     if (scopeShiftId && f.shiftId && f.shiftId !== scopeShiftId) return false;
     return true;

@@ -1,15 +1,12 @@
-import { AppDatabaseState, FYI, Resident, ResidentAttentionItem, Wound } from '../types';
+import { AppDatabaseState, FYI, OperationalPriority, Resident, ResidentAttentionItem, ResidentTask, Wound } from '../types';
 import { getResidentStatusLabel } from './residentStatus';
 import { sortRoomNumbers } from './generator';
 import { buildBathingScheduleModel } from './print/specializedDocs';
+import { isWithinActiveWindow } from './recurrence';
 
-/** True when a date-bounded item is in its active window for `today`
- *  (inclusive on both ends). Shared by resident attention items and FYIs. */
-export function isWithinActiveWindow(startDate: string | undefined, endDate: string | undefined, today: string): boolean {
-  if (startDate && startDate > today) return false;
-  if (endDate && endDate < today) return false;
-  return true;
-}
+export { isWithinActiveWindow };
+
+const PRIORITY_RANK: Record<OperationalPriority, number> = { urgent: 0, high: 1, normal: 2 };
 
 export interface DashboardAttentionEntry {
   resident: Resident;
@@ -28,11 +25,16 @@ export function getActiveResidentAttentionItems(state: AppDatabaseState, today: 
   for (const resident of state.residents) {
     for (const item of resident.attentionItems || []) {
       if (!item.active) continue;
+      if (item.showOnDashboard === false) continue;
       if (!isWithinActiveWindow(item.startDate, item.endDate, today)) continue;
       entries.push({ resident, item, endingSoon: item.endDate === today || item.endDate === tomorrow });
     }
   }
-  return entries.sort((a, b) => sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber));
+  return entries.sort((a, b) => {
+    const rankDiff = PRIORITY_RANK[a.item.importance || 'normal'] - PRIORITY_RANK[b.item.importance || 'normal'];
+    if (rankDiff !== 0) return rankDiff;
+    return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
+  });
 }
 
 function addDays(dateStr: string, days: number): string {
@@ -61,11 +63,10 @@ export function getAwayResidents(state: AppDatabaseState): AwayResidentEntry[] {
  *  recently updated. Reuses the FYI Binder's own records — no second
  *  datastore. */
 export function getDashboardFyis(state: AppDatabaseState, today: string, limit = 5): FYI[] {
-  const importanceRank: Record<FYI['importance'], number> = { urgent: 0, high: 1, normal: 2 };
   return state.fyis
-    .filter(f => f.status === 'active' && isWithinActiveWindow(f.effectiveDate, f.expiryDate, today))
+    .filter(f => f.status === 'active' && f.showOnDashboard !== false && isWithinActiveWindow(f.effectiveDate, f.expiryDate, today))
     .sort((a, b) => {
-      const rankDiff = importanceRank[a.importance] - importanceRank[b.importance];
+      const rankDiff = PRIORITY_RANK[a.importance] - PRIORITY_RANK[b.importance];
       if (rankDiff !== 0) return rankDiff;
       return (b.updatedAt || b.createdAt).localeCompare(a.updatedAt || a.createdAt);
     })
@@ -93,6 +94,47 @@ export function getWoundAttentionItems(state: AppDatabaseState, today: string, r
     entries.push({ resident, wound, isNew: (wound.createdAt.split('T')[0]) >= cutoff });
   }
   return entries.sort((a, b) => sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber));
+}
+
+export interface ResidentFollowUpEntry {
+  resident: Resident;
+  task: ResidentTask;
+  /** "Active" (no end date), "Ends today", or "Through <date>" — derived
+   *  from the task's own recurrence end date, never a stored duplicate. */
+  dateLabel: string;
+  endingSoon: boolean;
+}
+
+function formatShortDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+}
+
+/** Resident Tasks the creator explicitly flagged with `showOnDashboard` —
+ *  time-limited or exception follow-up (RAI tracking, weight monitoring,
+ *  temporary behaviour tracking...) that the LPN shouldn't miss at huddle,
+ *  without turning every routine task into Dashboard noise. Reuses the
+ *  task's own `recurrenceRule` start/end dates rather than a second set of
+ *  date fields, and the task stays a Task — this only changes where staff
+ *  are reminded about it. */
+export function getResidentFollowUpTasks(state: AppDatabaseState, today: string): ResidentFollowUpEntry[] {
+  const tomorrow = addDays(today, 1);
+  const entries: ResidentFollowUpEntry[] = [];
+  for (const task of state.residentTasks) {
+    if (!task.isActive || task.showOnDashboard !== true) continue;
+    const start = task.recurrenceRule?.startDate;
+    const end = task.recurrenceRule?.endDate;
+    if (!isWithinActiveWindow(start, end, today)) continue;
+    const resident = state.residents.find(r => r.id === task.residentId);
+    if (!resident) continue;
+    const dateLabel = !end ? 'Active' : end === today ? 'Ends today' : `Through ${formatShortDate(end)}`;
+    entries.push({ resident, task, dateLabel, endingSoon: end === today || end === tomorrow });
+  }
+  return entries.sort((a, b) => {
+    const rankDiff = PRIORITY_RANK[a.task.priority || 'normal'] - PRIORITY_RANK[b.task.priority || 'normal'];
+    if (rankDiff !== 0) return rankDiff;
+    return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
+  });
 }
 
 /** Count of residents scheduled to bathe on `today`, reusing the exact same

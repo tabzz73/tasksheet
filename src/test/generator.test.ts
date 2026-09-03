@@ -1606,4 +1606,83 @@ describe('Alberta Standard Starter Catalog Tests', () => {
       expect(nameOnlyModel.header.shiftHeaderFormat).toBe('name_only');
     });
   });
+
+  describe('Resident Attention routing into the Shift Workspace / print', () => {
+    it('folds a shift-scoped attention item into that shift\'s assignment as an FYI-shaped entry', () => {
+      db.clearAllOperationalData();
+      const resident = db.addResident({ firstName: 'Attn', lastName: 'Scoped', roomNumber: '401', status: 'active' });
+      db.addResidentAttentionItem(resident.id, {
+        type: 'Increased Falls Observation',
+        note: 'Check q2h',
+        startDate: '2026-08-01',
+        shiftId: SHIFT_HCA_DAY_ID,
+        importance: 'high',
+      });
+
+      const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
+      const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
+      expect(assignment).toBeDefined();
+      expect(assignment!.fyis.some(f => f.text.includes('Increased Falls Observation') && f.importance === 'high')).toBe(true);
+    });
+
+    it('does not surface an unscoped (no shift/role) attention item on any shift', () => {
+      db.clearAllOperationalData();
+      const resident = db.addResident({ firstName: 'Attn', lastName: 'Unscoped', roomNumber: '402', status: 'active' });
+      db.addResidentAttentionItem(resident.id, { type: 'Sleep Tracking', startDate: '2026-08-01' });
+
+      const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
+      const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
+      expect(assignment?.fyis.some(f => f.text.includes('Sleep Tracking'))).toBeFalsy();
+    });
+
+    it('excludes an attention item scoped to a different shift', () => {
+      db.clearAllOperationalData();
+      const resident = db.addResident({ firstName: 'Attn', lastName: 'OtherShift', roomNumber: '403', status: 'active' });
+      db.addResidentAttentionItem(resident.id, {
+        type: 'Two-Person Transfer',
+        startDate: '2026-08-01',
+        shiftId: SHIFT_LPN_DAY_ID,
+      });
+
+      const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
+      const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
+      expect(assignment?.fyis.some(f => f.text.includes('Two-Person Transfer'))).toBeFalsy();
+    });
+  });
+
+  describe('FYI active-window filtering in generated shift sheets', () => {
+    it('excludes an expired FYI from the generated shift sheet', () => {
+      db.clearAllOperationalData();
+      const resident = db.addResident({ firstName: 'Fyi', lastName: 'Expired', roomNumber: '404', status: 'active' });
+      db.addFYI({
+        residentId: resident.id,
+        text: 'Expired note',
+        category: 'general',
+        importance: 'normal',
+        effectiveDate: '2026-08-01',
+        expiryDate: '2026-08-15',
+      });
+
+      const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
+      const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
+      expect(assignment?.fyis.some(f => f.text === 'Expired note')).toBeFalsy();
+    });
+
+    it('includes an FYI that is currently within its effective/expiry window', () => {
+      db.clearAllOperationalData();
+      const resident = db.addResident({ firstName: 'Fyi', lastName: 'Current', roomNumber: '405', status: 'active' });
+      db.addFYI({
+        residentId: resident.id,
+        text: 'Current note',
+        category: 'general',
+        importance: 'normal',
+        effectiveDate: '2026-08-20',
+        expiryDate: '2026-09-05',
+      });
+
+      const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
+      const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
+      expect(assignment?.fyis.some(f => f.text === 'Current note')).toBe(true);
+    });
+  });
 });

@@ -57,6 +57,7 @@ import { getResidentStatusLabel, isResidentCarePaused } from '../../services/res
 import { WoundSupplyPicker } from '../common/WoundSupplyPicker';
 import { createCoverageSnapshot, getCoverageDefinitions, normalizeCoverage } from '../../services/coverage';
 import { getTodayLocalDateString } from '../../services/recurrence';
+import { describeFyiRouting, describeTaskRouting } from '../../services/routingPreview';
 
 export type AddEntityType = 'care_task' | 'unit_task' | 'resident' | 'fyi' | 'wound';
 export type FormMode = 'add' | 'edit' | 'duplicate';
@@ -127,6 +128,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskTrackingConfig, setTaskTrackingConfig] = useState<ResidentTrackingConfig | undefined>(undefined);
   const [taskInstructions, setTaskInstructions] = useState('');
   const [taskPriority, setTaskPriority] = useState<TaskPriority>('normal');
+  const [taskShowOnDashboard, setTaskShowOnDashboard] = useState(false);
+  const [taskShowInHuddle, setTaskShowInHuddle] = useState(false);
   const [coverageType, setCoverageType] = useState('FUNDED');
   const [coverageStartDate, setCoverageStartDate] = useState('');
   const [coverageEndDate, setCoverageEndDate] = useState('');
@@ -162,6 +165,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [fyiImportance, setFyiImportance] = useState<'normal' | 'high' | 'urgent'>('normal');
   const [fyiScope, setFyiScope] = useState<'resident' | 'shared'>('resident');
   const [fyiRoleId, setFyiRoleId] = useState<string>('');
+  const [fyiEffectiveDate, setFyiEffectiveDate] = useState<string>(getTodayLocalDateString());
+  const [fyiExpiryDate, setFyiExpiryDate] = useState<string>('');
+  const [fyiShowOnDashboard, setFyiShowOnDashboard] = useState(true);
+  const [fyiShowInHuddle, setFyiShowInHuddle] = useState(false);
 
   // Form State: Wound
   const [woundSiteLocation, setWoundSiteLocation] = useState('');
@@ -225,6 +232,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskTrackingConfig(initialResidentTask.trackingConfig);
         setTaskInstructions(initialResidentTask.instructions || '');
         setTaskPriority(initialResidentTask.priority || 'normal');
+        setTaskShowOnDashboard(initialResidentTask.showOnDashboard === true);
+        setTaskShowInHuddle(initialResidentTask.showInHuddle === true);
         const coverage = normalizeCoverage(initialResidentTask.serviceCoverage);
         setCoverageType(coverage.type); setCoverageStartDate(coverage.startDate || ''); setCoverageEndDate(coverage.endDate || ''); setCoverageAdditional(Boolean(coverage.isAdditionalService)); setCoverageNote(coverage.note || '');
       } else if (initialUnitTask) {
@@ -263,6 +272,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setFyiImportance(initialFYI.importance);
         setFyiRoleId(initialFYI.roleId || '');
         setShiftId(initialFYI.shiftId || '');
+        setFyiEffectiveDate(initialFYI.effectiveDate);
+        setFyiExpiryDate(initialFYI.expiryDate || '');
+        setFyiShowOnDashboard(initialFYI.showOnDashboard !== false);
+        setFyiShowInHuddle(initialFYI.showInHuddle === true);
       } else {
         if (initialType) {
           setSelectedType(initialType);
@@ -293,6 +306,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskFrequency('daily');
         setTaskInstructions('');
         setTaskPriority('normal');
+        setTaskShowOnDashboard(false);
+        setTaskShowInHuddle(false);
         setCoverageType('FUNDED'); setCoverageStartDate(''); setCoverageEndDate(''); setCoverageAdditional(false); setCoverageNote('');
         setUnitTitle('');
         setUnitInstructions('');
@@ -301,6 +316,12 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setResRoomNumber('');
         setResNotes('');
         setFyiText('');
+        setFyiScope('resident');
+        setFyiRoleId('');
+        setFyiEffectiveDate(getTodayLocalDateString());
+        setFyiExpiryDate('');
+        setFyiShowOnDashboard(true);
+        setFyiShowInHuddle(false);
         setWoundSiteLocation('');
         const contextualClinicalShift = clinicalShifts.find(shift => shift.id === contextShiftId);
         setWoundShiftId(contextualClinicalShift?.id || clinicalShifts[0]?.id || '');
@@ -436,7 +457,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         attentionConfig: taskAttentionConfig,
         trackingConfig: taskTrackingConfig,
         instructions: taskInstructions.trim() || undefined,
-        priority: taskPriority
+        priority: taskPriority,
+        showOnDashboard: taskShowOnDashboard,
+        showInHuddle: taskShowInHuddle
         ,serviceCoverage
       }, { expectedRevision: state.revision });
     } else {
@@ -465,7 +488,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           attentionConfig: taskAttentionConfig,
           trackingConfig: taskTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
-          priority: taskPriority
+          priority: taskPriority,
+          showOnDashboard: taskShowOnDashboard,
+          showInHuddle: taskShowInHuddle
           ,serviceCoverage
         }, { expectedRevision: state.revision });
       } else {
@@ -484,7 +509,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           attentionConfig: taskAttentionConfig,
           trackingConfig: taskTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
-          priority: taskPriority
+          priority: taskPriority,
+          showOnDashboard: taskShowOnDashboard,
+          showInHuddle: taskShowInHuddle
           ,serviceCoverage
         }, { expectedRevision: state.revision });
       }
@@ -567,7 +594,11 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         shiftId: shiftId || undefined,
         text: fyiText.trim(),
         category: fyiCategory,
-        importance: fyiImportance
+        importance: fyiImportance,
+        effectiveDate: fyiEffectiveDate,
+        expiryDate: fyiExpiryDate || undefined,
+        showOnDashboard: fyiShowOnDashboard,
+        showInHuddle: fyiShowInHuddle,
       });
     } else {
       db.addFYI({
@@ -577,7 +608,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         text: fyiText.trim(),
         category: fyiCategory,
         importance: fyiImportance,
-        effectiveDate: getTodayLocalDateString()
+        showOnDashboard: fyiShowOnDashboard,
+        showInHuddle: fyiShowInHuddle,
+        effectiveDate: fyiEffectiveDate,
+        expiryDate: fyiExpiryDate || undefined,
       });
     } } catch (error) { captureMutationError(error); return; }
 
@@ -1211,6 +1245,30 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                   </div>
                 </div>
 
+                {/* Dashboard / Huddle Visibility — opt-in, for exception follow-up like
+                    RAI/weight/behaviour tracking, not routine tasks. */}
+                <div className="pt-2 border-t border-hairline-strong space-y-1.5">
+                  <span className="font-bold text-ink-soft block">Dashboard &amp; Huddle Visibility:</span>
+                  <label className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
+                    <input
+                      type="checkbox"
+                      checked={taskShowOnDashboard}
+                      onChange={(e) => setTaskShowOnDashboard(e.target.checked)}
+                      className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
+                    />
+                    <span>Show on Dashboard (Resident Follow-up)</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
+                    <input
+                      type="checkbox"
+                      checked={taskShowInHuddle}
+                      onChange={(e) => setTaskShowInHuddle(e.target.checked)}
+                      className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
+                    />
+                    <span>Show in Huddle</span>
+                  </label>
+                </div>
+
                 {/* Manual Attention Indicators Selector */}
                 <div className="pt-2 border-t border-hairline-strong space-y-2">
                   <span className="font-bold text-ink-soft block">Manual Attention & Safety Flags:</span>
@@ -1256,6 +1314,11 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </div>
             )}
           </div>
+
+          <p className="text-[11px] text-muted">
+            <span className="font-bold text-ink-soft">Appears in: </span>
+            {describeTaskRouting(state, { shiftId: shiftId || undefined, roleId: roleId || undefined, showOnDashboard: taskShowOnDashboard, showInHuddle: taskShowInHuddle }).join(' · ')}
+          </p>
 
           {/* Submit Button */}
           <div className="pt-2 flex justify-end space-x-3">
@@ -1406,6 +1469,11 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
           </div>
+
+          <p className="text-[11px] text-muted">
+            <span className="font-bold text-ink-soft">Appears in: </span>
+            {describeTaskRouting(state, { shiftId: shiftId || undefined, roleId: roleId || undefined }).join(' · ')}
+          </p>
 
           {/* Submit Button */}
           <div className="pt-2 flex justify-end space-x-3">
@@ -1581,6 +1649,111 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </select>
             </div>
           </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              Scope
+            </label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setFyiScope('resident')} className={`flex-1 px-3 py-2 rounded-control text-sm font-semibold border ${fyiScope === 'resident' ? 'bg-accent-soft border-accent text-accent-strong' : 'border-hairline-strong text-ink-soft'}`}>
+                Specific Resident
+              </button>
+              <button type="button" onClick={() => setFyiScope('shared')} className={`flex-1 px-3 py-2 rounded-control text-sm font-semibold border ${fyiScope === 'shared' ? 'bg-accent-soft border-accent text-accent-strong' : 'border-hairline-strong text-ink-soft'}`}>
+                Unit-wide / Shared
+              </button>
+            </div>
+          </div>
+
+          {fyiScope === 'resident' && (
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Resident <span className="text-danger">*</span>
+              </label>
+              <select
+                value={residentId}
+                onChange={(e) => setResidentId(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+              >
+                <option value="">Select resident or room...</option>
+                {residents.map(r => (
+                  <option key={r.id} value={r.id}>
+                    Room {r.roomNumber} — {r.lastName}, {r.firstName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Relevant Shift (optional)
+              </label>
+              <select
+                value={shiftId}
+                onChange={(e) => setShiftId(e.target.value)}
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+              >
+                <option value="">Any shift</option>
+                {shifts.map(s => <option key={s.id} value={s.id}>{s.shortCode ? `${s.shortCode} — ` : ''}{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Relevant Role (optional)
+              </label>
+              <select
+                value={fyiRoleId}
+                onChange={(e) => setFyiRoleId(e.target.value)}
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+              >
+                <option value="">Any role</option>
+                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Effective Date
+              </label>
+              <input
+                type="date"
+                value={fyiEffectiveDate}
+                onChange={(e) => setFyiEffectiveDate(e.target.value)}
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Expires (optional)
+              </label>
+              <input
+                type="date"
+                min={fyiEffectiveDate}
+                value={fyiExpiryDate}
+                onChange={(e) => setFyiExpiryDate(e.target.value)}
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink-soft">
+              <input type="checkbox" checked={fyiShowOnDashboard} onChange={(e) => setFyiShowOnDashboard(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
+              Show on Dashboard
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink-soft">
+              <input type="checkbox" checked={fyiShowInHuddle} onChange={(e) => setFyiShowInHuddle(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
+              Show in Huddle
+            </label>
+          </div>
+
+          <p className="text-[11px] text-muted">
+            <span className="font-bold text-ink-soft">Appears in: </span>
+            {describeFyiRouting(state, { residentId: fyiScope === 'resident' ? residentId : undefined, roleId: fyiRoleId || undefined, shiftId: shiftId || undefined, showOnDashboard: fyiShowOnDashboard, showInHuddle: fyiShowInHuddle }).join(' · ')}
+          </p>
 
           <div className="pt-2 flex justify-end space-x-3">
             <button

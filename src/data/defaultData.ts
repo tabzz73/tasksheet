@@ -309,6 +309,7 @@ export const DEFAULT_EMERGENCY_CODES: EmergencyCode[] = [
 export const DEFAULT_DASHBOARD_LAYOUT: DashboardWidgetConfig[] = [
   { id: 'unit_situation', visible: true },
   { id: 'resident_attention', visible: true },
+  { id: 'resident_follow_up', visible: true },
   { id: 'latest_fyi', visible: true },
   { id: 'away_from_unit', visible: true },
   { id: 'code_of_month', visible: true },

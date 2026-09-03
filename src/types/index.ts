@@ -54,7 +54,12 @@ export interface TaskServiceCoverage {
   note?: string;
 }
 
-export type TaskPriority = 'normal' | 'high' | 'urgent';
+/** Shared priority vocabulary for anything staff might need to notice —
+ *  FYIs, Resident Attention items, and Resident Tasks all use this same
+ *  three-tier scale so "how important is this" means one thing app-wide. */
+export type OperationalPriority = 'normal' | 'high' | 'urgent';
+
+export type TaskPriority = OperationalPriority;
 
 export type PrintProfile = 'role_default' | 'simple_checklist' | 'clinical_worksheet';
 
@@ -307,7 +312,8 @@ export type DashboardWidgetId =
   | 'latest_fyi'
   | 'code_of_month'
   | 'todays_bathing'
-  | 'wound_attention';
+  | 'wound_attention'
+  | 'resident_follow_up';
 
 export interface DashboardWidgetConfig {
   id: DashboardWidgetId;
@@ -389,6 +395,21 @@ export interface ResidentAttentionItem {
   endDate?: string;
   /** Manually ended early (independent of endDate). Historical items are kept, not deleted. */
   active: boolean;
+  /** Optional relevant role/shift — when set, the item is also surfaced on that
+   *  shift's Shift Workspace/print, the same way resident-scoped FYIs are. Unset
+   *  means "relevant to any shift caring for this resident". */
+  roleId?: UUID;
+  shiftId?: UUID;
+  /** Drives Dashboard/huddle sort order alongside FYIs. Defaults to 'normal'. */
+  importance?: OperationalPriority;
+  /** Opt-in: also include this item in the resident's FYI Binder section. */
+  includeInFyiBinder?: boolean;
+  /** Dashboard "Resident Attention" inclusion. Unset means shown — preserves
+   *  the original always-shown behavior for every item created before this
+   *  flag existed. */
+  showOnDashboard?: boolean;
+  /** Reserved for the future Huddle View; not yet consumed anywhere. */
+  showInHuddle?: boolean;
   createdAt: string;
   updatedAt?: string;
   source?: 'manual' | 'demo';
@@ -506,6 +527,14 @@ export interface ResidentTask {
   priority?: TaskPriority;
   attentionConfig?: TaskAttentionConfig;
   trackingConfig?: ResidentTrackingConfig;
+  /** Opt-in — surfaces this task on the Dashboard's "Resident Follow-up" card
+   *  (e.g. RAI tracking, weight monitoring, temporary behaviour tracking).
+   *  Unlike FYI/Resident Attention, most tasks are routine, so this defaults
+   *  to NOT shown unless explicitly flagged. The active window is read from
+   *  `recurrenceRule.startDate`/`endDate` — no separate date fields needed. */
+  showOnDashboard?: boolean;
+  /** Reserved for the future Huddle View; not yet consumed anywhere. */
+  showInHuddle?: boolean;
   isActive: boolean;
   stoppedAt?: string;
   createdAt: string;
@@ -564,9 +593,15 @@ export interface FYI {
   shiftId?: UUID;    // Optional: specific shift scope or all
   text: string;
   category: FYICategory;
-  importance: 'normal' | 'high' | 'urgent';
+  importance: OperationalPriority;
   effectiveDate: string;
   expiryDate?: string;
+  /** Dashboard "Latest FYI" inclusion. Unset means shown — preserves the
+   *  original always-shown behavior for every FYI created before this flag
+   *  existed. */
+  showOnDashboard?: boolean;
+  /** Reserved for the future Huddle View; not yet consumed anywhere. */
+  showInHuddle?: boolean;
   version: number;
   status: 'active' | 'archived';
   createdAt: string;
