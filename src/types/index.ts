@@ -258,6 +258,32 @@ export interface SavedPrintPreset {
   updatedAt?: string;
 }
 
+export type SavedPrintPackageItemType = 'shift_document' | 'bathing_grid' | 'wound_schedule' | 'fyi_binder' | 'blank_template';
+
+/** One document to generate as part of a saved package. Configuration only —
+ *  never stores rendered content, resident data, or task snapshots. */
+export interface SavedPrintPackageItem {
+  id: string;
+  type: SavedPrintPackageItemType;
+  /** shift_document only — references Shift.id. Print profile (checklist vs
+   *  clinical worksheet) is always derived from the shift's role at print
+   *  time, never stored, so a role change is reflected automatically. */
+  shiftId?: string;
+  /** fyi_binder only — optional shift scope. Omitted means facility-wide. */
+  scopeShiftId?: string;
+}
+
+/** A facility-defined, reusable combination of existing print documents.
+ *  Structure only — always resolved against the current Print Center date
+ *  and current shift/resident/FYI/wound data at generation time. */
+export interface SavedPrintPackage {
+  id: string;
+  name: string;
+  items: SavedPrintPackageItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface FacilitySettings {
   timezone: string;
   timeFormat: '24h' | '12h';
@@ -275,6 +301,8 @@ export interface FacilitySettings {
   careTimingPresets?: FacilityCareTimingSettings;
   /** User-defined report configurations only; generated resident content is never stored. */
   savedPrintPresets?: SavedPrintPreset[];
+  /** Facility-defined Print Packages (structure only — see SavedPrintPackage). */
+  savedPrintPackages?: SavedPrintPackage[];
   /** Default capacity per bathing shift line/day for weekly planning. */
   bathingCapacityPerShiftLine?: number;
   /** Explicit bathing-capable shift lines. Defaults to active HCA plus currently assigned bathing shifts. */

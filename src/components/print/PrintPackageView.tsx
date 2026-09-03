@@ -3,6 +3,7 @@ import { PrintPackageModel } from '../../services/print/packages';
 import { PrintDocumentView } from './PrintDocumentView';
 import { BathingScheduleDocument } from './BathingScheduleDocument';
 import { WoundScheduleDocument } from './WoundScheduleDocument';
+import { FyiBinderPrintDocument } from './FyiBinderPrintDocument';
 
 interface PrintPackageViewProps {
   packageModel: PrintPackageModel;
@@ -50,6 +51,7 @@ export const PrintPackageView: React.FC<PrintPackageViewProps> = ({ packageModel
               {item.shiftModel && <PrintDocumentView document={item.shiftModel} />}
               {item.bathingModel && <BathingScheduleDocument model={item.bathingModel} />}
               {item.woundModel && <WoundScheduleDocument model={item.woundModel} />}
+              {item.fyiBinderModel && <FyiBinderPrintDocument model={item.fyiBinderModel} />}
             </div>
           </div>
         );

@@ -297,4 +297,59 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.locator('[data-weekday="Monday"]').first()).toBeVisible();
     await expect(page.locator('[data-weekday="Sunday"]').first()).toBeVisible();
   });
+
+  test('Journey 12 — Create, edit, and generate a Saved Print Package', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /Print Center/i }).first().click();
+    await expect(page.getByRole('heading', { name: 'Print Center' })).toBeVisible();
+    await expect(page.getByText('Built In')).toBeVisible();
+
+    // Create a new saved package with two documents.
+    await page.getByRole('button', { name: 'New Package' }).click();
+    await expect(page.getByRole('heading', { name: 'New Print Package' })).toBeVisible();
+    await page.getByLabel('Package Name').fill('Shift Huddle Package');
+    await page.getByLabel('Document type to add').selectOption('wound_schedule');
+    await page.getByRole('button', { name: 'Add Document' }).click();
+    await page.getByLabel('Document type to add').selectOption('fyi_binder');
+    await page.getByRole('button', { name: 'Add Document' }).click();
+    await expect(page.getByRole('listitem')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Create Package' }).click();
+
+    // It appears under Saved Packages.
+    await expect(page.getByText('Shift Huddle Package')).toBeVisible();
+    await expect(page.getByText('2 documents')).toBeVisible();
+
+    // Edit it: remove one document, rename it.
+    await page.getByRole('button', { name: 'Edit Shift Huddle Package' }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Print Package' })).toBeVisible();
+    await page.getByRole('button', { name: /remove/i }).first().click();
+    await page.getByLabel('Package Name').fill('Shift Huddle — Renamed');
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+    await expect(page.getByText('Shift Huddle — Renamed')).toBeVisible();
+    await expect(page.getByText('1 document', { exact: true })).toBeVisible();
+
+    // Generate it — opens the shared package preview/print path. It's the
+    // only saved package at this point, so its "Generate Package" button is
+    // the last one on the page (after the two built-ins).
+    await page.getByRole('button', { name: 'Generate Package' }).last().click();
+    await expect(page.getByText('Shift Huddle — Renamed').first()).toBeVisible();
+    await expect(page.getByText(/1 Bundled Document/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Print Complete Package' })).toBeVisible();
+    await page.getByRole('button', { name: 'Back' }).click();
+
+    // Duplicate the built-in HCA Daily Package into an editable saved package.
+    await expect(page.getByRole('heading', { name: 'Print Center' })).toBeVisible();
+    await page.getByRole('button', { name: 'Duplicate', exact: true }).first().click();
+    await expect(page.getByRole('heading', { name: 'New Print Package' })).toBeVisible();
+    await expect(page.getByLabel('Package Name')).toHaveValue('HCA Daily Package (Copy)');
+    await expect(page.getByRole('listitem').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Create Package' }).click();
+    await expect(page.getByText('HCA Daily Package (Copy)')).toBeVisible();
+
+    // Delete a saved package requires confirmation.
+    await page.getByRole('button', { name: 'Delete Shift Huddle — Renamed' }).click();
+    await expect(page.getByRole('heading', { name: 'Delete Print Package?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Delete Package' }).click();
+    await expect(page.getByText('Shift Huddle — Renamed')).toHaveCount(0);
+  });
 });

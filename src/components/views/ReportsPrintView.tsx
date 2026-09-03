@@ -69,10 +69,22 @@ import {
   buildWhatChangedModel, 
   TaskSnapshotItem 
 } from '../../services/printHistory';
-import { PrintPackageModel, buildHcaDailyPackage, buildLpnClinicalPackage } from '../../services/print/packages';
+import {
+  PrintPackageModel,
+  buildHcaDailyPackage,
+  buildLpnClinicalPackage,
+  buildSavedPrintPackageModel,
+  listSavedPrintPackages,
+  saveSavedPrintPackage,
+  deleteSavedPrintPackage,
+} from '../../services/print/packages';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
 import { ReportCatalogPanel } from './ReportCatalogPanel';
 import { ViewHeader } from '../common/ViewHeader';
+import { SavePrintPackageModal } from '../modals/SavePrintPackageModal';
+import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
+import { SavedPrintPackage } from '../../types';
+import { Edit2, Copy, Trash2, FolderOpen, Plus } from 'lucide-react';
 
 /** Collect all task-like items with rich clinical context for delta tracking */
 function buildStructuredTasksFromSheet(sheet: GeneratedShiftSheet): TaskSnapshotItem[] {
@@ -151,6 +163,11 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   const [woundWeekAnchor, setWoundWeekAnchor] = useState(currentDate);
   const [bathingWeekAnchor, setBathingWeekAnchor] = useState(currentDate);
   const [woundSupplyScope, setWoundSupplyScope] = useState<'current_week' | 'all_active'>('current_week');
+  const [packageModalState, setPackageModalState] = useState<{ isOpen: boolean; seed: SavedPrintPackage | null; key: number }>({ isOpen: false, seed: null, key: 0 });
+  const [deletePackageRequest, setDeletePackageRequest] = useState<ConfirmDialogRequest | null>(null);
+  const [savedPackagesRevision, setSavedPackagesRevision] = useState(0);
+  const openPackageModal = (seed: SavedPrintPackage | null) =>
+    setPackageModalState(prev => ({ isOpen: true, seed, key: prev.key + 1 }));
 
   React.useEffect(() => {
     setSelectedDate(currentDate);
@@ -262,6 +279,58 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
     }
     setPackageConfigurationError(null);
     onPrintPackage(pkg);
+  };
+
+  // ─── Saved Print Packages ──────────────────────────────────────────────────
+  const savedPackages = React.useMemo(() => listSavedPrintPackages(), [savedPackagesRevision]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleGenerateSavedPackage = (pkg: SavedPrintPackage) => {
+    const built = buildSavedPrintPackageModel(pkg, selectedDate);
+    if (built.configurationWarnings.length > 0) {
+      setPackageConfigurationError(built.configurationWarnings.join(' '));
+      return;
+    }
+    setPackageConfigurationError(null);
+    onPrintPackage(built);
+  };
+
+  const handleSavePackage = (pkg: SavedPrintPackage) => {
+    saveSavedPrintPackage(pkg);
+    setSavedPackagesRevision(r => r + 1);
+    setPackageModalState(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleDeletePackage = (pkg: SavedPrintPackage) => {
+    setDeletePackageRequest({
+      title: 'Delete Print Package?',
+      message: `Delete "${pkg.name}"? This only removes the saved configuration — nothing is printed or deleted from resident records.`,
+      confirmLabel: 'Delete Package',
+      tone: 'danger',
+      onConfirm: () => {
+        deleteSavedPrintPackage(pkg.id);
+        setSavedPackagesRevision(r => r + 1);
+      },
+    });
+  };
+
+  const duplicateBuiltInAsPackage = (source: 'hca_daily' | 'lpn_clinical') => {
+    const built = source === 'hca_daily'
+      ? buildHcaDailyPackage(selectedDate, { includeBathingGrid: true })
+      : buildLpnClinicalPackage(selectedDate, { includeWoundSchedule: true });
+    const items: SavedPrintPackage['items'] = built.items.map(item => {
+      if (item.docType === 'shift_document' && item.shiftSheet) {
+        return { id: `pi_${item.shiftSheet.shift.id}`, type: 'shift_document', shiftId: item.shiftSheet.shift.id };
+      }
+      if (item.docType === 'bathing_grid') return { id: 'pi_bathing', type: 'bathing_grid' };
+      return { id: 'pi_wound', type: 'wound_schedule' };
+    });
+    openPackageModal({
+      id: '',
+      name: source === 'hca_daily' ? 'HCA Daily Package (Copy)' : 'LPN Clinical Package (Copy)',
+      items,
+      createdAt: '',
+      updatedAt: '',
+    });
   };
 
   // FYI Binder
@@ -562,6 +631,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           <h3 className="text-xs font-black text-ink uppercase tracking-widest">Print Packages</h3>
         </div>
 
+        <div className="px-5 pt-3 text-[10px] font-black text-faint uppercase tracking-widest">Built In</div>
         <div className="divide-y divide-hairline">
           {/* HCA Daily Package */}
           <div className="px-5 py-4 flex items-start justify-between">
@@ -580,14 +650,25 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                 }).length !== 1 ? 's' : ''}</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleHcaPackage}
-              className="px-3.5 py-2 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0 ml-4"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Generate Package</span>
-            </button>
+            <div className="flex items-center space-x-1.5 shrink-0 ml-4">
+              <button
+                type="button"
+                onClick={() => duplicateBuiltInAsPackage('hca_daily')}
+                title="Duplicate as a saved package you can customize"
+                className="px-2.5 py-2 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Duplicate</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleHcaPackage}
+                className="px-3.5 py-2 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Generate Package</span>
+              </button>
+            </div>
           </div>
 
           {/* LPN Clinical Package */}
@@ -616,17 +697,108 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                 )}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleLpnPackage}
-              className="px-3.5 py-2 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0 ml-4"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Generate Package</span>
-            </button>
+            <div className="flex items-center space-x-1.5 shrink-0 ml-4">
+              <button
+                type="button"
+                onClick={() => duplicateBuiltInAsPackage('lpn_clinical')}
+                title="Duplicate as a saved package you can customize"
+                className="px-2.5 py-2 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Duplicate</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleLpnPackage}
+                className="px-3.5 py-2 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Generate Package</span>
+              </button>
+            </div>
           </div>
         </div>
+
+        <div className="px-5 pt-4 flex items-center justify-between">
+          <span className="text-[10px] font-black text-faint uppercase tracking-widest">Saved Packages</span>
+          <button
+            type="button"
+            onClick={() => openPackageModal(null)}
+            className="text-[11px] font-bold text-accent-strong hover:text-accent flex items-center space-x-1 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Package</span>
+          </button>
+        </div>
+
+        {savedPackages.length === 0 ? (
+          <div className="px-5 py-4 text-xs text-faint">
+            No saved packages yet. Combine any of the reports below into a reusable package, or duplicate a built-in package to start from.
+          </div>
+        ) : (
+          <div className="divide-y divide-hairline">
+            {savedPackages.map(pkg => (
+              <div key={pkg.id} className="px-5 py-4 flex items-start justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-ink flex items-center gap-1.5">
+                    <FolderOpen className="w-3.5 h-3.5 text-accent shrink-0" />
+                    <span className="truncate">{pkg.name}</span>
+                  </p>
+                  <p className="text-xs text-muted mt-0.5">
+                    {pkg.items.length} document{pkg.items.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-1.5 shrink-0 ml-4">
+                  <button
+                    type="button"
+                    onClick={() => openPackageModal(pkg)}
+                    aria-label={`Edit ${pkg.name}`}
+                    title="Edit"
+                    className="p-2 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openPackageModal({ ...pkg, id: '', name: `${pkg.name} (Copy)` })}
+                    aria-label={`Duplicate ${pkg.name}`}
+                    title="Duplicate"
+                    className="p-2 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePackage(pkg)}
+                    aria-label={`Delete ${pkg.name}`}
+                    title="Delete"
+                    className="p-2 border border-hairline-strong hover:bg-danger-soft hover:text-danger text-ink-soft rounded-control transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateSavedPackage(pkg)}
+                    className="px-3.5 py-2 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Generate Package</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      <SavePrintPackageModal
+        isOpen={packageModalState.isOpen}
+        onClose={() => setPackageModalState(prev => ({ ...prev, isOpen: false }))}
+        initialPackage={packageModalState.seed}
+        seedKey={packageModalState.key}
+        onSaved={handleSavePackage}
+      />
+      <ConfirmDialog request={deletePackageRequest} onClose={() => setDeletePackageRequest(null)} />
 
       {/* ── OTHER DOCUMENTS (SPECIALIZED SUITE) ── */}
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
