@@ -353,3 +353,53 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.getByText('Shift Huddle — Renamed')).toHaveCount(0);
   });
 });
+
+test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Settings' }).first().click();
+    await page.getByRole('button', { name: /Demo Workspace/ }).click();
+    await page.getByRole('button', { name: 'Load Demo Workspace' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Load Demo Workspace' }).click();
+    await page.evaluate(() => localStorage.setItem('tasksheet_welcome_dismissed', 'true'));
+  });
+
+  test('Journey 13 — Dashboard operational huddle: attention items, Away From Unit, FYIs, and Code of the Month', async ({ page }) => {
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+    await expect(page.getByText('Current Unit Situation')).toBeVisible();
+
+    // Demo seed's active attention item shows up in both Resident Attention
+    // and Current Unit Situation without navigating away.
+    await expect(page.getByText('Increased Falls Observation').first()).toBeVisible();
+
+    // Away From Unit lists actual residents, not just a count, and drills
+    // into the Resident Profile.
+    await page.getByRole('button', { name: /Robert Chen/ }).click();
+    await expect(page.getByRole('heading', { name: 'Robert Chen' })).toBeVisible();
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+
+    // Add Resident Attention from the Dashboard quick action.
+    await page.getByRole('button', { name: 'Add Attention' }).click();
+    await page.getByLabel("What's being tracked").fill('Sleep Tracking');
+    await page.getByRole('button', { name: 'Add Attention Item' }).click();
+    await expect(page.getByText('Sleep Tracking').first()).toBeVisible();
+
+    // Customize: hide Away From Unit, save, confirm it disappears.
+    await page.getByRole('button', { name: 'Customize' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByText('Away From Unit').locator('xpath=ancestor::li').getByRole('checkbox').uncheck();
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByRole('heading', { name: 'Away From Unit' })).toHaveCount(0);
+
+    // Enable Code of the Month in Settings and confirm it appears back on the Dashboard.
+    await page.getByRole('button', { name: 'Settings' }).first().click();
+    await page.getByRole('button', { name: /Emergency Codes/ }).click();
+    await expect(page.getByText('Code Red')).toBeVisible();
+    await page.getByLabel(/Show "Code of the Month"/).check();
+    await page.getByRole('combobox').selectOption({ label: 'Code Red — Fire' });
+
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+    await expect(page.getByText('CODE RED')).toBeVisible();
+    await expect(page.getByText('Fire')).toBeVisible();
+  });
+});

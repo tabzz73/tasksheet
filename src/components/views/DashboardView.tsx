@@ -3,18 +3,30 @@ import {
   Clock,
   Printer,
   Users,
-  BookOpen,
   Plus,
   Info,
   ClipboardList,
   Bandage,
-  ChevronDown
+  ChevronDown,
+  Settings2,
 } from 'lucide-react';
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
 import { AddEntityType } from '../modals/GlobalAddModal';
 import { CardNavigationButton } from '../common/CardNavigationButton';
 import { ViewHeader } from '../common/ViewHeader';
+import { DEFAULT_DASHBOARD_LAYOUT } from '../../data/defaultData';
+import {
+  AwayFromUnitCard,
+  ResidentAttentionCard,
+  LatestFyiCard,
+  UnitSituationCard,
+  CodeOfMonthCard,
+  TodaysBathingCard,
+  WoundAttentionCard,
+} from '../dashboard/DashboardWidgets';
+import { CustomizeDashboardModal } from '../dashboard/CustomizeDashboardModal';
+import { AddResidentAttentionModal } from '../modals/AddResidentAttentionModal';
 
 const SHIFT_ROW_GRID = '11% 1fr 13% 13% 11% 9% 9%';
 
@@ -25,6 +37,9 @@ interface DashboardViewProps {
   onPrintShift: (shiftSheet: GeneratedShiftSheet) => void;
   onNavigateToBinder: () => void;
   onNavigateToResidents: () => void;
+  onOpenResidentProfile?: (residentId: string) => void;
+  onNavigateToSettings?: () => void;
+  onNavigateToBathing?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -33,10 +48,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenQuickAdd,
   onPrintShift,
   onNavigateToBinder,
-  onNavigateToResidents
+  onNavigateToResidents,
+  onOpenResidentProfile,
+  onNavigateToSettings,
+  onNavigateToBathing,
 }) => {
   const [quickAddOpen, setQuickAddOpen] = React.useState(false);
+  const [customizeOpen, setCustomizeOpen] = React.useState(false);
+  const [addAttentionOpen, setAddAttentionOpen] = React.useState(false);
+  const [, forceRerender] = React.useState(0);
   const state = db.getState();
+  const layout = state.settings.dashboardLayout || DEFAULT_DASHBOARD_LAYOUT;
+  const openResident = onOpenResidentProfile || (() => undefined);
+  const goToSettings = onNavigateToSettings || (() => undefined);
+  const goToBathing = onNavigateToBathing || (() => undefined);
   const activeShifts = state.shifts
     .filter(s => s.isActive !== false)
     .sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99));
@@ -76,7 +101,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         title={dashboardTitle}
         subtitle="Organize today's assignments and print worksheets. The paper sheet is the product — this screen exists to make it correct."
         action={
-          <div className="relative">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAddAttentionOpen(true)}
+              className="btn btn-secondary"
+            >
+              <Info className="w-3.5 h-3.5" />
+              <span>Add Attention</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCustomizeOpen(true)}
+              className="btn btn-secondary"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              <span>Customize</span>
+            </button>
+            <div className="relative">
             <button
               type="button"
               onClick={() => setQuickAddOpen(!quickAddOpen)}
@@ -114,6 +156,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </button>
               </div>
             )}
+            </div>
           </div>
         }
       />
@@ -149,6 +192,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </button>
       </div>
+
+      {/* Operational awareness widgets — configurable via Customize */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+        {layout.filter(w => w.visible).map(w => {
+          switch (w.id) {
+            case 'unit_situation':
+              return <UnitSituationCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} onNavigateToBinder={onNavigateToBinder} />;
+            case 'resident_attention':
+              return <ResidentAttentionCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
+            case 'latest_fyi':
+              return <LatestFyiCard key={w.id} state={state} today={currentDate} onNavigateToBinder={onNavigateToBinder} />;
+            case 'away_from_unit':
+              return <AwayFromUnitCard key={w.id} state={state} onOpenResident={openResident} />;
+            case 'code_of_month':
+              return <CodeOfMonthCard key={w.id} state={state} onOpenSettings={goToSettings} />;
+            case 'todays_bathing':
+              return <TodaysBathingCard key={w.id} state={state} today={currentDate} onNavigateToBathing={goToBathing} />;
+            case 'wound_attention':
+              return <WoundAttentionCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
+            default:
+              return null;
+          }
+        })}
+      </div>
+
+      <CustomizeDashboardModal
+        isOpen={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
+        layout={layout}
+        onSave={(next) => {
+          db.updateSettings({ dashboardLayout: next });
+          setCustomizeOpen(false);
+          forceRerender(n => n + 1);
+        }}
+      />
+      <AddResidentAttentionModal
+        isOpen={addAttentionOpen}
+        onClose={() => setAddAttentionOpen(false)}
+        onSaved={() => forceRerender(n => n + 1)}
+      />
 
       {/* Today's shifts — schedule table, not a card grid */}
       <div>

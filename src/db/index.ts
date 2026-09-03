@@ -1,4 +1,4 @@
-import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition } from '../types';
+import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition, ResidentAttentionItem } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_SHIFTS, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
@@ -502,6 +502,41 @@ export class DatabaseService {
         occupancyPositionId: nextIsCurrent ? target?.id : undefined,
         roomAssignmentNeedsReview: false,
       } : r)
+    });
+  }
+
+  // Resident Attention Items — lightweight, non-clinical, date-bounded
+  // operational notes surfaced on the Dashboard (Behaviour Tracking, etc.).
+  // Stored on the resident record itself, not a parallel top-level collection.
+  public addResidentAttentionItem(residentId: string, item: Omit<ResidentAttentionItem, 'id' | 'createdAt' | 'active'>): ResidentAttentionItem {
+    const resident = this.state.residents.find(r => r.id === residentId);
+    if (!resident) throw new Error('Resident not found.');
+    if (!item.type.trim()) throw new Error('Attention type is required.');
+    const newItem: ResidentAttentionItem = {
+      ...item,
+      id: generateUUID(),
+      active: true,
+      createdAt: new Date().toISOString(),
+      source: item.source || 'manual',
+    };
+    this.saveToStorage({
+      ...this.state,
+      residents: this.state.residents.map(r => r.id === residentId
+        ? { ...r, attentionItems: [...(r.attentionItems || []), newItem] }
+        : r
+      ),
+    });
+    return newItem;
+  }
+
+  /** Ends an attention item early (does not delete it — historical items are kept). */
+  public endResidentAttentionItem(residentId: string, itemId: string): void {
+    this.saveToStorage({
+      ...this.state,
+      residents: this.state.residents.map(r => r.id === residentId
+        ? { ...r, attentionItems: (r.attentionItems || []).map(a => a.id === itemId ? { ...a, active: false, updatedAt: new Date().toISOString() } : a) }
+        : r
+      ),
     });
   }
 

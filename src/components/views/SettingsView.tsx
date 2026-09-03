@@ -29,6 +29,7 @@ import { ShiftFormModal } from '../modals/ShiftFormModal';
 import { PrintProfileEditorTab } from './PrintProfileEditorTab';
 import { QuickAddPresetsTab } from './QuickAddPresetsTab';
 import { AttentionRulesTab } from './AttentionRulesTab';
+import { EmergencyCodesTab } from './EmergencyCodesTab';
 import { CareTimingSettingsTab } from './CareTimingSettingsTab';
 import { AppInformationTab } from './AppInformationTab';
 import { DeveloperInformationTab } from './DeveloperInformationTab';
@@ -56,7 +57,7 @@ interface SettingsViewProps {
   navigationResetToken?: number;
 }
 
-type SettingsTab = 'facility' | 'rooms' | 'care_timings' | 'service_coverage' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'preferences' | 'shifts' | 'catalog' | 'wound_supplies' | 'demo' | 'backup' | 'app_info' | 'developer_info';
+type SettingsTab = 'facility' | 'rooms' | 'care_timings' | 'service_coverage' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'emergency_codes' | 'preferences' | 'shifts' | 'catalog' | 'wound_supplies' | 'demo' | 'backup' | 'app_info' | 'developer_info';
 
 const SETTINGS_NAV_GROUPS: Array<{
   label: string;
@@ -84,6 +85,7 @@ const SETTINGS_NAV_GROUPS: Array<{
       { id: 'print_profiles', label: 'Print Profiles', description: 'HCA and LPN layout preferences', icon: Printer },
       { id: 'quick_presets', label: 'Quick Add Presets', description: 'Common resident-care shortcuts', icon: Sparkles },
       { id: 'attention_rules', label: 'Attention & Safety', description: 'Visibility and alert rules', icon: ShieldAlert },
+      { id: 'emergency_codes', label: 'Emergency Codes', description: 'Code catalog and Code of the Month', icon: ShieldAlert },
       { id: 'catalog', label: 'Care Task Catalog', description: 'Standardized task definitions', icon: BookOpen },
       { id: 'wound_supplies', label: 'Wound Supply Catalog', description: 'Products, sizes and facility stock', icon: PackagePlus },
     ],
@@ -1061,6 +1063,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
       {/* TASK ATTENTION RULES */}
       {activeTab === 'attention_rules' && (
         <AttentionRulesTab onShowFeedback={showFeedback} />
+      )}
+
+      {activeTab === 'emergency_codes' && (
+        <EmergencyCodesTab onShowFeedback={showFeedback} />
       )}
 
       {activeTab === 'wound_supplies' && (

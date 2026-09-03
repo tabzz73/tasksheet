@@ -145,6 +145,9 @@ export function App() {
               onPrintShift={printFlow.setPrintShiftSheet}
               onNavigateToBinder={() => nav.changeTab('fyi-binder')}
               onNavigateToResidents={() => nav.changeTab('residents')}
+              onOpenResidentProfile={nav.openResident}
+              onNavigateToSettings={() => nav.changeTab('settings')}
+              onNavigateToBathing={() => nav.changeTab('reports-print')}
             />
           )}
 

@@ -1,4 +1,4 @@
-import { Facility, FacilityCareTimingSettings, FacilitySettings, FacilityQuickAddPreset, Role, Shift, BinderState, QuickVitalsColumnConfig, PrintProfileConfig, ServiceCoverageDefinition } from '../types';
+import { Facility, FacilityCareTimingSettings, FacilitySettings, FacilityQuickAddPreset, Role, Shift, BinderState, QuickVitalsColumnConfig, PrintProfileConfig, ServiceCoverageDefinition, EmergencyCode, DashboardWidgetConfig } from '../types';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 
 export const DEFAULT_FACILITY: Facility = {
@@ -286,6 +286,36 @@ export const DEFAULT_SERVICE_COVERAGE_DEFINITIONS: ServiceCoverageDefinition[] =
   { id: 'coverage-custom', code: 'CUSTOM', name: 'Custom / Other', shortCode: 'OTHER', isExceptional: true, isActive: true, isSystem: true, sortOrder: 6 },
 ];
 
+/**
+ * Seed reference only — verified against Alberta Health Services Policy
+ * #1181 "Emergency and Disaster Management" (revision effective February
+ * 10, 2025), Appendix A: Emergency Response Codes/Plans. Fully editable in
+ * Settings — a site's own Emergency Response Manual remains authoritative,
+ * and TaskSheet does not present this list as official AHS policy.
+ */
+export const DEFAULT_EMERGENCY_CODES: EmergencyCode[] = [
+  { id: 'code-blue', code: 'Blue', name: 'Cardiac Arrest / Medical Emergency', isSystem: true },
+  { id: 'code-red', code: 'Red', name: 'Fire', isSystem: true },
+  { id: 'code-white', code: 'White', name: 'Violence / Aggression', isSystem: true },
+  { id: 'code-purple', code: 'Purple', name: 'Hostage', isSystem: true },
+  { id: 'code-yellow', code: 'Yellow', name: 'Missing Person', isSystem: true },
+  { id: 'code-black', code: 'Black', name: 'Bomb Threat', isSystem: true },
+  { id: 'code-grey', code: 'Grey', name: 'Air Quality Concerns', isSystem: true },
+  { id: 'code-green', code: 'Green', name: 'Evacuation', isSystem: true },
+  { id: 'code-brown', code: 'Brown', name: 'Hazardous Spill / Release', isSystem: true },
+  { id: 'code-orange', code: 'Orange', name: 'Mass Casualty Incident', isSystem: true },
+];
+
+export const DEFAULT_DASHBOARD_LAYOUT: DashboardWidgetConfig[] = [
+  { id: 'unit_situation', visible: true },
+  { id: 'resident_attention', visible: true },
+  { id: 'latest_fyi', visible: true },
+  { id: 'away_from_unit', visible: true },
+  { id: 'code_of_month', visible: true },
+  { id: 'todays_bathing', visible: false },
+  { id: 'wound_attention', visible: false },
+];
+
 export const DEFAULT_SETTINGS: FacilitySettings = {
   timezone: 'America/Edmonton',
   timeFormat: '24h',
@@ -311,6 +341,9 @@ export const DEFAULT_SETTINGS: FacilitySettings = {
     showWelcomePage: 'on_first_launch',
     showWhyTaskSheetContent: true,
   },
+  emergencyCodes: DEFAULT_EMERGENCY_CODES,
+  codeOfTheMonthEnabled: false,
+  dashboardLayout: DEFAULT_DASHBOARD_LAYOUT,
 };
 
 export const ROLE_HCA_ID = 'role-hca-0001';

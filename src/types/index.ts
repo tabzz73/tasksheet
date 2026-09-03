@@ -284,6 +284,36 @@ export interface SavedPrintPackage {
   updatedAt: string;
 }
 
+/** A site's emergency response code (e.g. "Code Red — Fire"). Facility-editable —
+ *  TaskSheet is not an authoritative source for emergency procedures; the
+ *  seeded catalog is a starting reference only, per the facility's own
+ *  Emergency Response Manual. */
+export interface EmergencyCode {
+  id: UUID;
+  /** e.g. "Red", "Blue" — the word after "Code". */
+  code: string;
+  /** e.g. "Fire", "Cardiac Arrest / Medical Emergency". */
+  name: string;
+  /** Optional short, facility-approved staff reminder. Never detailed procedure text. */
+  reminder?: string;
+  /** Seeded from the reference catalog vs. facility-added. Both are fully editable. */
+  isSystem: boolean;
+}
+
+export type DashboardWidgetId =
+  | 'unit_situation'
+  | 'away_from_unit'
+  | 'resident_attention'
+  | 'latest_fyi'
+  | 'code_of_month'
+  | 'todays_bathing'
+  | 'wound_attention';
+
+export interface DashboardWidgetConfig {
+  id: DashboardWidgetId;
+  visible: boolean;
+}
+
 export interface FacilitySettings {
   timezone: string;
   timeFormat: '24h' | '12h';
@@ -297,6 +327,10 @@ export interface FacilitySettings {
   quickAddPresets?: FacilityQuickAddPreset[];
   attentionRules?: FacilityAttentionRule[];
   smartSuggestionsEnabled?: boolean;
+  emergencyCodes?: EmergencyCode[];
+  codeOfTheMonthId?: string;
+  codeOfTheMonthEnabled?: boolean;
+  dashboardLayout?: DashboardWidgetConfig[];
   welcomeHero?: WelcomeHeroSettings;
   careTimingPresets?: FacilityCareTimingSettings;
   /** User-defined report configurations only; generated resident content is never stored. */
@@ -336,6 +370,30 @@ export interface Shift {
   source?: 'manual' | 'demo';
 }
 
+/**
+ * A temporary, non-clinical operational note about a resident that staff
+ * should know about during the shift — e.g. "Behaviour Tracking",
+ * "Increased Falls Observation", "Temporary Two-Person Transfer". This is
+ * NOT a clinical charting record: it is a Dashboard/huddle awareness item,
+ * deliberately lightweight (one type, one short note, a date range) rather
+ * than a growing set of bespoke tracking modules.
+ */
+export interface ResidentAttentionItem {
+  id: UUID;
+  /** Short category label, e.g. "Behaviour Tracking". Facility-defined free text. */
+  type: string;
+  /** Optional one-line elaboration. Not a narrative clinical note. */
+  note?: string;
+  startDate: string;
+  /** Omitted = active indefinitely until manually ended. */
+  endDate?: string;
+  /** Manually ended early (independent of endDate). Historical items are kept, not deleted. */
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  source?: 'manual' | 'demo';
+}
+
 export interface Resident {
   id: UUID;
   firstName: string;
@@ -350,6 +408,7 @@ export interface Resident {
   notes?: string;
   admittedAt?: string;
   returnDate?: string;
+  attentionItems?: ResidentAttentionItem[];
   source?: 'manual' | 'imported' | 'demo';
   sourceBatchId?: string;
 }

@@ -2,6 +2,13 @@ import { Resident, ResidentTask, UnitTask, FYI, Wound, Completion } from '../typ
 import { ROLE_HCA_ID, ROLE_LPN_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID } from './defaultData';
 import { getTodayLocalDateString } from '../services/recurrence';
 
+function addDaysToDateStr(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+}
+
 export function generateDemoData() {
   const todayStr = getTodayLocalDateString();
 
@@ -14,6 +21,18 @@ export function generateDemoData() {
       roomNumber: '101A',
       status: 'active',
       notes: 'Independent with walker; loves reading the morning paper.',
+      attentionItems: [
+        {
+          id: 'attn-demo-1',
+          type: 'Increased Falls Observation',
+          note: 'Found on floor overnight Sep 1 — no injury. Frequent room checks in effect.',
+          startDate: todayStr,
+          endDate: addDaysToDateStr(todayStr, 6),
+          active: true,
+          createdAt: new Date().toISOString(),
+          source: 'demo',
+        },
+      ],
       source: 'demo'
     },
     {
