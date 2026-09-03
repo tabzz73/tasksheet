@@ -360,11 +360,13 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
       {filteredResidents.length === 0 && (
         <div className="title-block rounded-surface p-12 text-center text-muted">
           <Users className="w-9 h-9 mx-auto text-faint mb-3" />
-          <h4 className="text-[14px] font-bold text-ink">No residents match your search</h4>
+          <h4 className="text-[14px] font-bold text-ink">
+            {searchQuery || statusFilter !== 'all' ? 'No residents match your search' : 'No residents yet'}
+          </h4>
           <p className="text-[12px] text-muted mt-1 max-w-sm mx-auto">
-            {searchQuery ? 'Try adjusting your room or name search query.' : 'Add your first resident to begin configuring daily care.'}
+            {searchQuery || statusFilter !== 'all' ? 'Try adjusting your room or name search query.' : 'Add your first resident to begin configuring daily care.'}
           </p>
-          {!searchQuery && (
+          {!searchQuery && statusFilter === 'all' && (
             <button type="button" onClick={onOpenAddResident} className="btn btn-accent mt-4">
               Add Resident
             </button>

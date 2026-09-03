@@ -274,7 +274,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
   test('Journey 10 — Report Library previews a system preset and compact bathing grid', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Print Center/i }).first().click();
-    await expect(page.getByRole('heading', { name: 'Report & Print Center' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Print Center' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Report Library' })).toBeVisible();
 
     await page.getByRole('button', { name: /Resident Directory Active residents/i }).click();

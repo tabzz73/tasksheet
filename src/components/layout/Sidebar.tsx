@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             T
           </div>
           <div className="min-w-0">
-            <h1 className="font-heading font-bold text-white text-[14.5px] leading-tight tracking-[-0.01em] truncate">TaskSheet</h1>
+            <p className="font-heading font-bold text-white text-[14.5px] leading-tight tracking-[-0.01em] truncate">TaskSheet</p>
             <p className="text-[9.5px] font-bold uppercase tracking-[0.06em] truncate" style={{ color: '#5f6b81' }}>SoftVibeSolutions</p>
           </div>
         </div>
