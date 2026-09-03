@@ -29,6 +29,7 @@ import { getResidentStatusLabel, isResidentCarePaused } from '../../services/res
 import { sortRoomNumbers } from '../../services/generator';
 import { CardNavigationButton } from '../common/CardNavigationButton';
 import { Modal } from '../common/Modal';
+import { ViewHeader } from '../common/ViewHeader';
 
 type ResidentsViewMode = 'list' | 'cards' | 'rooms';
 const VIEW_MODE_KEY = 'tasksheet_residents_view_mode';
@@ -232,6 +233,10 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
     return wingsMap;
   };
 
+  const activeCount = allResidents.filter(r => r.status === 'active').length;
+  const inHospitalCount = allResidents.filter(r => r.status === 'in_hospital').length;
+  const outOnPassCount = allResidents.filter(r => r.status === 'out_on_pass').length;
+
   return (
     <div className="space-y-5 max-w-5xl mx-auto pb-12">
       {/* Toast Notification */}
@@ -245,72 +250,72 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
       {allResidents.some(resident => resident.roomAssignmentNeedsReview) && <div className="rounded-surface border border-warning bg-warning-soft p-3.5 text-[12px] text-ink"><div className="flex items-center gap-2 font-bold"><AlertTriangle className="h-4 w-4 text-warning"/>Room assignment needs correction</div><p className="mt-1 text-ink-soft">{allResidents.filter(resident => resident.roomAssignmentNeedsReview).length} imported or migrated resident record(s) have a missing or conflicting occupancy assignment and are withheld from operational TaskSheets. Use Move Room to assign an available position.</p></div>}
 
       {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[22px] font-bold tracking-tight text-ink">Residents</h2>
-          <p className="text-[12px] text-muted mt-0.5">Facility directory · care profiles &amp; room assignments.</p>
-        </div>
+      <ViewHeader
+        kicker="Care"
+        title="Residents"
+        subtitle={`${activeCount} active · ${inHospitalCount} in hospital · ${outOnPassCount} out on pass`}
+        action={
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            {/* View Switcher */}
+            <div className="flex items-center border border-hairline-strong rounded-control overflow-hidden">
+              <button type="button" onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} className={`flex items-center gap-1.5 px-2.5 h-8 text-[12px] font-semibold transition-colors ${viewMode === 'list' ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'}`} title="Compact list view">
+                <LayoutList className="w-3.5 h-3.5" />
+                <span>List</span>
+              </button>
+              <div className="w-px self-stretch bg-hairline-strong" />
+              <button type="button" onClick={() => setViewMode('cards')} aria-pressed={viewMode === 'cards'} className={`flex items-center gap-1.5 px-2.5 h-8 text-[12px] font-semibold transition-colors ${viewMode === 'cards' ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'}`} title="Cards view">
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Cards</span>
+              </button>
+              <div className="w-px self-stretch bg-hairline-strong" />
+              <button type="button" onClick={() => setViewMode('rooms')} aria-pressed={viewMode === 'rooms'} className={`flex items-center gap-1.5 px-2.5 h-8 text-[12px] font-semibold transition-colors ${viewMode === 'rooms' ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'}`} title="Rooms & wings directory">
+                <DoorOpen className="w-3.5 h-3.5" />
+                <span>Rooms</span>
+              </button>
+            </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          {/* View Switcher */}
-          <div className="flex items-center border border-hairline-strong rounded-control overflow-hidden">
-            <button type="button" onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'} className={`flex items-center gap-1.5 px-2.5 h-8 text-[12px] font-semibold transition-colors ${viewMode === 'list' ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'}`} title="Compact list view">
-              <LayoutList className="w-3.5 h-3.5" />
-              <span>List</span>
-            </button>
-            <div className="w-px self-stretch bg-hairline-strong" />
-            <button type="button" onClick={() => setViewMode('cards')} aria-pressed={viewMode === 'cards'} className={`flex items-center gap-1.5 px-2.5 h-8 text-[12px] font-semibold transition-colors ${viewMode === 'cards' ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'}`} title="Cards view">
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Cards</span>
-            </button>
-            <div className="w-px self-stretch bg-hairline-strong" />
-            <button type="button" onClick={() => setViewMode('rooms')} aria-pressed={viewMode === 'rooms'} className={`flex items-center gap-1.5 px-2.5 h-8 text-[12px] font-semibold transition-colors ${viewMode === 'rooms' ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'}`} title="Rooms & wings directory">
-              <DoorOpen className="w-3.5 h-3.5" />
-              <span>Rooms</span>
-            </button>
-          </div>
-
-          {/* Quick Add Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setQuickAddMenuOpen(!quickAddMenuOpen);
-              }}
-              className="btn btn-accent"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Quick Add</span>
-            </button>
-
-            {quickAddMenuOpen && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 mt-1.5 w-52 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
+            {/* Quick Add Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQuickAddMenuOpen(!quickAddMenuOpen);
+                }}
+                className="btn btn-accent"
               >
-                <button type="button" onClick={() => { setQuickAddMenuOpen(false); onOpenAddResident(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-bold text-ink flex items-center gap-2.5">
-                  <Users className="w-3.5 h-3.5 text-accent" />
-                  <span>Add Resident</span>
-                </button>
-                <div className="border-t border-hairline my-1" />
-                <button type="button" onClick={() => { setQuickAddMenuOpen(false); if (onOpenAddCareTask) onOpenAddCareTask(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <HeartHandshake className="w-3.5 h-3.5 text-accent" />
-                  <span>Care Task</span>
-                </button>
-                <button type="button" onClick={() => { setQuickAddMenuOpen(false); if (onOpenAddFYI) onOpenAddFYI(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <Info className="w-3.5 h-3.5 text-accent" />
-                  <span>FYI Note</span>
-                </button>
-                <button type="button" onClick={() => { setQuickAddMenuOpen(false); if (onOpenAddWound) onOpenAddWound(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <Bandage className="w-3.5 h-3.5 text-danger" />
-                  <span>Wound Protocol</span>
-                </button>
-              </div>
-            )}
+                <Plus className="w-3.5 h-3.5" />
+                <span>Quick Add</span>
+              </button>
+
+              {quickAddMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 mt-1.5 w-52 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
+                >
+                  <button type="button" onClick={() => { setQuickAddMenuOpen(false); onOpenAddResident(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-bold text-ink flex items-center gap-2.5">
+                    <Users className="w-3.5 h-3.5 text-accent" />
+                    <span>Add Resident</span>
+                  </button>
+                  <div className="border-t border-hairline my-1" />
+                  <button type="button" onClick={() => { setQuickAddMenuOpen(false); if (onOpenAddCareTask) onOpenAddCareTask(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <HeartHandshake className="w-3.5 h-3.5 text-accent" />
+                    <span>Care Task</span>
+                  </button>
+                  <button type="button" onClick={() => { setQuickAddMenuOpen(false); if (onOpenAddFYI) onOpenAddFYI(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <Info className="w-3.5 h-3.5 text-accent" />
+                    <span>FYI Note</span>
+                  </button>
+                  <button type="button" onClick={() => { setQuickAddMenuOpen(false); if (onOpenAddWound) onOpenAddWound(); }} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <Bandage className="w-3.5 h-3.5 text-danger" />
+                    <span>Wound Protocol</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── SEARCH & FILTER BAR ── */}
       <div className="title-block rounded-surface px-3.5 h-12 flex items-center gap-3">

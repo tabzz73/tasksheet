@@ -14,6 +14,7 @@ import { TaskActionMenu } from '../common/TaskActionMenu';
 import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskActionConfirmModal } from '../modals/TaskActionConfirmModal';
 import { FyiBinderPrintModal } from '../modals/FyiBinderPrintModal';
+import { ViewHeader } from '../common/ViewHeader';
 
 interface FYIBinderViewProps {
   onOpenAddFYI: () => void;
@@ -77,30 +78,29 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* 1. BINDER HEADER & PHYSICAL STATUS BANNER */}
       <div className="title-block rounded-surface p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-2.5">
-            <BookOpen className="w-5 h-5 text-accent shrink-0" />
-            <div>
-              <h2 className="text-[22px] font-bold tracking-tight text-ink">FYI Binder</h2>
-              <p className="text-xs text-muted font-medium mt-0.5">
-                Standing information staff need to know but do not complete as tasks
-              </p>
+        <ViewHeader
+          kicker="Standing Info"
+          title={
+            <span className="inline-flex items-center gap-2.5">
+              <BookOpen className="w-[26px] h-[26px] text-accent" strokeWidth={1.9} />
+              FYI Binder
+            </span>
+          }
+          subtitle={<>Standing facility information staff need to know but do not complete as tasks. FYI is <em>never</em> counted as a task.</>}
+          action={
+            <div className="flex items-center space-x-2.5">
+              <button type="button" onClick={handlePrintBinder} className="btn btn-secondary">
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Binder</span>
+              </button>
+
+              <button type="button" onClick={onOpenAddFYI} className="btn btn-accent">
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add FYI</span>
+              </button>
             </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center space-x-2.5">
-            <button type="button" onClick={handlePrintBinder} className="btn btn-secondary">
-              <Printer className="w-3.5 h-3.5" />
-              <span>Print Binder</span>
-            </button>
-
-            <button type="button" onClick={onOpenAddFYI} className="btn btn-accent">
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add FYI</span>
-            </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Physical Binder Sync Status Bar */}
         <div className={`p-3.5 rounded-control border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${

@@ -110,6 +110,8 @@ export function App() {
         onTabChange={nav.changeTabFromSidebar}
         onOpenQuickAdd={() => modal.openQuickAdd()}
         binderUpdateRequired={dbState.binderState.status === 'update_required'}
+        facilityName={dbState.facility.siteName}
+        isDemoMode={demoState.demoConfigurationActive}
       />
 
       {/* 2. MAIN APPLICATION CONTENT AREA */}

@@ -38,6 +38,7 @@ import { ServiceCoverageSettingsTab } from './ServiceCoverageSettingsTab';
 import { DomainConflictError, ValidationResult } from '../../services/validation';
 import { ConflictNotice } from '../common/ConflictNotice';
 import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
+import { ViewHeader } from '../common/ViewHeader';
 import { getTodayLocalDateString } from '../../services/recurrence';
 import { ChevronDown, Code2, Printer, Sparkles, ShieldAlert } from 'lucide-react';
 import { formatShiftHeader } from '../../services/print';
@@ -498,12 +499,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
   return (
     <div className="space-y-5 max-w-7xl mx-auto pb-12">
       {/* Header */}
-      <div>
-        <h1 className="text-[22px] font-bold text-ink">Settings</h1>
-        <p className="text-[12px] text-muted mt-0.5">
-          Facility profile, task catalog, shifts, printing, and data management.
-        </p>
-      </div>
+      <ViewHeader
+        kicker="Configure"
+        title="Settings"
+        subtitle="Facility profile, task catalog, shifts, printing, and data management."
+      />
 
       {/* Feedback Alert */}
       {feedbackMessage && (
@@ -591,7 +591,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Facility / Site Name <span className="text-red-500">*</span>
+                Facility / Site Name <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -607,7 +607,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
 
             <div>
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Street Address <span className="text-red-500">*</span>
+                Street Address <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -638,7 +638,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
 
             <div>
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                City <span className="text-red-500">*</span>
+                City <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -660,7 +660,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                  Province <span className="text-red-500">*</span>
+                  Province <span className="text-danger">*</span>
                 </label>
                 <select
                   value={facility.province}
@@ -680,7 +680,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
               </div>
               <div>
                 <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                  Postal Code <span className="text-red-500">*</span>
+                  Postal Code <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
@@ -700,7 +700,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
 
             <div>
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Main Phone <span className="text-red-500">*</span>
+                Main Phone <span className="text-danger">*</span>
               </label>
               <input
                 type="tel"
@@ -823,7 +823,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
                     <button
                       type="button"
                       onClick={() => handleDeleteExtension(ext.id)}
-                      className="p-1.5 text-faint hover:text-red-600 rounded-md transition-colors shrink-0"
+                      className="p-1.5 text-faint hover:text-danger rounded-md transition-colors shrink-0"
                       title="Delete extension"
                     >
                       <Trash2 className="w-4 h-4" />

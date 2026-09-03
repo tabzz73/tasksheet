@@ -25,21 +25,26 @@ interface SidebarProps {
   onTabChange: (tab: NavigationTab) => void;
   onOpenQuickAdd: () => void;
   binderUpdateRequired?: boolean;
+  facilityName?: string;
+  isDemoMode?: boolean;
 }
 
-// One shared dark-surface identity for both the desktop rail and the
+// One shared dark-navy identity for both the desktop rail and the
 // mobile bottom bar/drawer — deliberately separate from the screen
 // tokens (documented in DESIGN.md), since nothing else in the inherited
 // style chain provides a legible color against this background.
-const RAIL_BG = '#1d2d3d';
+const RAIL_BG = '#0d1f38';
 const RAIL_LINE = 'rgba(255,255,255,0.08)';
-const RAIL_TEXT_MUTED = '#8b9096';
-const RAIL_ACTIVE_TINT = 'rgba(94,170,160,0.12)';
+const RAIL_TEXT_MUTED = '#9aa4b5';
+const RAIL_HOVER_TINT = 'rgba(255,255,255,0.06)';
+const RAIL_ACTIVE_TINT = 'rgba(255,255,255,0.1)';
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onTabChange,
-  binderUpdateRequired = false
+  binderUpdateRequired = false,
+  facilityName,
+  isDemoMode = false
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -58,8 +63,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const railRow = (isActive: boolean) =>
-    `w-full flex items-center gap-3 pl-2.5 pr-3 py-2 border-l-[3px] rounded-r-control text-sm font-medium transition-colors ${
-      isActive ? 'text-white' : 'border-transparent hover:text-white hover:bg-white/5'
+    `w-full flex items-center gap-[11px] h-10 px-3 rounded-control text-[13.5px] font-semibold transition-colors ${
+      isActive ? 'text-white' : 'hover:text-white'
     }`;
 
   return (
@@ -67,24 +72,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Desktop Permanent Sidebar */}
       <aside
         data-testid="app-sidebar"
-        className="hidden md:flex flex-col w-60 shrink-0 h-screen sticky top-0 no-print"
+        className="hidden md:flex flex-col w-56 shrink-0 h-screen sticky top-0 no-print"
         style={{ background: RAIL_BG, color: RAIL_TEXT_MUTED }}
       >
         {/* Brand mark */}
-        <div className="px-4 py-4 flex items-center gap-2.5 shrink-0" style={{ borderBottom: `1px solid ${RAIL_LINE}` }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" className="shrink-0">
-            <path d="M12 2v20" />
-            <path d="M2 12h20" />
-            <circle cx="12" cy="12" r="9" opacity="0.35" />
-          </svg>
+        <div className="h-16 px-4 flex items-center gap-2.5 shrink-0">
+          <div
+            className="w-8 h-8 rounded-control flex items-center justify-center shrink-0 text-white font-heading font-extrabold text-[15px]"
+            style={{ background: 'var(--color-accent)' }}
+          >
+            T
+          </div>
           <div className="min-w-0">
-            <h1 className="font-heading font-bold text-white text-[15px] leading-tight truncate">TaskSheet</h1>
-            <p className="text-[10px] font-semibold uppercase tracking-wider truncate" style={{ color: RAIL_TEXT_MUTED }}>SoftVibeSolutions</p>
+            <h1 className="font-heading font-bold text-white text-[14.5px] leading-tight tracking-[-0.01em] truncate">TaskSheet</h1>
+            <p className="text-[9.5px] font-bold uppercase tracking-[0.06em] truncate" style={{ color: '#5f6b81' }}>SoftVibeSolutions</p>
           </div>
         </div>
 
         {/* Primary Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto" aria-label="Primary">
+        <nav className="flex-1 px-2 py-1.5 space-y-0.5 overflow-y-auto" aria-label="Primary">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
@@ -94,10 +100,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 type="button"
                 onClick={() => onTabChange(item.id)}
                 aria-current={isActive ? 'page' : undefined}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = RAIL_HOVER_TINT; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                 className={railRow(isActive)}
-                style={isActive ? { background: RAIL_ACTIVE_TINT, borderLeftColor: 'var(--color-accent)' } : undefined}
+                style={{ background: isActive ? RAIL_ACTIVE_TINT : 'transparent' }}
               >
-                <Icon className="w-[18px] h-[18px] shrink-0" />
+                <Icon className="w-[17px] h-[17px] shrink-0" strokeWidth={1.75} />
                 <span className="flex-1 text-left truncate">{item.label}</span>
                 {item.badge && (
                   <span className="badge badge-warning shrink-0">{item.badge}</span>
@@ -108,8 +116,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-3 space-y-1 shrink-0" style={{ borderTop: `1px solid ${RAIL_LINE}` }}>
-          <p className="text-[10.5px] leading-snug" style={{ color: RAIL_TEXT_MUTED }}>{TASKSHEET_TAGLINE}</p>
+        <div className="px-4 py-3.5 flex items-center gap-[7px] shrink-0">
+          <span
+            className="w-[7px] h-[7px] rounded-full shrink-0"
+            style={{ background: isDemoMode ? '#e8a23a' : 'var(--color-accent)' }}
+          />
+          <div className="min-w-0">
+            {isDemoMode ? (
+              <div className="text-[10px] font-bold uppercase tracking-[0.05em]" style={{ color: '#e8a23a' }}>DEMO MODE</div>
+            ) : (
+              <div className="text-[10px] font-bold uppercase tracking-[0.05em]" style={{ color: RAIL_TEXT_MUTED }}>{TASKSHEET_TAGLINE}</div>
+            )}
+            <div className="text-[11px] truncate" style={{ color: '#7c869a' }}>{facilityName || 'Facility Not Configured'}</div>
+          </div>
         </div>
       </aside>
 

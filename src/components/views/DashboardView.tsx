@@ -14,6 +14,7 @@ import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
 import { AddEntityType } from '../modals/GlobalAddModal';
 import { CardNavigationButton } from '../common/CardNavigationButton';
+import { ViewHeader } from '../common/ViewHeader';
 
 const SHIFT_ROW_GRID = '11% 1fr 13% 13% 11% 9% 9%';
 
@@ -65,80 +66,80 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <h2 className="text-[22px] font-bold tracking-tight text-ink">Dashboard</h2>
-          <p className="text-[12px] text-muted mt-0.5 tabular-nums">{formattedDate}</p>
-        </div>
-
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setQuickAddOpen(!quickAddOpen)}
-            className="btn btn-accent"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Quick Add</span>
-            <ChevronDown className="w-3 h-3 opacity-80" />
-          </button>
-
-          {quickAddOpen && (
-            <div
-              onClick={() => setQuickAddOpen(false)}
-              className="absolute right-0 mt-1.5 w-56 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
+      <ViewHeader
+        kicker={`Shift Command · ${formattedDate}`}
+        title="Dashboard"
+        subtitle="Organize today's assignments and print worksheets. The paper sheet is the product — this screen exists to make it correct."
+        action={
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setQuickAddOpen(!quickAddOpen)}
+              className="btn btn-accent"
             >
-              <button type="button" onClick={() => onOpenQuickAdd('care_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                <Plus className="w-3.5 h-3.5 text-accent" />
-                <span>Resident Care Task</span>
-              </button>
-              <button type="button" onClick={() => onOpenQuickAdd('unit_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                <ClipboardList className="w-3.5 h-3.5 text-accent" />
-                <span>Unit Task</span>
-              </button>
-              <button type="button" onClick={() => onOpenQuickAdd('resident')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                <Users className="w-3.5 h-3.5 text-accent" />
-                <span>Resident</span>
-              </button>
-              <button type="button" onClick={() => onOpenQuickAdd('fyi')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                <Info className="w-3.5 h-3.5 text-accent" />
-                <span>FYI Standing Note</span>
-              </button>
-              <button type="button" onClick={() => onOpenQuickAdd('wound')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                <Bandage className="w-3.5 h-3.5 text-danger" />
-                <span>Wound Protocol</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Quick Add</span>
+              <ChevronDown className="w-3 h-3 opacity-80" />
+            </button>
 
-      {/* Operational summary strip — one bordered bar, not four cards */}
-      <div className="title-block rounded-surface flex flex-wrap divide-x divide-hairline">
-        <div className="px-4 py-3 flex-1 min-w-[140px]">
+            {quickAddOpen && (
+              <div
+                onClick={() => setQuickAddOpen(false)}
+                className="absolute right-0 mt-1.5 w-56 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
+              >
+                <button type="button" onClick={() => onOpenQuickAdd('care_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                  <Plus className="w-3.5 h-3.5 text-accent" />
+                  <span>Resident Care Task</span>
+                </button>
+                <button type="button" onClick={() => onOpenQuickAdd('unit_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                  <ClipboardList className="w-3.5 h-3.5 text-accent" />
+                  <span>Unit Task</span>
+                </button>
+                <button type="button" onClick={() => onOpenQuickAdd('resident')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                  <Users className="w-3.5 h-3.5 text-accent" />
+                  <span>Resident</span>
+                </button>
+                <button type="button" onClick={() => onOpenQuickAdd('fyi')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                  <Info className="w-3.5 h-3.5 text-accent" />
+                  <span>FYI Standing Note</span>
+                </button>
+                <button type="button" onClick={() => onOpenQuickAdd('wound')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                  <Bandage className="w-3.5 h-3.5 text-danger" />
+                  <span>Wound Protocol</span>
+                </button>
+              </div>
+            )}
+          </div>
+        }
+      />
+
+      {/* Operational summary — 4 individual stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="title-block rounded-surface px-5 py-4">
           <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Scheduled Today</div>
-          <div className="text-xl font-bold text-ink tabular-nums mt-0.5">{totalScheduledToday}</div>
-          <div className="text-[11px] text-muted">across {activeShifts.length} shift{activeShifts.length === 1 ? '' : 's'}</div>
+          <div className="font-heading text-[32px] font-extrabold text-ink tabular-nums mt-1.5">{totalScheduledToday}</div>
+          <div className="text-[12px] text-faint mt-0.5">across {activeShifts.length} shift{activeShifts.length === 1 ? '' : 's'}</div>
         </div>
-        <button type="button" onClick={onNavigateToResidents} className="px-4 py-3 flex-1 min-w-[140px] text-left hover:bg-panel-sunken transition-colors">
+        <button type="button" onClick={onNavigateToResidents} className="title-block rounded-surface px-5 py-4 text-left hover:bg-panel-sunken transition-colors">
           <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Residents</div>
-          <div className="text-xl font-bold text-ink tabular-nums mt-0.5">{activeResidentCount}</div>
-          <div className="text-[11px] text-muted">
+          <div className="font-heading text-[32px] font-extrabold text-ink tabular-nums mt-1.5">{activeResidentCount}</div>
+          <div className="text-[12px] text-faint mt-0.5">
             {suspendedCount > 0 ? `${inHospitalCount} hosp · ${outOnPassCount} pass · ${onHoldCount} hold` : 'no care suspensions'}
           </div>
         </button>
-        <div className="px-4 py-3 flex-1 min-w-[140px]">
+        <div className="title-block rounded-surface px-5 py-4">
           <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Active Shifts</div>
-          <div className="text-xl font-bold text-ink tabular-nums mt-0.5">{activeShifts.length}</div>
-          <div className="text-[11px] text-muted truncate">
+          <div className="font-heading text-[32px] font-extrabold text-ink tabular-nums mt-1.5">{activeShifts.length}</div>
+          <div className="text-[12px] text-faint mt-0.5 truncate">
             {activeShifts.slice(0, 3).map(s => s.shortCode || s.name).join(' · ')}{activeShifts.length > 3 ? ` +${activeShifts.length - 3}` : ''}
           </div>
         </div>
-        <button type="button" onClick={onNavigateToBinder} className="px-4 py-3 flex-1 min-w-[140px] text-left hover:bg-panel-sunken transition-colors">
+        <button type="button" onClick={onNavigateToBinder} className="title-block rounded-surface px-5 py-4 text-left hover:bg-panel-sunken transition-colors">
           <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">FYI Binder</div>
-          <div className={`text-xl font-bold mt-0.5 ${binderNeedsUpdate ? 'text-warning' : 'text-positive'}`}>
+          <div className={`font-heading text-[32px] font-extrabold mt-1.5 ${binderNeedsUpdate ? 'text-warning' : 'text-positive'}`}>
             {binderNeedsUpdate ? 'Update Req.' : 'Current'}
           </div>
-          <div className="text-[11px] text-muted">
+          <div className="text-[12px] text-faint mt-0.5">
             {binderNeedsUpdate ? `${state.binderState.pendingChangesCount} pending change${state.binderState.pendingChangesCount === 1 ? '' : 's'}` : 'physical binder confirmed'}
           </div>
         </button>

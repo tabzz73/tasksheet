@@ -20,6 +20,7 @@ import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generato
 import { AddEntityType } from '../modals/GlobalAddModal';
 import { getTodayLocalDateString } from '../../services/recurrence';
 import { CardNavigationButton } from '../common/CardNavigationButton';
+import { ViewHeader } from '../common/ViewHeader';
 
 interface ShiftsViewProps {
   currentDate: string;
@@ -107,55 +108,55 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
     <div className="space-y-4 max-w-5xl mx-auto">
 
       {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[22px] font-bold tracking-tight text-ink">Shifts</h2>
-          <p className="text-[12px] text-muted mt-0.5">Review and generate Shift TaskSheets.</p>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button type="button" onClick={onOpenAddShift} className="btn btn-secondary">
-            <Settings2 className="w-3.5 h-3.5" />
-            <span>Configure Shifts</span>
-          </button>
-
-          <div className="relative">
-            <button type="button" onClick={() => setQuickAddOpen(!quickAddOpen)} className="btn btn-accent">
-              <Plus className="w-3.5 h-3.5" />
-              <span>Quick Add</span>
-              <ChevronDown className="w-3 h-3 opacity-80" />
+      <ViewHeader
+        kicker="Organize"
+        title="Shifts"
+        subtitle="Review and generate Shift TaskSheets."
+        action={
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button type="button" onClick={onOpenAddShift} className="btn btn-secondary">
+              <Settings2 className="w-3.5 h-3.5" />
+              <span>Configure Shifts</span>
             </button>
 
-            {quickAddOpen && (
-              <div
-                onClick={() => setQuickAddOpen(false)}
-                className="absolute right-0 mt-1.5 w-52 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
-              >
-                <button type="button" onClick={() => onOpenQuickAdd?.('care_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <HeartHandshake className="w-3.5 h-3.5 text-accent" />
-                  <span>Care Task</span>
-                </button>
-                <button type="button" onClick={() => onOpenQuickAdd?.('unit_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <ClipboardList className="w-3.5 h-3.5 text-accent" />
-                  <span>Unit Task / Routine</span>
-                </button>
-                <button type="button" onClick={() => onOpenQuickAdd?.('resident')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <Users className="w-3.5 h-3.5 text-accent" />
-                  <span>Add Resident</span>
-                </button>
-                <button type="button" onClick={() => onOpenQuickAdd?.('fyi')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <Info className="w-3.5 h-3.5 text-accent" />
-                  <span>FYI Standing Note</span>
-                </button>
-                <button type="button" onClick={() => onOpenQuickAdd?.('wound')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
-                  <Bandage className="w-3.5 h-3.5 text-danger" />
-                  <span>Wound Protocol</span>
-                </button>
-              </div>
-            )}
+            <div className="relative">
+              <button type="button" onClick={() => setQuickAddOpen(!quickAddOpen)} className="btn btn-accent">
+                <Plus className="w-3.5 h-3.5" />
+                <span>Quick Add</span>
+                <ChevronDown className="w-3 h-3 opacity-80" />
+              </button>
+
+              {quickAddOpen && (
+                <div
+                  onClick={() => setQuickAddOpen(false)}
+                  className="absolute right-0 mt-1.5 w-52 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
+                >
+                  <button type="button" onClick={() => onOpenQuickAdd?.('care_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <HeartHandshake className="w-3.5 h-3.5 text-accent" />
+                    <span>Care Task</span>
+                  </button>
+                  <button type="button" onClick={() => onOpenQuickAdd?.('unit_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <ClipboardList className="w-3.5 h-3.5 text-accent" />
+                    <span>Unit Task / Routine</span>
+                  </button>
+                  <button type="button" onClick={() => onOpenQuickAdd?.('resident')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <Users className="w-3.5 h-3.5 text-accent" />
+                    <span>Add Resident</span>
+                  </button>
+                  <button type="button" onClick={() => onOpenQuickAdd?.('fyi')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <Info className="w-3.5 h-3.5 text-accent" />
+                    <span>FYI Standing Note</span>
+                  </button>
+                  <button type="button" onClick={() => onOpenQuickAdd?.('wound')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                    <Bandage className="w-3.5 h-3.5 text-danger" />
+                    <span>Wound Protocol</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Date navigator + search + view toggle — one bordered toolbar strip */}
       <div className="title-block rounded-surface px-3.5 py-2.5 flex flex-wrap items-center gap-3">

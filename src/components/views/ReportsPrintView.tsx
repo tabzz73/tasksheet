@@ -72,6 +72,7 @@ import {
 import { PrintPackageModel, buildHcaDailyPackage, buildLpnClinicalPackage } from '../../services/print/packages';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
 import { ReportCatalogPanel } from './ReportCatalogPanel';
+import { ViewHeader } from '../common/ViewHeader';
 
 /** Collect all task-like items with rich clinical context for delta tracking */
 function buildStructuredTasksFromSheet(sheet: GeneratedShiftSheet): TaskSnapshotItem[] {
@@ -283,23 +284,17 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
 
       {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight text-ink flex items-center space-x-2.5">
-            <Printer className="w-6 h-6 text-accent" />
-            <span>Report &amp; Print Center</span>
-          </h2>
-          <p className="text-xs text-muted mt-0.5">
-            Generate · preview · print — the final stage of TaskSheet's core workflow.
-          </p>
-        </div>
-        {hasChangedShifts && (
+      <ViewHeader
+        kicker="Produce"
+        title="Print Center"
+        subtitle="Generate · preview · print — the final stage of TaskSheet's core workflow."
+        action={hasChangedShifts && (
           <div className="flex items-center space-x-1.5 text-xs font-semibold text-warning bg-warning-soft border border-warning rounded-control px-3 py-1.5">
             <AlertTriangle className="w-3.5 h-3.5" />
             <span>Some shifts have changed since last generated</span>
           </div>
         )}
-      </div>
+      />
 
       <ReportCatalogPanel selectedDate={selectedDate} onPreview={onPrintSpecializedDoc} />
 
