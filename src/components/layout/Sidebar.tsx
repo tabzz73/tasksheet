@@ -31,9 +31,10 @@ interface SidebarProps {
 // mobile bottom bar/drawer — deliberately separate from the screen
 // tokens (documented in DESIGN.md), since nothing else in the inherited
 // style chain provides a legible color against this background.
-const RAIL_BG = '#081d3a';
-const RAIL_LINE = 'rgba(255,255,255,0.12)';
-const RAIL_TEXT_MUTED = 'rgba(255,255,255,0.65)';
+const RAIL_BG = '#1d2d3d';
+const RAIL_LINE = 'rgba(255,255,255,0.08)';
+const RAIL_TEXT_MUTED = '#8b9096';
+const RAIL_ACTIVE_TINT = 'rgba(94,170,160,0.12)';
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
@@ -57,8 +58,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const railRow = (isActive: boolean) =>
-    `w-full flex items-center gap-3 px-3 py-2 rounded-control text-sm font-medium transition-colors ${
-      isActive ? 'text-white' : 'hover:text-white hover:bg-white/5'
+    `w-full flex items-center gap-3 pl-2.5 pr-3 py-2 border-l-[3px] rounded-r-control text-sm font-medium transition-colors ${
+      isActive ? 'text-white' : 'border-transparent hover:text-white hover:bg-white/5'
     }`;
 
   return (
@@ -70,13 +71,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         style={{ background: RAIL_BG, color: RAIL_TEXT_MUTED }}
       >
         {/* Brand mark */}
-        <div className="px-4 py-4 flex items-center gap-3 shrink-0" style={{ borderBottom: `1px solid ${RAIL_LINE}` }}>
-          <div
-            className="w-8 h-8 rounded-control flex items-center justify-center shrink-0 font-heading font-bold text-white text-sm"
-            style={{ background: 'var(--color-accent)' }}
-          >
-            T
-          </div>
+        <div className="px-4 py-4 flex items-center gap-2.5 shrink-0" style={{ borderBottom: `1px solid ${RAIL_LINE}` }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" className="shrink-0">
+            <path d="M12 2v20" />
+            <path d="M2 12h20" />
+            <circle cx="12" cy="12" r="9" opacity="0.35" />
+          </svg>
           <div className="min-w-0">
             <h1 className="font-heading font-bold text-white text-[15px] leading-tight truncate">TaskSheet</h1>
             <p className="text-[10px] font-semibold uppercase tracking-wider truncate" style={{ color: RAIL_TEXT_MUTED }}>SoftVibeSolutions</p>
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onTabChange(item.id)}
                 aria-current={isActive ? 'page' : undefined}
                 className={railRow(isActive)}
-                style={isActive ? { background: 'rgba(255,255,255,0.1)' } : undefined}
+                style={isActive ? { background: RAIL_ACTIVE_TINT, borderLeftColor: 'var(--color-accent)' } : undefined}
               >
                 <Icon className="w-[18px] h-[18px] shrink-0" />
                 <span className="flex-1 text-left truncate">{item.label}</span>
@@ -122,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={() => onTabChange('dashboard')}
           className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
-          style={{ color: currentTab === 'dashboard' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
+          style={{ color: currentTab === 'dashboard' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'dashboard' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <LayoutGrid className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">Dashboard</span>
@@ -132,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={() => onTabChange('shifts')}
           className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
-          style={{ color: currentTab === 'shifts' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'shifts' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
+          style={{ color: currentTab === 'shifts' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'shifts' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <Clock className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">Shifts</span>
@@ -142,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={() => onTabChange('residents')}
           className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
-          style={{ color: currentTab === 'residents' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'residents' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
+          style={{ color: currentTab === 'residents' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'residents' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <Users className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">Residents</span>
@@ -152,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={() => onTabChange('fyi-binder')}
           className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
-          style={{ color: currentTab === 'fyi-binder' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'fyi-binder' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
+          style={{ color: currentTab === 'fyi-binder' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'fyi-binder' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <BookOpen className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">FYI Binder</span>

@@ -1,16 +1,18 @@
 @import "tailwindcss";
 
 /*
-  TaskSheet design system — "navy rail & paper sheet"
+  TaskSheet design system — "field blueprint"
   ====================================================
-  Direction: a dark navy left rail as structural chrome against a warm
-  paper working surface — bordered panels lifted with a soft shadow (not
-  flat hairline-only), confident numeral-led identifiers (room, shift
-  code, time) set in a distinct mono face, one deep-green accent used
-  for interactive elements and confirmed-good status alike. This is a
-  screen-UI system only — it must never touch `.tasksheet-print-document`
-  or anything under the print stylesheet below, which is separately
-  verified.
+  Direction: a dark blue-slate left rail as structural chrome against a
+  cool near-white working surface — flat, crisply bordered panels (no
+  shadow; structure comes from a visibly heavier border weight, in the
+  spirit of a technical drawing), confident numeral-led identifiers
+  (room, shift code, time) set in a distinct mono face, one teal accent
+  used for interactive elements. A sparse "blueprint" accent (corner
+  registration marks, see the `.corner` utility) is available for a
+  primary title-context box. This is a screen-UI system only — it must
+  never touch `.tasksheet-print-document` or anything under the print
+  stylesheet below, which is separately verified.
 
   Semantic tokens live here (`@theme`) so `bg-app`, `bg-panel`, `text-ink`,
   `text-muted`, `border-hairline`, `border-hairline-strong`, `text-accent`,
@@ -21,22 +23,57 @@
 
 /* Self-hosted so the UI renders correctly with no internet access —
    consistent with TaskSheet's local-first, single-workstation positioning.
-   IBM Plex Sans, Chivo, and JetBrains Mono all ship as variable fonts from
-   Google Fonts for the latin subset — one file each covers the full
-   weight range used here. */
+   Barlow and Barlow Condensed ship as static (non-variable) files per
+   weight from Google Fonts for the latin subset; JetBrains Mono ships as
+   a single variable file covering its whole weight range. */
 @font-face {
-  font-family: 'IBM Plex Sans';
+  font-family: 'Barlow';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 400;
   font-display: swap;
-  src: url('./assets/fonts/IBMPlexSans-variable.woff2') format('woff2');
+  src: url('./assets/fonts/Barlow-400.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Chivo';
+  font-family: 'Barlow';
   font-style: normal;
-  font-weight: 500 700;
+  font-weight: 500;
   font-display: swap;
-  src: url('./assets/fonts/Chivo-variable.woff2') format('woff2');
+  src: url('./assets/fonts/Barlow-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./assets/fonts/Barlow-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/Barlow-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./assets/fonts/BarlowCondensed-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./assets/fonts/BarlowCondensed-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/BarlowCondensed-700.woff2') format('woff2');
 }
 @font-face {
   font-family: 'JetBrains Mono';
@@ -47,27 +84,29 @@
 }
 
 @theme {
-  /* Surfaces: warm paper working surface */
-  --color-app: #fbf9f5;
+  /* Surfaces: a cool near-white working surface */
+  --color-app: #f2f2f3;
   --color-panel: #ffffff;
-  --color-panel-sunken: #f8fafc;
+  --color-panel-sunken: #f4f4f4;
 
-  /* Ink — slate family */
-  --color-ink: #0f172a;
-  --color-ink-soft: #334155;
-  --color-muted: #64748b;
-  --color-faint: #94a3b8;
+  /* Ink */
+  --color-ink: #1d1f20;
+  --color-ink-soft: #616262;
+  --color-muted: #848585;
+  --color-faint: #a5a5a6;
 
-  /* Hairlines, slate family */
-  --color-hairline: #e2e8f0;
-  --color-hairline-strong: #cbd5e1;
+  /* Hairlines — a visibly heavier structural weight than a typical
+     hairline, in the spirit of a technical drawing's crisp lines. */
+  --color-hairline: #e4e4e4;
+  --color-hairline-strong: #b0b1b1;
 
-  /* One accent, deep forest green — the one interactive color in the
-     system, and shared with --color-positive (see below): this identity
-     uses a single green for both "do this" and "this is good/active". */
-  --color-accent: #0d5c46;
-  --color-accent-strong: #0a4736;
-  --color-accent-soft: #e7f2ed;
+  /* One accent, teal — the one interactive color in the system. Kept
+     deliberately separate from --color-positive (below): unlike the
+     immediately preceding direction, nothing here evidences reusing the
+     accent hue for status/badge meaning. */
+  --color-accent: #5eaaa0;
+  --color-accent-strong: #3f7a72;
+  --color-accent-soft: #eaf5f3;
 
   /* Semantic — reserved for meaning, never decoration */
   --color-danger: #991b1b;
@@ -81,18 +120,16 @@
   --radius-control: 0.25rem;
   --radius-surface: 0.375rem;
 
-  /* Two elevation tiers: a subtle default panel shadow, and a stronger
-     one reserved for things that actually float above the page. */
-  --shadow-panel: 0 1px 0 rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.06);
+  /* One elevation, for things that actually float */
   --shadow-elevated: 0 8px 24px -8px rgb(23 25 28 / 0.28), 0 1px 0 rgb(23 25 28 / 0.04);
 
   --spacing-control-h: 2.25rem;
 
-  /* Typography: IBM Plex Sans for body text, Chivo for headings/emphasis,
-     JetBrains Mono for tabular/numeric data (room numbers, shift codes,
-     times) — applied per-element, not globally. */
-  --font-body: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: 'Chivo', 'IBM Plex Sans', sans-serif;
+  /* Typography: Barlow for body text, Barlow Condensed for
+     headings/emphasis, JetBrains Mono for tabular/numeric data (room
+     numbers, shift codes, times) — applied per-element, not globally. */
+  --font-body: 'Barlow', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: 'Barlow Condensed', 'Barlow', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 }
 
@@ -241,13 +278,47 @@
     background: var(--color-accent-soft);
   }
 
-  /* Title-block: bordered, lightly-elevated panel treatment shared by every
-     "this is a distinct section" surface across the app. */
+  /* Title-block: bordered, flat panel treatment shared by every "this is
+     a distinct section" surface across the app. Structure comes from the
+     heavier hairline-strong border weight, not elevation. */
   .title-block {
-    border: 1px solid var(--color-hairline);
+    border: 1px solid var(--color-hairline-strong);
     background: var(--color-panel);
-    box-shadow: var(--shadow-panel);
   }
+
+  /* Blueprint corner registration marks — a sparse accent for a primary
+     title-context box, not for every panel. Not yet applied anywhere;
+     available for a future per-screen pass that introduces a bordered
+     title-context header pattern. Apply to a `position: relative`
+     container with one `<span>`/`<i>` per corner. */
+  .corner {
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    color: var(--color-hairline-strong);
+  }
+  .corner::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: currentColor;
+  }
+  .corner::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+  }
+  .corner-tl { top: -6px; left: -6px; }
+  .corner-tr { top: -6px; right: -6px; }
+  .corner-bl { bottom: -6px; left: -6px; }
+  .corner-br { bottom: -6px; right: -6px; }
 }
 
 /* ─── Print CSS ─────────────────────────────────────────────────────────────── */
