@@ -594,6 +594,11 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
       )}
 
       {confidentialityNotice && <div style={{ marginTop: '8pt', fontSize: 'var(--print-footer-size)', color: '#64748b', textAlign: 'center', fontStyle: 'italic', breakInside: 'avoid' }}>{confidentialityNotice}</div>}
+
+      {/* Fixed compliance line on every HCA/LPN TaskSheet — not a facility-configurable notice like confidentialityNotice above, always present. */}
+      <div style={{ marginTop: '4pt', fontSize: 'var(--print-footer-size)', color: '#475569', textAlign: 'center', fontWeight: 700, breakInside: 'avoid' }}>
+        Shift guide only — verify against your site&apos;s approved source of truth. Report any discrepancy to LPN/Team Lead.
+      </div>
     </div>
   );
 };
