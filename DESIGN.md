@@ -17,7 +17,7 @@ Core principles, in priority order:
 5. **Print-oriented.** Screen chrome exists to produce a correct paper TaskSheet; it must never be confused with, or allowed to influence, the print output itself.
 6. **Desktop-first.** Designed and density-tuned for 1366×768–1920×1080 workstation use; mobile is a usable fallback, not a parallel design target.
 7. **Accessible.** Keyboard navigation, visible focus, semantic controls, and modal focus-trapping are load-bearing requirements, not nice-to-haves.
-8. **Low decoration.** No gradients, no hover-lift, no rainbow icon backgrounds, no shadows except true elevation.
+8. **Restrained decoration.** No gradients, no hover-lift, no rainbow icon backgrounds. Two shadow tiers only: a subtle default panel shadow and a stronger one for things that genuinely float — see Shadow Rules.
 9. **Strong information hierarchy.** Achieved through type weight, spacing, and structure — not size alone, and not color.
 
 ## Color Tokens
@@ -26,26 +26,26 @@ All screen-UI color lives in `src/index.css` under `@theme`, generating real Tai
 
 | Token | Value | Meaning — when to use it |
 |---|---|---|
-| `--color-app` | `#f7f7f6` | Page background only — the surface the whole app shell sits on. Never used for panels or cards. |
+| `--color-app` | `#fbf9f5` | Page background only — the surface the whole app shell sits on. Never used for panels or cards. |
 | `--color-panel` | `#ffffff` | The working surface: table backgrounds, modal bodies, input backgrounds, card-equivalent bordered sections. |
-| `--color-panel-sunken` | `#faf9f6` | A slightly recessed surface *inside* a panel — table header rows, hover states, toolbar bars, the canvas behind a print-preview paper. Never used as the outermost page background. |
-| `--color-ink` | `#1d1f20` | Primary text, headings, and the "primary" button fill. |
-| `--color-ink-soft` | `#43474d` | Secondary text — subtitles, body copy inside dense rows, form labels' descriptive text. |
-| `--color-muted` | `#767779` | Tertiary/metadata text — timestamps, counts, helper captions. |
-| `--color-faint` | `#a4a5a6` | Lowest-emphasis text/icons — empty-state icons, disabled-adjacent hints. |
-| `--color-hairline` | `#dbdbdb` | Default border/divider weight — table row dividers, section separators. |
-| `--color-hairline-strong` | `#c9c9ca` | Structural border weight — panel/card outlines, table header underlines, segmented-control borders. |
-| `--color-accent` | `#5980a6` (muted blue-grey) | The **one** interactive/brand accent — primary CTAs, active nav/tab state, links, focus rings. Reserved for "this is interactive or currently selected," not decoration. |
-| `--color-accent-strong` | `#2c455d` | Accent hover/pressed state, and accent-toned text needing more contrast than `--color-accent` on a light background. |
-| `--color-accent-soft` | `#eef6ff` | Accent-tinted background — selected list rows, info callouts, `.badge-accent`. |
-| `--color-danger` | `#8a3f3a` | Destructive actions and true errors/blocking conditions only (delete, validation failure, wound/clinical-safety flags). Never used for "inactive" or merely historical data. |
-| `--color-danger-soft` | `#f6ece9` | Danger-tinted background for alerts/badges. |
-| `--color-warning` | `#8a5a1e` | Needs-attention states: paused care, demo-mode banners, setup-required banners, stopped tasks, on-hold/out-on-pass/in-hospital resident status. |
-| `--color-warning-soft` | `#faf1de` | Warning-tinted background. |
-| `--color-positive` | `#1e6b45` | Confirmed-good states only: Active resident status, "binder current," successful save feedback. |
-| `--color-positive-soft` | `#e7f2ec` | Positive-tinted background. |
+| `--color-panel-sunken` | `#f8fafc` | A slightly recessed surface *inside* a panel — table header rows, hover states, toolbar bars, the canvas behind a print-preview paper. Never used as the outermost page background. |
+| `--color-ink` | `#0f172a` | Primary text, headings, and the "primary" button fill. |
+| `--color-ink-soft` | `#334155` | Secondary text — subtitles, body copy inside dense rows, form labels' descriptive text. |
+| `--color-muted` | `#64748b` | Tertiary/metadata text — timestamps, counts, helper captions. |
+| `--color-faint` | `#94a3b8` | Lowest-emphasis text/icons — empty-state icons, disabled-adjacent hints. |
+| `--color-hairline` | `#e2e8f0` | Default border/divider weight — table row dividers, section separators, panel borders (see Surface Rules — panels now use this weight, not `hairline-strong`). |
+| `--color-hairline-strong` | `#cbd5e1` | Structural border weight — segmented-control borders, table header underlines. |
+| `--color-accent` | `#0d5c46` (deep forest green) | The **one** interactive/brand accent — primary CTAs, active nav/tab state, links, focus rings. Reserved for "this is interactive or currently selected," not decoration. Deliberately shares its value with `--color-positive` (see below) — one green identity for both "do this" and "this is good/active." |
+| `--color-accent-strong` | `#0a4736` | Accent hover/pressed state, and accent-toned text needing more contrast than `--color-accent` on a light background. |
+| `--color-accent-soft` | `#e7f2ed` | Accent-tinted background — selected list rows, info callouts, `.badge-accent`. |
+| `--color-danger` | `#991b1b` | Destructive actions and true errors/blocking conditions only (delete, validation failure, wound/clinical-safety flags). Never used for "inactive" or merely historical data. |
+| `--color-danger-soft` | `#fee2e2` | Danger-tinted background for alerts/badges. |
+| `--color-warning` | `#d97706` | Needs-attention states: paused care, demo-mode banners, setup-required banners, stopped tasks, on-hold/out-on-pass/in-hospital resident status. |
+| `--color-warning-soft` | `#fef3c7` | Warning-tinted background. |
+| `--color-positive` | `#0d5c46` | Confirmed-good states only: Active resident status, "binder current," successful save feedback. Value intentionally equals `--color-accent` — kept as a separate token (not collapsed to literal `bg-accent` call sites) so the semantic distinction ("interactive" vs. "confirmed-good state") survives a future palette change even though the color coincides today. |
+| `--color-positive-soft` | `#e7f2ed` | Positive-tinted background. Equals `--color-accent-soft` for the same reason. |
 
-*(Revised 2026-09-03: accent hue changed from the original desaturated teal to a muted blue-grey, and text/hairline neutrals lightened slightly, following a new Claude Design mockup. Danger/warning also re-tuned to the mockup's muted tone. Radius/shadow/spacing scale, surface rules, and the Print Separation boundary below are unchanged from the original pass.)*
+*(Revised 2026-09-03, pass 2: reverted from a Claude Design mockup's blue-grey/flat direction back toward TaskSheet's original navy-and-green identity, following a live reference the user pointed to that turned out to be a hosted snapshot of TaskSheet's own pre-redesign UI — confirmed via its `#081D3A` sidebar color, already documented in `PRODUCT.md` as the original. Accent moves from blue-grey to a deep forest green; neutrals move to the slate family; danger/warning move from muted tones to standard, more saturated values; panels gain a soft default shadow (see Shadow Rules) where the immediately preceding pass had none. Supersedes the same-day pass-1 revision above. Radius/spacing scale and the Print Separation boundary below are unchanged across both passes.)*
 
 **Status-semantic mapping (apply consistently everywhere a status/state appears — resident status, task status, binder status, shift toggles):**
 
@@ -55,35 +55,35 @@ All screen-UI color lives in `src/index.css` under `@theme`, generating real Tai
 - Destructive action or blocking validation failure → `danger`
 - Everything else that's just "this is the current selection or an interactive control" → `accent`
 
-**One exception, documented at its source:** `src/components/layout/Sidebar.tsx` defines `RAIL_ACCENT = '#7fa8d4'`, a brighter blue than `--color-accent`, used only for active-state indicators against the mobile nav's near-black surfaces (`RAIL_BG = '#15181c'`). `--color-accent` (`#5980a6`) is too dark to read as an "active" indicator on that background. This is a deliberate dark-surface variant, not a second brand color — it is not used anywhere else, and it is defined once as a named constant, not repeated as a magic hex value.
+**One exception, documented at its source:** `src/components/layout/Sidebar.tsx` defines its own small dark-surface palette (`RAIL_BG = '#081d3a'`, `RAIL_LINE`, `RAIL_TEXT_MUTED`) for the navy sidebar and mobile bottom bar/drawer — deliberately separate from the screen tokens above, since nothing else in the inherited style chain provides a legible color against `RAIL_BG`. Unlike the previous pass, there is no separate "brighter accent" constant: active-state indicators (desktop rail, mobile bar) use a plain `white/10%` background overlay with white text, not a colored accent — `--color-accent` (`#0d5c46`) reads too dark against navy to work as a saturated active-state color, and the overlay pattern (matching the reference this pass restores) sidesteps the problem entirely rather than needing a second brand-adjacent hue.
 
 ## Typography Hierarchy
 
 Three fonts, each with a specific job — not a single stack used everywhere:
 
-- **Public Sans** (`--font-body`, weights 400–700, self-hosted variable font) — body text, form values, table cells, everything not called out below. Applied globally via `body { font-family: var(--font-body) }`.
-- **Archivo** (`--font-heading`, weights 500–700, self-hosted variable font) — page titles (`h1`) and section titles (`h2`), applied globally via a base-layer rule, plus every button label via `.btn`'s shared class. Used for emphasis/display, never for body copy.
-- **IBM Plex Mono** (`--font-mono`, weights 500/600, self-hosted static files) — tabular/numeric identifiers only: shift codes, times, room numbers. Applied per-element (`font-[family-name:--font-mono]` or an inline style), not globally — most text should not be monospace.
+- **IBM Plex Sans** (`--font-body`, weights 400–700, self-hosted variable font) — body text, form values, table cells, everything not called out below. Applied globally via `body { font-family: var(--font-body) }`.
+- **Chivo** (`--font-heading`, weights 500–700, self-hosted variable font) — page titles (`h1`) and section titles (`h2`), applied globally via a base-layer rule, plus every button label via `.btn`'s shared class. Used for emphasis/display, never for body copy.
+- **JetBrains Mono** (`--font-mono`, weights 500/600, self-hosted variable font) — tabular/numeric identifiers only: shift codes, times, room numbers. Applied per-element (`font-[family-name:--font-mono]` or an inline style), not globally — most text should not be monospace.
 
-`font-variant-numeric: tabular-nums` remains set globally on `body` so numeral columns still align even where Plex Mono isn't applied. Sizes are set per-element with Tailwind arbitrary values (`text-[22px]`, `text-[13px]`, …) rather than the default type scale, to hit exact hierarchy targets:
+`font-variant-numeric: tabular-nums` remains set globally on `body` so numeral columns still align even where JetBrains Mono isn't applied. Sizes are set per-element with Tailwind arbitrary values (`text-[22px]`, `text-[13px]`, …) rather than the default type scale, to hit exact hierarchy targets:
 
 | Level | Size / weight | Where |
 |---|---|---|
-| Page title | `22px`, `font-bold`, Archivo | One per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page. |
-| Section title | `13px`, `font-bold`, uppercase, `tracking-wide`, Archivo | "Today's Shifts," settings nav-group labels, table section headers. |
-| Body | `13px`, regular/medium, Public Sans | Row content, form values, descriptive text. |
+| Page title | `22px`, `font-bold`, Chivo | One per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page. |
+| Section title | `13px`, `font-bold`, uppercase, `tracking-wide`, Chivo | "Today's Shifts," settings nav-group labels, table section headers. |
+| Body | `13px`, regular/medium, IBM Plex Sans | Row content, form values, descriptive text. |
 | Metadata | `11–11.5px`, `text-muted` or `text-faint` | Counts, timestamps, secondary descriptors under a title. |
 | Table headers | `10.5–11px`, `font-bold`, uppercase, `tracking-wide`, `text-muted` | `.table-schedule thead th` and equivalent div-grid headers. |
 | Labels (forms) | `11–12px`, `font-bold`, uppercase, `tracking-wider`, `text-ink-soft` | Field labels — bold-and-small, not large-and-regular. |
 | Helper text | `11px`, `text-muted` | Under an input, explaining format or consequence. |
-| Tabular data | Plex Mono | Shift codes, time ranges, room numbers — anywhere columns of numerals need to align by digit width, not just proportionally. |
+| Tabular data | JetBrains Mono | Shift codes, time ranges, room numbers — anywhere columns of numerals need to align by digit width, not just proportionally. |
 
 Hierarchy is carried by **weight and structure more than size** — a bold 13px row title next to a regular 13px metadata line reads clearly without needing a large size jump.
 
 ## Surface Rules
 
 - **Full page background:** `bg-app` on the outermost scroll container only.
-- **Panel:** `bg-panel` + `border border-hairline-strong` + `rounded-surface` — the default "this is a distinct section" treatment. Class: `.title-block` (bordered context bar / header treatment) or a bare `bg-panel rounded-surface border ...` block.
+- **Panel:** `bg-panel` + `border border-hairline` + `rounded-surface` + a subtle default shadow — the default "this is a distinct section" treatment. Class: `.title-block` (bordered, lightly-elevated context bar / header treatment, includes the shadow) or a bare `bg-panel rounded-surface border shadow-[var(--shadow-panel)] ...` block for a one-off panel. See Shadow Rules for the two shadow tiers.
 - **Bordered section inside a panel:** use `border-t border-hairline` dividers, not a nested panel. **Do not nest panels inside panels** — this was the single biggest anti-pattern removed in this redesign (endless white rounded-xl cards nested in cards).
 - **Divider:** `border-hairline` for row-level separation (table rows, list items), `border-hairline-strong` for structural separation (panel edges, section boundaries, table header underline).
 
@@ -100,14 +100,12 @@ Two tokens only:
 
 ## Shadow Rules
 
-`--shadow-elevated` is the **only** shadow token, and it is reserved for things that are genuinely floating above the page:
+Two shadow tokens, each reserved for a distinct purpose — do not blur the line between them:
 
-- Modals (`Modal.tsx`)
-- Dropdown menus / popovers (`TaskActionMenu`, Add-menus, status-change menus)
-- The print-preview "paper" (screen-only; never applied inside `.tasksheet-print-document` itself)
-- The dark full-screen print-preview toolbar (`PrintPreviewPage.tsx`)
+- **`--shadow-panel`** — the subtle default lift on every structural panel (`.title-block` and equivalent bordered sections). Two soft layers (`0 1px 0 rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.06)`) — meant to read as "a distinct surface," not as something floating above the page. Applied automatically by `.title-block`; use it explicitly (`shadow-[var(--shadow-panel)]`) on any bare panel-equivalent block that isn't using that class.
+- **`--shadow-elevated`** — reserved for things genuinely floating above the page: modals (`Modal.tsx`), dropdown menus/popovers (`TaskActionMenu`, Add-menus, status-change menus), the print-preview "paper" (screen-only; never applied inside `.tasksheet-print-document` itself), and the dark full-screen print-preview toolbar (`PrintPreviewPage.tsx`).
 
-Flat panels, table rows, cards, and buttons carry **no shadow** — their structure comes from `border-hairline-strong`, not elevation. `shadow-sm`/`shadow-md`/`shadow-xs` on non-floating elements were removed throughout.
+Table rows and buttons still carry **no shadow** — their structure comes from borders/backgrounds, not elevation. `shadow-sm`/`shadow-md`/`shadow-xs`/arbitrary shadow utilities outside these two tokens should not appear in screen UI.
 
 ## Button Hierarchy
 
@@ -150,7 +148,9 @@ Dangerous-action confirmation (`ConfirmDialog`, `TaskActionConfirmModal`) is vis
 
 ## Navigation
 
-Sidebar is a flat structured rail (`RAIL_BG`/`RAIL_LINE`/`RAIL_TEXT_MUTED`/`RAIL_ACCENT` — a deliberately separate dark palette from the screen tokens, documented above), not floating rounded pills. Active state is a 3px left accent stripe plus a subtle tinted background, not a filled rounded button. Mobile collapses to a bottom tab bar (5 primary destinations) plus a "More" sheet for Settings/Print Center — both the rail and the sheet must set an explicit base text color (`RAIL_TEXT_MUTED`) on their container, since nothing else in the inherited style chain provides a legible color against `RAIL_BG`.
+A persistent left sidebar (`<aside data-testid="app-sidebar">`, `w-60`), navy background (`RAIL_BG`/`RAIL_LINE`/`RAIL_TEXT_MUTED` — a deliberately separate dark palette from the screen tokens, documented above), not a top bar and not floating rounded pills. Active state is a `white/10%` background overlay with white text and `rounded-control` — a filled tinted row, not a stripe. Settings is a normal item in the same flat vertical nav list (Dashboard/Shifts/Residents/FYI Binder/Print Center/Settings), not separated into its own "bottom utility" section. A brand block (logo mark + "TaskSheet" + "SoftVibeSolutions") sits above the nav list; the app tagline sits in a footer block below it.
+
+Mobile collapses to a bottom tab bar (`Dashboard`/`Shifts`/`Residents`/`FYI Binder` + a "More" trigger) plus a "More" sheet for Settings/Print Center, sharing the same navy identity and white-overlay active state as the desktop rail — both the bar and the sheet must set an explicit base text color (`RAIL_TEXT_MUTED`) on their container, since nothing else in the inherited style chain provides a legible color against `RAIL_BG`. `Navbar.tsx`'s `<header data-testid="app-navbar">` (facility identity + date control) sits above the main content column, to the right of the sidebar.
 
 ## Responsive Rules
 

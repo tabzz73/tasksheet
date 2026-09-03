@@ -27,7 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   });
 
   return (
-    <header className="relative z-30 min-h-12 shrink-0 bg-panel border-b border-hairline-strong px-4 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 no-print">
+    <header data-testid="app-navbar" className="relative z-30 min-h-12 shrink-0 bg-panel border-b border-hairline-strong px-4 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 no-print">
       {/* Left: facility identity */}
       <div className="flex items-center gap-3 min-w-0">
         <h2 className="text-[13px] font-bold text-ink tracking-tight truncate">{facility.siteName || 'Facility Not Configured'}</h2>

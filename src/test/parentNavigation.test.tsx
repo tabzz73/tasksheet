@@ -21,7 +21,7 @@ describe('sidebar parent navigation', () => {
   it('returns from a shift workspace to the Shifts list when Shifts is clicked again', () => {
     const shift = db.getState().shifts.find(item => item.isActive !== false)!;
     const view = render(<App />);
-    const desktopSidebar = view.container.querySelector('header')!;
+    const desktopSidebar = view.getByTestId('app-sidebar');
     const shiftsNav = within(desktopSidebar).getByRole('button', { name: 'Shifts' });
 
     fireEvent.click(shiftsNav);
@@ -37,7 +37,7 @@ describe('sidebar parent navigation', () => {
   it('returns from a resident profile to the Residents list when Residents is clicked again', () => {
     const resident = db.getState().residents[0];
     const view = render(<App />);
-    const desktopSidebar = view.container.querySelector('header')!;
+    const desktopSidebar = view.getByTestId('app-sidebar');
     const residentsNav = within(desktopSidebar).getByRole('button', { name: 'Residents' });
 
     fireEvent.click(residentsNav);
@@ -54,7 +54,7 @@ describe('sidebar parent navigation', () => {
 
   it('resets Print Center, FYI Binder, and Settings to their section roots when reselected', () => {
     const view = render(<App />);
-    const desktopSidebar = view.container.querySelector('header')!;
+    const desktopSidebar = view.getByTestId('app-sidebar');
 
     const printCenterNav = within(desktopSidebar).getByRole('button', { name: 'Print Center' });
     fireEvent.click(printCenterNav);

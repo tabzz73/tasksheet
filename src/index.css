@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 /*
-  TaskSheet design system — "schedule & title-block"
-  ===================================================
-  Direction: the visual world of a technical drawing schedule (a door
-  schedule, a room-finish schedule) and its title block — bordered header
-  blocks, dense ruled tables, a visible hairline grid, confident numeral-led
-  identifiers (room, shift code, time) set against smaller quiet metadata.
-  One restrained accent (a muted blue-grey, used only where it means
-  something interactive or in-progress). This is a screen-UI system only —
-  it must never touch `.tasksheet-print-document` or anything under the
-  print stylesheet below, which is separately verified.
+  TaskSheet design system — "navy rail & paper sheet"
+  ====================================================
+  Direction: a dark navy left rail as structural chrome against a warm
+  paper working surface — bordered panels lifted with a soft shadow (not
+  flat hairline-only), confident numeral-led identifiers (room, shift
+  code, time) set in a distinct mono face, one deep-green accent used
+  for interactive elements and confirmed-good status alike. This is a
+  screen-UI system only — it must never touch `.tasksheet-print-document`
+  or anything under the print stylesheet below, which is separately
+  verified.
 
   Semantic tokens live here (`@theme`) so `bg-app`, `bg-panel`, `text-ink`,
   `text-muted`, `border-hairline`, `border-hairline-strong`, `text-accent`,
@@ -21,82 +21,79 @@
 
 /* Self-hosted so the UI renders correctly with no internet access —
    consistent with TaskSheet's local-first, single-workstation positioning.
-   Public Sans and Archivo ship as variable fonts from Google Fonts (one
-   file covers their whole weight range); IBM Plex Mono does not, so it's
-   two static files. */
+   IBM Plex Sans, Chivo, and JetBrains Mono all ship as variable fonts from
+   Google Fonts for the latin subset — one file each covers the full
+   weight range used here. */
 @font-face {
-  font-family: 'Public Sans';
+  font-family: 'IBM Plex Sans';
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
-  src: url('./assets/fonts/PublicSans-variable.woff2') format('woff2');
+  src: url('./assets/fonts/IBMPlexSans-variable.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Archivo';
+  font-family: 'Chivo';
   font-style: normal;
   font-weight: 500 700;
   font-display: swap;
-  src: url('./assets/fonts/Archivo-variable.woff2') format('woff2');
+  src: url('./assets/fonts/Chivo-variable.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'IBM Plex Mono';
+  font-family: 'JetBrains Mono';
   font-style: normal;
-  font-weight: 500;
+  font-weight: 500 600;
   font-display: swap;
-  src: url('./assets/fonts/IBMPlexMono-500.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'IBM Plex Mono';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('./assets/fonts/IBMPlexMono-600.woff2') format('woff2');
+  src: url('./assets/fonts/JetBrainsMono-variable.woff2') format('woff2');
 }
 
 @theme {
-  /* Surfaces: warm paper, not a blue-tinted SaaS background */
-  --color-app: #f7f7f6;
+  /* Surfaces: warm paper working surface */
+  --color-app: #fbf9f5;
   --color-panel: #ffffff;
-  --color-panel-sunken: #faf9f6;
+  --color-panel-sunken: #f8fafc;
 
-  /* Ink */
-  --color-ink: #1d1f20;
-  --color-ink-soft: #43474d;
-  --color-muted: #767779;
-  --color-faint: #a4a5a6;
+  /* Ink — slate family */
+  --color-ink: #0f172a;
+  --color-ink-soft: #334155;
+  --color-muted: #64748b;
+  --color-faint: #94a3b8;
 
-  /* Hairlines, not shadows, carry structure */
-  --color-hairline: #dbdbdb;
-  --color-hairline-strong: #c9c9ca;
+  /* Hairlines, slate family */
+  --color-hairline: #e2e8f0;
+  --color-hairline-strong: #cbd5e1;
 
-  /* One accent, muted blue-grey — the one interactive color in the system */
-  --color-accent: #5980a6;
-  --color-accent-strong: #2c455d;
-  --color-accent-soft: #eef6ff;
+  /* One accent, deep forest green — the one interactive color in the
+     system, and shared with --color-positive (see below): this identity
+     uses a single green for both "do this" and "this is good/active". */
+  --color-accent: #0d5c46;
+  --color-accent-strong: #0a4736;
+  --color-accent-soft: #e7f2ed;
 
   /* Semantic — reserved for meaning, never decoration */
-  --color-danger: #8a3f3a;
-  --color-danger-soft: #f6ece9;
-  --color-warning: #8a5a1e;
-  --color-warning-soft: #faf1de;
-  --color-positive: #1e6b45;
-  --color-positive-soft: #e7f2ec;
+  --color-danger: #991b1b;
+  --color-danger-soft: #fee2e2;
+  --color-warning: #d97706;
+  --color-warning-soft: #fef3c7;
+  --color-positive: #0d5c46;
+  --color-positive-soft: #e7f2ed;
 
   /* Radius: modest and intentional, never bubbly */
   --radius-control: 0.25rem;
   --radius-surface: 0.375rem;
 
-  /* One elevation, for things that actually float */
+  /* Two elevation tiers: a subtle default panel shadow, and a stronger
+     one reserved for things that actually float above the page. */
+  --shadow-panel: 0 1px 0 rgb(15 23 42 / 0.04), 0 8px 24px rgb(15 23 42 / 0.06);
   --shadow-elevated: 0 8px 24px -8px rgb(23 25 28 / 0.28), 0 1px 0 rgb(23 25 28 / 0.04);
 
   --spacing-control-h: 2.25rem;
 
-  /* Typography: Public Sans for body text, Archivo for headings/emphasis,
-     IBM Plex Mono for tabular/numeric data (room numbers, shift codes,
+  /* Typography: IBM Plex Sans for body text, Chivo for headings/emphasis,
+     JetBrains Mono for tabular/numeric data (room numbers, shift codes,
      times) — applied per-element, not globally. */
-  --font-body: 'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: 'Archivo', 'Public Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: 'Chivo', 'IBM Plex Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 }
 
 @layer base {
@@ -244,10 +241,12 @@
     background: var(--color-accent-soft);
   }
 
-  /* Title-block header: bordered context bar, the schedule's own heritage */
+  /* Title-block: bordered, lightly-elevated panel treatment shared by every
+     "this is a distinct section" surface across the app. */
   .title-block {
-    border: 1px solid var(--color-hairline-strong);
+    border: 1px solid var(--color-hairline);
     background: var(--color-panel);
+    box-shadow: var(--shadow-panel);
   }
 }
 

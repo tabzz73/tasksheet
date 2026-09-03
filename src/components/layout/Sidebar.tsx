@@ -27,12 +27,13 @@ interface SidebarProps {
   binderUpdateRequired?: boolean;
 }
 
-const RAIL_BG = '#15181c';
-const RAIL_LINE = '#282b30';
-const RAIL_TEXT_MUTED = '#8b9096';
-// Brighter than --color-accent (#5980a6) on purpose: the screen accent
-// reads as too muted for an "active" indicator against RAIL_BG.
-const RAIL_ACCENT = '#7fa8d4';
+// One shared dark-surface identity for both the desktop rail and the
+// mobile bottom bar/drawer — deliberately separate from the screen
+// tokens (documented in DESIGN.md), since nothing else in the inherited
+// style chain provides a legible color against this background.
+const RAIL_BG = '#081d3a';
+const RAIL_LINE = 'rgba(255,255,255,0.12)';
+const RAIL_TEXT_MUTED = 'rgba(255,255,255,0.65)';
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
@@ -55,33 +56,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'settings' as NavigationTab, label: 'Settings', icon: Settings },
   ];
 
-  const navTab = (isActive: boolean) =>
-    `inline-flex items-center gap-1.5 h-full shrink-0 px-2.5 border-0 border-b-[3px] font-heading font-bold text-[12.5px] whitespace-nowrap transition-colors ${
-      isActive ? '' : 'hover:text-ink'
+  const railRow = (isActive: boolean) =>
+    `w-full flex items-center gap-3 px-3 py-2 rounded-control text-sm font-medium transition-colors ${
+      isActive ? 'text-white' : 'hover:text-white hover:bg-white/5'
     }`;
 
   return (
     <>
-      {/* Desktop top navigation bar — brand mark, horizontal tabs, publisher */}
-      <header
-        data-testid="app-header"
-        className="hidden md:flex items-center gap-3.5 h-[52px] px-6 border-b border-hairline bg-panel no-print sticky top-0 z-30 overflow-x-auto"
+      {/* Desktop Permanent Sidebar */}
+      <aside
+        data-testid="app-sidebar"
+        className="hidden md:flex flex-col w-60 shrink-0 h-screen sticky top-0 no-print"
+        style={{ background: RAIL_BG, color: RAIL_TEXT_MUTED }}
       >
-        <div
-          className="w-[26px] h-[26px] flex items-center justify-center shrink-0"
-          style={{ border: '1.5px solid var(--color-accent)' }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.75" strokeLinecap="round">
-            <path d="M12 3v18" />
-            <path d="M3 12h18" />
-          </svg>
+        {/* Brand mark */}
+        <div className="px-4 py-4 flex items-center gap-3 shrink-0" style={{ borderBottom: `1px solid ${RAIL_LINE}` }}>
+          <div
+            className="w-8 h-8 rounded-control flex items-center justify-center shrink-0 font-heading font-bold text-white text-sm"
+            style={{ background: 'var(--color-accent)' }}
+          >
+            T
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-heading font-bold text-white text-[15px] leading-tight truncate">TaskSheet</h1>
+            <p className="text-[10px] font-semibold uppercase tracking-wider truncate" style={{ color: RAIL_TEXT_MUTED }}>SoftVibeSolutions</p>
+          </div>
         </div>
-        <span className="font-heading font-semibold text-[16px] text-ink whitespace-nowrap shrink-0">TaskSheet</span>
-        <span className="sr-only">{TASKSHEET_TAGLINE}</span>
-        <span className="w-px h-5 bg-hairline shrink-0" aria-hidden="true" />
 
-        <nav className="flex gap-1 h-full shrink-0" aria-label="Primary">
+        {/* Primary Navigation */}
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto" aria-label="Primary">
           {navItems.map((item) => {
+            const Icon = item.icon;
             const isActive = currentTab === item.id;
             return (
               <button
@@ -89,14 +94,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 type="button"
                 onClick={() => onTabChange(item.id)}
                 aria-current={isActive ? 'page' : undefined}
-                className={navTab(isActive)}
-                style={{
-                  color: isActive ? 'var(--color-accent-strong)' : 'var(--color-muted)',
-                  background: isActive ? 'var(--color-accent-soft)' : 'transparent',
-                  borderBottomColor: isActive ? 'var(--color-accent)' : 'transparent',
-                }}
+                className={railRow(isActive)}
+                style={isActive ? { background: 'rgba(255,255,255,0.1)' } : undefined}
               >
-                {item.label}
+                <Icon className="w-[18px] h-[18px] shrink-0" />
+                <span className="flex-1 text-left truncate">{item.label}</span>
                 {item.badge && (
                   <span className="badge badge-warning shrink-0">{item.badge}</span>
                 )}
@@ -105,12 +107,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3 shrink-0">
-          <span className="max-[900px]:hidden text-[11px] text-faint whitespace-nowrap" title={TASKSHEET_TAGLINE}>
-            SoftVibeSolutions
-          </span>
+        {/* Footer */}
+        <div className="px-4 py-3 space-y-1 shrink-0" style={{ borderTop: `1px solid ${RAIL_LINE}` }}>
+          <p className="text-[10.5px] leading-snug" style={{ color: RAIL_TEXT_MUTED }}>{TASKSHEET_TAGLINE}</p>
         </div>
-      </header>
+      </aside>
 
       {/* Mobile Bottom Navigation Bar */}
       <div
@@ -120,8 +121,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('dashboard')}
-          className="flex flex-col items-center justify-center gap-0.5 px-1 py-1"
-          style={{ color: currentTab === 'dashboard' ? RAIL_ACCENT : RAIL_TEXT_MUTED }}
+          className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
+          style={{ color: currentTab === 'dashboard' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
         >
           <LayoutGrid className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">Dashboard</span>
@@ -130,8 +131,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('shifts')}
-          className="flex flex-col items-center justify-center gap-0.5 px-1 py-1"
-          style={{ color: currentTab === 'shifts' ? RAIL_ACCENT : RAIL_TEXT_MUTED }}
+          className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
+          style={{ color: currentTab === 'shifts' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'shifts' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
         >
           <Clock className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">Shifts</span>
@@ -140,8 +141,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('residents')}
-          className="flex flex-col items-center justify-center gap-0.5 px-1 py-1"
-          style={{ color: currentTab === 'residents' ? RAIL_ACCENT : RAIL_TEXT_MUTED }}
+          className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
+          style={{ color: currentTab === 'residents' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'residents' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
         >
           <Users className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">Residents</span>
@@ -150,8 +151,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('fyi-binder')}
-          className="flex flex-col items-center justify-center gap-0.5 px-1 py-1"
-          style={{ color: currentTab === 'fyi-binder' ? RAIL_ACCENT : RAIL_TEXT_MUTED }}
+          className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
+          style={{ color: currentTab === 'fyi-binder' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'fyi-binder' ? 'rgba(255,255,255,0.1)' : 'transparent' }}
         >
           <BookOpen className="w-[18px] h-[18px]" />
           <span className="text-[9.5px] font-semibold">FYI Binder</span>
@@ -160,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={() => setMobileMenuOpen(true)}
-          className="flex flex-col items-center justify-center gap-0.5 px-1 py-1"
+          className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-control"
           style={{ color: RAIL_TEXT_MUTED }}
         >
           <Menu className="w-[18px] h-[18px]" />
@@ -187,18 +188,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => { onTabChange('reports-print'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5"
+                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5 hover:text-white"
               >
-                <Printer className="w-[18px] h-[18px]" style={{ color: RAIL_ACCENT }} />
+                <Printer className="w-[18px] h-[18px]" />
                 <span>Print Center</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => { onTabChange('settings'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5"
+                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5 hover:text-white"
               >
-                <Settings className="w-[18px] h-[18px]" style={{ color: RAIL_TEXT_MUTED }} />
+                <Settings className="w-[18px] h-[18px]" />
                 <span>Settings</span>
               </button>
             </div>
