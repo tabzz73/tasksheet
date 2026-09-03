@@ -116,7 +116,7 @@ function prepareFacilityForEditing(facility: Facility): Facility {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome, navigationResetToken = 0 }) => {
   const state = db.getState();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('facility');
+  const [activeTab, setActiveTab] = useState<SettingsTab | null>(null);
   const [expandedNavGroup, setExpandedNavGroup] = useState('Facility');
   
   // Facility Form State
@@ -162,7 +162,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
   const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
 
   useEffect(() => {
-    setActiveTab('facility');
+    setActiveTab(null);
     setExpandedNavGroup('Facility');
     setShiftModalState(prev => ({ ...prev, isOpen: false }));
     setFeedbackMessage(null);
@@ -517,9 +517,48 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
       {settingsConflict && <ConflictNotice result={settingsConflict} onAction={() => setSettingsConflict(null)} />}
       <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
 
+      {/* LANDING MENU — grouped flat-card lists, per the design reference. Shown until a
+          section is selected; navigating away from Settings and back resets here. */}
+      {activeTab === null && (
+        <div className="space-y-6">
+          {SETTINGS_NAV_GROUPS.map(group => (
+            <div key={group.label}>
+              <h2 className="mb-2.5 font-heading font-extrabold text-[13px] uppercase tracking-[0.04em] text-ink-soft">{group.label}</h2>
+              <div className="title-block rounded-surface overflow-hidden">
+                {group.items.map(item => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleSelectSettingsTab(item.id)}
+                    className="ts-row w-full flex items-center gap-3 px-4.5 py-3.5 text-left border-b border-hairline last:border-b-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-bold text-ink">
+                        {item.label}
+                        {item.id === 'catalog' && <span className="ml-1 font-normal text-faint">({state.catalogTaskTemplates.length})</span>}
+                      </div>
+                      <div className="text-[12px] text-muted mt-0.5">{item.description}</div>
+                    </div>
+                    <span className="text-faint shrink-0">→</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeTab !== null && (
       <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-5 items-start">
         {/* Settings control-center rail — every section always visible, no accordion */}
         <aside className="hidden lg:block sticky top-5 max-h-[calc(100vh-6rem)] overflow-y-auto" aria-label="Settings sections">
+          <button
+            type="button"
+            onClick={() => setActiveTab(null)}
+            className="mb-3 px-2 flex items-center gap-1.5 text-[12px] font-bold text-accent-strong hover:text-accent transition-colors"
+          >
+            ← All Settings
+          </button>
           <nav className="space-y-4" aria-label="Settings categories">
             {SETTINGS_NAV_GROUPS.map(group => (
               <div key={group.label}>
@@ -1622,6 +1661,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
           </main>
         </div>
       </div>
+      )}
     </div>
   );
 };
