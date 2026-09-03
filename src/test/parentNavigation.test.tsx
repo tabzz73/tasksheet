@@ -75,12 +75,18 @@ describe('sidebar parent navigation', () => {
 
     const settingsNav = within(desktopSidebar).getByRole('button', { name: 'Settings' });
     fireEvent.click(settingsNav);
+    fireEvent.click(screen.getByRole('button', { name: /Facility Setup/ }));
     const facilityName = screen.getByRole('textbox', { name: 'Facility or site name' }) as HTMLInputElement;
     fireEvent.change(facilityName, { target: { value: 'Unsaved Facility Name' } });
+    fireEvent.click(screen.getByRole('button', { name: '← All Settings' }));
     fireEvent.click(screen.getByRole('button', { name: /Developer Information/ }));
     expect(screen.getByRole('heading', { name: 'Developer Information' })).not.toBeNull();
+    // Reselecting Settings resets to the grouped landing menu, not the last section.
     fireEvent.click(settingsNav);
-    expect(screen.getByRole('heading', { name: 'Facility Profile & Print Header' })).not.toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Facility Profile & Print Header' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Facility Setup/ })).not.toBeNull();
+    // The unsaved edit is preserved in memory even though the view reset.
+    fireEvent.click(screen.getByRole('button', { name: /Facility Setup/ }));
     expect((screen.getByRole('textbox', { name: 'Facility or site name' }) as HTMLInputElement).value).toBe('Unsaved Facility Name');
   });
 });

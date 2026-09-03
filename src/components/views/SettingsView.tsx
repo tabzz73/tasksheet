@@ -588,6 +588,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
               />
             </div>
 
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Unit / Wing Name
+              </label>
+              <input
+                type="text"
+                value={facility.unitName || ''}
+                onChange={(e) => setFacility({ ...facility, unitName: e.target.value })}
+                autoComplete="off"
+                aria-label="Unit or wing name"
+                placeholder="e.g. North Unit — optional, used for the Dashboard greeting"
+                className="w-full px-3.5 py-2.5 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+              />
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Street Address <span className="text-danger">*</span>

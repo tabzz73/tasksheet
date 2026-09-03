@@ -63,12 +63,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
   });
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const unitName = (state.facility.unitName || '').trim();
+  const dashboardTitle = unitName ? `${greeting}, ${unitName}.` : `${greeting}.`;
+
   return (
     <div className="space-y-5 max-w-6xl mx-auto">
       {/* Header */}
       <ViewHeader
         kicker={`Shift Command · ${formattedDate}`}
-        title="Dashboard"
+        title={dashboardTitle}
         subtitle="Organize today's assignments and print worksheets. The paper sheet is the product — this screen exists to make it correct."
         action={
           <div className="relative">

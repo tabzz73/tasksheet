@@ -47,6 +47,7 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
 
   it('allows a fresh blank facility profile to be edited and saved', () => {
     const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    fireEvent.click(view.getByRole('button', { name: /Facility Setup/ }));
     const form = view.container.querySelector('form');
     const siteNameInput = view.getByLabelText('Facility or site name') as HTMLInputElement;
     const streetInput = view.getByLabelText('Street address') as HTMLInputElement;

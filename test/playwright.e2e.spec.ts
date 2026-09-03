@@ -37,7 +37,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.goto('/');
 
     // 1. Verify Dashboard header
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Unit 2 East./ })).toBeVisible();
 
     // 2. Navigate to Shifts
     await page.getByRole('button', { name: 'Shifts' }).first().click();

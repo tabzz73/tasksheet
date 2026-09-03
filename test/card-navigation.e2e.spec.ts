@@ -34,7 +34,7 @@ test.describe('RC26 card navigation accessibility and responsive behavior', () =
     await printButton.click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('dialog').getByRole('heading', { name: /^Print/ })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Unit 2 East./ })).toBeVisible();
   });
 
   test('supports native Enter and Space activation exactly once', async ({ page }) => {
@@ -64,7 +64,7 @@ test.describe('RC26 card navigation accessibility and responsive behavior', () =
       if (!box) throw new Error(`Navigation card missing at ${viewport.width}px`);
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.wheel(0, 240);
-      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Unit 2 East./ })).toBeVisible();
     }
   });
 });

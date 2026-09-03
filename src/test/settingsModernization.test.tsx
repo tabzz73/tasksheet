@@ -18,34 +18,35 @@ describe('modern Settings navigation and smart facility entry', () => {
     cleanup();
   });
 
-  it('uses a flat control-center rail (all sections always visible) plus a mobile selector, without a horizontal tab strip', () => {
+  it('shows a grouped landing menu and drills into a section with no persistent rail', () => {
     const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
-    const sidebar = view.getByLabelText('Settings sections');
+
+    // The old always-visible control-center rail and mobile <select> are gone —
+    // the landing menu itself is the only place a section is chosen.
+    expect(view.queryByLabelText('Settings sections')).toBeNull();
+    expect(view.queryByLabelText('Settings section')).toBeNull();
+    expect(view.container.querySelector('.overflow-x-auto')).toBeNull();
+
+    // Every section is directly reachable from the landing menu without expanding a group first.
     const facilityButton = view.getByRole('button', { name: /Facility Setup/ });
     const timingButton = view.getByRole('button', { name: /Care Timing Presets/ });
-    const mobileSelector = view.getByLabelText('Settings section');
-
-    expect(sidebar).not.toBeNull();
-    expect(view.container.querySelector('.overflow-x-auto')).toBeNull();
-    expect(facilityButton.getAttribute('aria-current')).toBe('page');
-    expect(mobileSelector.tagName).toBe('SELECT');
-
-    // Every section is directly reachable without expanding a group first —
-    // the control-center rail has no accordion/expand-collapse mechanism.
     const printButton = view.getByRole('button', { name: /Print Profiles/ });
+    expect(facilityButton).not.toBeNull();
+    expect(timingButton).not.toBeNull();
     expect(printButton).not.toBeNull();
 
     fireEvent.click(timingButton);
     expect(view.getByText('Facility Care Timing Presets')).not.toBeNull();
     expect(view.getAllByDisplayValue('0800').length).toBeGreaterThan(0);
-    // Facility Setup remains visible in the rail after navigating away from it.
-    expect(view.getByRole('button', { name: /Facility Setup/ })).not.toBeNull();
+    // Inside a section, the landing menu (and its other rows) is no longer rendered.
+    expect(view.queryByRole('button', { name: /Facility Setup/ })).toBeNull();
 
-    fireEvent.click(printButton);
-    expect(printButton.getAttribute('aria-current')).toBe('page');
+    fireEvent.click(view.getByRole('button', { name: '← All Settings' }));
+    fireEvent.click(view.getByRole('button', { name: /Print Profiles/ }));
+    expect(view.getByText('Print Density & Typography')).not.toBeNull();
 
-    fireEvent.change(mobileSelector, { target: { value: 'quick_presets' } });
-    expect((mobileSelector as HTMLSelectElement).value).toBe('quick_presets');
+    fireEvent.click(view.getByRole('button', { name: '← All Settings' }));
+    fireEvent.click(view.getByRole('button', { name: /Quick Add Presets/ }));
     expect(view.getByText('Facility Quick Add Presets Manager')).not.toBeNull();
   });
 
@@ -67,6 +68,7 @@ describe('modern Settings navigation and smart facility entry', () => {
     expect(view.getByText(packageJson.version)).not.toBeNull();
     expect(view.getByText(TASKSHEET_TAGLINE)).not.toBeNull();
 
+    fireEvent.click(view.getByRole('button', { name: '← All Settings' }));
     fireEvent.click(view.getByRole('button', { name: /Developer Information/ }));
     expect(view.getByText('SoftVibeSolutions')).not.toBeNull();
     expect(view.getByText(/Local-first application storage/)).not.toBeNull();
@@ -74,6 +76,7 @@ describe('modern Settings navigation and smart facility entry', () => {
 
   it('formats contact and postal fields and provides province-aware city suggestions with free entry', () => {
     const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    fireEvent.click(view.getByRole('button', { name: /Facility Setup/ }));
     const phone = view.getByLabelText('Main phone') as HTMLInputElement;
     const postalCode = view.getByLabelText('Postal code') as HTMLInputElement;
     const province = view.getByLabelText('Province or territory') as HTMLSelectElement;
