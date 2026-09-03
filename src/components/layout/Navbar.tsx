@@ -21,64 +21,64 @@ export const Navbar: React.FC<NavbarProps> = ({
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrow = formatLocalDate(tomorrowDate);
 
+  const [y, m, d] = currentDate.split('-').map(Number);
+  const formattedDate = new Date(y, m - 1, d).toLocaleDateString('en-CA', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+  });
+
   return (
-    <header className="relative z-30 min-h-16 shrink-0 bg-white border-b border-slate-200/90 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 no-print shadow-xs">
-      {/* Left: Facility & Current Context */}
-      <div className="flex items-center space-x-3 min-w-0">
-        <div className="min-w-0">
-          <div className="flex items-center space-x-2.5 min-w-0">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight truncate">{facility.siteName}</h2>
-            <span className="hidden md:inline-flex shrink-0 px-2.5 py-0.5 text-xs font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200/60 rounded-full">
-              TaskSheet Generator
-            </span>
-          </div>
-          <p className="hidden sm:block text-xs text-slate-500 mt-0.5 truncate">
-            {facility.city}, {facility.province} · Main: {facility.mainPhone}
-          </p>
-        </div>
+    <header className="relative z-30 min-h-12 shrink-0 bg-panel border-b border-hairline-strong px-4 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 no-print">
+      {/* Left: facility identity */}
+      <div className="flex items-center gap-3 min-w-0">
+        <h2 className="text-[13px] font-bold text-ink tracking-tight truncate">{facility.siteName || 'Facility Not Configured'}</h2>
+        <span className="hidden sm:inline text-[11px] text-muted truncate">
+          {facility.city}{facility.city && facility.province ? ', ' : ''}{facility.province}{facility.mainPhone ? ` · ${facility.mainPhone}` : ''}
+        </span>
       </div>
 
-      {/* Right: Date Selector Buttons */}
-      <div className="flex items-center space-x-3 shrink-0">
-        <div className="flex items-center bg-slate-50 p-1 rounded-lg border border-slate-200/80 text-xs font-medium">
+      {/* Right: operational date control */}
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="hidden md:inline text-[12px] font-semibold text-ink-soft tabular-nums">{formattedDate}</span>
+        <div className="h-5 w-px bg-hairline hidden md:block" aria-hidden="true" />
+        <div className="flex items-center border border-hairline-strong rounded-control overflow-hidden text-[12px] font-semibold">
           <button
             type="button"
             onClick={() => onDateChange(today)}
-            className={`px-3 py-1 rounded-md transition-colors ${
-              currentDate === today
-                ? 'bg-white text-slate-900 shadow-xs font-bold border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900'
+            aria-pressed={currentDate === today}
+            className={`px-2.5 h-8 transition-colors ${
+              currentDate === today ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'
             }`}
           >
             Today
           </button>
+          <div className="w-px self-stretch bg-hairline-strong" aria-hidden="true" />
           <button
             type="button"
             onClick={() => onDateChange(tomorrow)}
-            className={`px-3 py-1 rounded-md transition-colors ${
-              currentDate === tomorrow
-                ? 'bg-white text-slate-900 shadow-xs font-bold border border-slate-200/60'
-                : 'text-slate-600 hover:text-slate-900'
+            aria-pressed={currentDate === tomorrow}
+            className={`px-2.5 h-8 transition-colors ${
+              currentDate === tomorrow ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'
             }`}
           >
             Tomorrow
           </button>
-          <div className="relative flex items-center pl-1">
+          <div className="w-px self-stretch bg-hairline-strong" aria-hidden="true" />
+          <div className="relative flex items-center">
             <input
               type="date"
               value={currentDate}
               onChange={(e) => onDateChange(e.target.value)}
               className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
               title="Select custom date"
+              aria-label="Select a custom date"
             />
-            <button
-              type="button"
-              className={`p-1.5 rounded hover:bg-slate-200 text-slate-600 ${
-                currentDate !== today && currentDate !== tomorrow ? 'text-teal-700 font-semibold' : ''
+            <span
+              className={`flex items-center justify-center w-8 h-8 ${
+                currentDate !== today && currentDate !== tomorrow ? 'text-accent' : 'text-muted'
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-            </button>
+            </span>
           </div>
         </div>
       </div>

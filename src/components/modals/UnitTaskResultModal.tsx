@@ -84,7 +84,7 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {task.instructions && (
-          <p className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+          <p className="text-xs text-muted bg-panel-sunken p-2.5 rounded-control border border-hairline-strong">
             {task.instructions}
           </p>
         )}
@@ -93,7 +93,7 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
         {task.resultType === 'temperature' && (
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Recorded Temperature (°C)
               </label>
               <div className="relative">
@@ -103,25 +103,25 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
                   value={tempValue}
                   onChange={(e) => setTempValue(e.target.value)}
                   required
-                  className="w-full pl-9 pr-12 py-2.5 bg-white border border-slate-300 rounded-lg text-base font-semibold tabular-nums focus:ring-2 focus:ring-teal-500"
+                  className="w-full pl-9 pr-12 py-2.5 bg-panel border border-hairline-strong rounded-control text-base font-semibold tabular-nums focus:ring-2 focus:ring-accent"
                 />
-                <Thermometer className="w-5 h-5 text-teal-600 absolute left-2.5 top-2.5" />
-                <span className="absolute right-3.5 top-3 text-xs font-bold text-slate-400">°C</span>
+                <Thermometer className="w-5 h-5 text-accent absolute left-2.5 top-2.5" />
+                <span className="absolute right-3.5 top-3 text-xs font-bold text-faint">°C</span>
               </div>
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                Target safe range: <strong className="text-slate-800">{minTemp}°C to {maxTemp}°C</strong>
+              <span className="text-[11px] text-muted mt-1 block">
+                Target safe range: <strong className="text-ink">{minTemp}°C to {maxTemp}°C</strong>
               </span>
             </div>
 
             {/* Out of range alert */}
             {isTempOutOfRange && (
-              <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-lg text-xs space-y-2">
-                <div className="flex items-center space-x-2 text-amber-800 font-semibold">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <div className="p-3.5 bg-warning-soft border border-warning rounded-control text-xs space-y-2">
+                <div className="flex items-center space-x-2 text-warning font-semibold">
+                  <AlertTriangle className="w-4 h-4 text-warning" />
                   <span>Out of safe range ({minTemp}°C–{maxTemp}°C) — Follow-up required</span>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-amber-900 mb-1">
+                  <label className="block text-[11px] font-semibold text-warning mb-1">
                     Action Taken / Clinical Notification: <span className="text-red-500">*</span>
                   </label>
                   <textarea
@@ -130,7 +130,7 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
                     onChange={(e) => setActionTaken(e.target.value)}
                     required
                     placeholder="e.g. Notified supervisor/maintenance; medications transferred to backup fridge..."
-                    className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded text-xs focus:ring-1 focus:ring-amber-500"
+                    className="w-full px-2.5 py-1.5 bg-panel border border-warning rounded text-xs focus:ring-1 focus:ring-warning"
                   />
                 </div>
               </div>
@@ -141,40 +141,40 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
         {/* 2. PASS / ISSUE */}
         {task.resultType === 'pass_issue' && (
           <div className="space-y-3">
-            <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            <span className="block text-xs font-semibold text-ink-soft uppercase tracking-wider">
               Verification Status
             </span>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setPassIssueChoice('pass')}
-                className={`py-3 px-3 rounded-lg border text-xs font-bold flex flex-col items-center justify-center space-y-1 transition-all ${
+                className={`py-3 px-3 rounded-control border text-xs font-bold flex flex-col items-center justify-center space-y-1 transition-all ${
                   passIssueChoice === 'pass'
-                    ? 'bg-teal-50 border-teal-500 text-teal-900 shadow-sm ring-2 ring-teal-500/20'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    ? 'bg-accent-soft border-accent text-accent-strong ring-2 ring-accent/20'
+                    : 'bg-panel border-hairline-strong text-ink-soft hover:border-hairline-strong'
                 }`}
               >
-                <CheckCircle2 className="w-5 h-5 text-teal-600" />
+                <CheckCircle2 className="w-5 h-5 text-accent" />
                 <span>{task.resultConfig?.passLabel || 'Reconciled / OK'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPassIssueChoice('issue')}
-                className={`py-3 px-3 rounded-lg border text-xs font-bold flex flex-col items-center justify-center space-y-1 transition-all ${
+                className={`py-3 px-3 rounded-control border text-xs font-bold flex flex-col items-center justify-center space-y-1 transition-all ${
                   passIssueChoice === 'issue'
-                    ? 'bg-rose-50 border-rose-500 text-rose-900 shadow-sm ring-2 ring-rose-500/20'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    ? 'bg-danger-soft border-danger text-danger ring-2 ring-danger/20'
+                    : 'bg-panel border-hairline-strong text-ink-soft hover:border-hairline-strong'
                 }`}
               >
-                <AlertCircle className="w-5 h-5 text-rose-600" />
+                <AlertCircle className="w-5 h-5 text-danger" />
                 <span>{task.resultConfig?.issueLabel || 'Discrepancy Noted'}</span>
               </button>
             </div>
 
             {passIssueChoice === 'issue' && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs space-y-1.5">
-                <label className="block font-semibold text-rose-900">
+              <div className="p-3 bg-danger-soft border border-danger rounded-control text-xs space-y-1.5">
+                <label className="block font-semibold text-danger">
                   Discrepancy Details & Actions Taken: <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -183,7 +183,7 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
                   onChange={(e) => setIssueNote(e.target.value)}
                   required
                   placeholder="Detail the discrepancy, count variance, and supervisor notification..."
-                  className="w-full px-2.5 py-1.5 bg-white border border-rose-300 rounded text-xs"
+                  className="w-full px-2.5 py-1.5 bg-panel border border-danger rounded text-xs"
                 />
               </div>
             )}
@@ -192,7 +192,7 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
 
         {/* General Note */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
             Staff Note (Optional)
           </label>
           <input
@@ -200,7 +200,7 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
             value={generalNote}
             onChange={(e) => setGeneralNote(e.target.value)}
             placeholder="e.g. Completed during morning routine..."
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-teal-500"
+            className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-xs focus:ring-2 focus:ring-accent"
           />
         </div>
 
@@ -209,13 +209,13 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium"
+            className="px-4 py-2 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-medium"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-md transition-colors flex items-center space-x-1.5"
+            className="px-5 py-2 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold shadow-elevated transition-colors flex items-center space-x-1.5"
           >
             <Check className="w-4 h-4" />
             <span>Complete Routine</span>

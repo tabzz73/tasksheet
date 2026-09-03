@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ROLE_HCA_ID } from '../data/defaultData';
 import { ALBERTA_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { db } from '../db';
@@ -12,6 +12,8 @@ import { DomainConflictError } from '../services/validation';
 
 describe('Service Coverage and additional services', () => {
   beforeEach(() => { localStorage.clear(); db.resetToInitialState(); });
+
+  afterEach(() => { vi.useRealTimers(); });
 
   const setup = (weekly = 2) => {
     const shift = db.addShift({ name: 'HCA Day', shortCode: 'D1', roleId: ROLE_HCA_ID, startTime: '0700', endTime: '1500', isActive: true });
@@ -98,6 +100,13 @@ describe('Service Coverage and additional services', () => {
   });
 
   it('marks bathing grids and supplies a filterable Private Pay report', () => {
+    // Pin the clock on/before the Monday this test builds a grid for, so the
+    // resident task's real `new Date().toISOString()` createdAt stamp is never
+    // later than '2026-08-31' — otherwise the recurrence engine correctly (and
+    // deterministically) treats the bath as not-yet-started on that date.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-31T12:00:00.000Z'));
+
     const { shift, resident, coverage } = setup();
     addBath(resident.id, shift.id, [1], coverage('PRIVATE_PAY', { isAdditionalService: true }));
     const grid = buildBathingScheduleModel('2026-08-31');

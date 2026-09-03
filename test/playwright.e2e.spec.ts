@@ -5,7 +5,9 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Settings' }).first().click();
-    await page.getByRole('button', { name: /Data & Support/ }).click();
+    // Settings navigation is a flat, always-visible control-center rail (no
+    // accordion/expand-collapse) — every section, including Demo Workspace
+    // under Data & Support, is directly clickable without an expand step.
     await page.getByRole('button', { name: /Demo Workspace/ }).click();
     await page.getByRole('button', { name: 'Load Demo Workspace' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Load Demo Workspace' }).click();
@@ -151,7 +153,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.getByRole('heading', { name: 'FYI Binder' })).toBeVisible();
 
     // 2. Add an FYI to trigger update needed
-    await page.getByRole('button', { name: '+ Add FYI' }).click();
+    await page.getByRole('button', { name: 'Add FYI', exact: true }).first().click();
     await page.locator('form textarea').fill('Physician visiting today at 14:00.');
     await page.locator('form').getByRole('button', { name: 'Add FYI' }).click();
 
@@ -209,13 +211,14 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.getByRole('heading', { name: 'Add Shift' })).toBeVisible();
 
     // 4. Test duplicate short code validation
-    await page.getByPlaceholder(/e\.g\. LPN Day/i).fill('Duplicate Test Shift');
-    await page.getByPlaceholder('e.g. LP1, D1, E2, NLPN, RN1').fill('D1');
+    const addShiftDialog = page.getByRole('dialog');
+    await addShiftDialog.getByPlaceholder(/e\.g\. LPN Day/i).fill('Duplicate Test Shift');
+    await addShiftDialog.getByPlaceholder('e.g. LP1, D1').fill('D1');
     await page.getByRole('button', { name: 'Add Shift', exact: true }).click();
     await expect(page.getByText(/already being used by another active shift/i)).toBeVisible();
 
     // 5. Provide valid unique short code
-    await page.getByPlaceholder('e.g. LP1, D1, E2, NLPN, RN1').fill('D2');
+    await addShiftDialog.getByPlaceholder('e.g. LP1, D1').fill('D2');
     await page.getByRole('button', { name: 'Add Shift', exact: true }).click();
 
     // 6. Verify newly created shift appears in list
@@ -252,7 +255,6 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
   test('Journey 9 — Wound Supply Catalog searches brand products and exact sizes', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Settings' }).first().click();
-    await page.getByRole('button', { name: /TaskSheet Workflow/i }).click();
     await page.getByRole('button', { name: /Wound Supply Catalog/i }).click();
     await page.getByRole('button', { name: /Add Product/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();

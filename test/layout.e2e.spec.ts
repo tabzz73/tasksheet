@@ -4,7 +4,8 @@ test('Welcome cards remain below the top application bar while scrolling', async
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings' }).first().click();
-  await page.getByRole('button', { name: /Application/ }).click();
+  // Settings navigation is a flat, always-visible control-center rail (no
+  // accordion/expand-collapse) — App Information is directly clickable.
   await page.getByRole('button', { name: /App Information/ }).click();
   await page.getByRole('button', { name: /Open Welcome & Overview/ }).click();
 

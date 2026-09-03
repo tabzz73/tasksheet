@@ -3,7 +3,8 @@ import { test, expect, Page } from '@playwright/test';
 async function loadDemoWorkspace(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Settings' }).first().click();
-  await page.getByRole('button', { name: /Data & Support/ }).click();
+  // Settings navigation is a flat, always-visible control-center rail (no
+  // accordion/expand-collapse) — Demo Workspace is directly clickable.
   await page.getByRole('button', { name: /Demo Workspace/ }).click();
   await page.getByRole('button', { name: 'Load Demo Workspace' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Load Demo Workspace' }).click();

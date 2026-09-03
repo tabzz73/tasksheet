@@ -35,46 +35,42 @@ export const TaskActionConfirmModal: React.FC<TaskActionConfirmModalProps> = ({
       maxWidth="md"
     >
       <div className="space-y-4">
-        <div className="flex items-start space-x-3 p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+        <div className="flex items-start space-x-3 p-3.5 rounded-control bg-panel-sunken border border-hairline-strong">
           {isStop ? (
-            <PauseCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <PauseCircle className="w-4.5 h-4.5 text-warning shrink-0 mt-0.5" />
           ) : (
-            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4.5 h-4.5 text-danger shrink-0 mt-0.5" />
           )}
-          <div className="text-xs text-slate-700 space-y-1">
-            <p className="font-semibold text-slate-900">{title}</p>
-            <p className="text-slate-500 font-mono text-[11px]">{itemDescription}</p>
+          <div className="text-xs text-ink-soft space-y-1">
+            <p className="font-semibold text-ink">{title}</p>
+            <p className="text-muted font-mono text-[11px]">{itemDescription}</p>
           </div>
         </div>
 
         {isStop ? (
-          <div className="text-xs text-slate-600 space-y-2">
+          <div className="text-xs text-ink-soft space-y-2">
             <p>
               This {itemLabel} will no longer generate future assignments on shift sheets.
             </p>
-            <p className="font-medium text-slate-800">
+            <p className="font-medium text-ink">
               ✓ Its record is retained here and can be reactivated or restarted later.
             </p>
           </div>
         ) : (
-          <div className="text-xs text-slate-600 space-y-2">
+          <div className="text-xs text-ink-soft space-y-2">
             <p>
               This will permanently remove this {itemLabel}. It will no longer generate assignments or appear on any generated TaskSheet.
             </p>
             {hasHistory && (
-              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-[11px]">
+              <div className="p-2.5 bg-warning-soft border border-warning rounded-control text-warning text-[11px]">
                 <strong>Note:</strong> This {itemLabel} has prior activity in TaskSheet. Stopping it is recommended over deleting so its record is preserved for review.
               </div>
             )}
           </div>
         )}
 
-        <div className="pt-3 border-t border-slate-200 flex items-center justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium transition-colors"
-          >
+        <div className="pt-3 border-t border-hairline flex items-center justify-end space-x-3">
+          <button type="button" onClick={onClose} className="btn btn-secondary">
             Cancel
           </button>
           <button
@@ -83,11 +79,7 @@ export const TaskActionConfirmModal: React.FC<TaskActionConfirmModalProps> = ({
               onConfirm();
               onClose();
             }}
-            className={`px-4 py-2 text-white rounded-lg text-xs font-bold shadow transition-colors flex items-center space-x-1.5 ${
-              isStop
-                ? 'bg-amber-600 hover:bg-amber-700'
-                : 'bg-red-600 hover:bg-red-700'
-            }`}
+            className={`btn ${isStop ? 'btn-primary' : 'btn-danger'}`}
           >
             {isStop ? (
               <>

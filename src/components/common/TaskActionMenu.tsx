@@ -105,7 +105,7 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
         onClick={handleToggle}
         aria-label={ariaLabel}
         aria-expanded={isOpen}
-        className="p-1.5 sm:p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0 cursor-pointer"
+        className="p-1.5 sm:p-1 rounded-control text-faint hover:text-ink hover:bg-panel-sunken active:bg-hairline transition-colors focus:outline-none focus:ring-2 focus:ring-accent min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0 cursor-pointer"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
@@ -114,7 +114,7 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
         <div
           ref={popupRef}
           style={menuPosition}
-          className="fixed z-[9999] w-48 overflow-y-auto rounded-lg bg-white shadow-2xl border border-slate-200 py-1 text-xs text-slate-700 focus:outline-none animate-in fade-in zoom-in-95 duration-100"
+          className="fixed z-[9999] w-48 overflow-y-auto rounded-surface bg-panel shadow-elevated border border-hairline-strong py-1 text-xs text-ink-soft focus:outline-none animate-in fade-in zoom-in-95 duration-100"
           role="menu"
           aria-label={`${typeLabel} actions`}
           onClick={(event) => event.stopPropagation()}
@@ -127,7 +127,7 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
                 setIsOpen(false);
                 onViewDetails();
               }}
-              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-slate-50 transition-colors"
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-panel-sunken transition-colors"
               role="menuitem"
             >
               <span className="font-medium">View Details & History</span>
@@ -141,10 +141,10 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
               setIsOpen(false);
               onEdit();
             }}
-            className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-slate-50 transition-colors"
+            className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-panel-sunken transition-colors"
             role="menuitem"
           >
-            <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+            <Edit3 className="w-3.5 h-3.5 text-muted" />
             <span className="font-medium">{isEnded ? 'Edit / Extend Schedule' : `Edit ${typeLabel}`}</span>
           </button>
 
@@ -155,13 +155,13 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
                 setIsOpen(false);
                 onRestart();
               }}
-              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-teal-50 text-teal-900 transition-colors"
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-accent-soft text-accent-strong transition-colors"
               role="menuitem"
             >
-              <RotateCcw className="w-3.5 h-3.5 text-teal-600" />
+              <RotateCcw className="w-3.5 h-3.5 text-accent" />
               <div>
                 <span className="font-medium">Restart Schedule Today</span>
-                <p className="text-[10px] text-teal-700 font-normal">Preserves the recurrence pattern</p>
+                <p className="text-[10px] text-accent-strong font-normal">Preserves the recurrence pattern</p>
               </div>
             </button>
           )}
@@ -174,10 +174,10 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
                 setIsOpen(false);
                 onDuplicate();
               }}
-              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-slate-50 transition-colors"
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-panel-sunken transition-colors"
               role="menuitem"
             >
-              <Copy className="w-3.5 h-3.5 text-slate-500" />
+              <Copy className="w-3.5 h-3.5 text-muted" />
               <span className="font-medium">Duplicate</span>
             </button>
           )}
@@ -190,13 +190,13 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
                 setIsOpen(false);
                 onStop();
               }}
-              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-amber-50 text-amber-900 transition-colors"
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-warning-soft text-warning transition-colors"
               role="menuitem"
             >
-              <PauseCircle className="w-3.5 h-3.5 text-amber-600" />
+              <PauseCircle className="w-3.5 h-3.5 text-warning" />
               <div>
                 <span className="font-medium">Stop This Task</span>
-                <p className="text-[10px] text-amber-700 font-normal">Preserves past history</p>
+                <p className="text-[10px] text-warning font-normal">Preserves past history</p>
               </div>
             </button>
           )}
@@ -208,10 +208,10 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
                 setIsOpen(false);
                 onReactivate();
               }}
-              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-teal-50 text-teal-900 transition-colors"
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-accent-soft text-accent-strong transition-colors"
               role="menuitem"
             >
-              <PlayCircle className="w-3.5 h-3.5 text-teal-600" />
+              <PlayCircle className="w-3.5 h-3.5 text-accent" />
               <span className="font-medium">Resume / Reactivate</span>
             </button>
           )}
@@ -223,18 +223,18 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
                 setIsOpen(false);
                 onResolve();
               }}
-              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-emerald-50 text-emerald-900 transition-colors"
+              className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-positive-soft text-positive transition-colors"
               role="menuitem"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-positive" />
               <div>
                 <span className="font-medium">Mark Protocol Resolved</span>
-                <p className="text-[10px] text-emerald-700 font-normal">Clinical confirmation required</p>
+                <p className="text-[10px] text-positive font-normal">Clinical confirmation required</p>
               </div>
             </button>
           )}
 
-          <div className="border-t border-slate-100 my-1" />
+          <div className="border-t border-hairline my-1" />
 
           {/* 4. Delete */}
           <button
@@ -243,10 +243,10 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
               setIsOpen(false);
               onDelete();
             }}
-            className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-red-50 text-red-700 transition-colors"
+            className="w-full px-3.5 py-2.5 sm:py-2 text-left flex items-center space-x-2 hover:bg-danger-soft text-danger transition-colors"
             role="menuitem"
           >
-            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+            <Trash2 className="w-3.5 h-3.5 text-danger" />
             <span className="font-medium">Delete {typeLabel}</span>
           </button>
         </div>,

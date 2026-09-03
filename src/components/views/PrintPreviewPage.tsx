@@ -176,38 +176,34 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
           return <CustomReportDocument model={specializedDoc.model} />;
       }
     }
-    return <div className="p-8 text-center text-slate-400">No document selected.</div>;
+    return <div className="p-8 text-center text-faint">No document selected.</div>;
   };
 
   return (
     <>
       {/* ── SCREEN TOOLBAR (no-print) ── */}
-      <div className="no-print fixed top-0 left-0 right-0 z-50 bg-slate-900 text-white flex items-center justify-between px-5 py-3 shadow-xl">
+      <div className="no-print fixed top-0 left-0 right-0 z-50 bg-ink text-white flex items-center justify-between px-5 py-3 shadow-elevated">
         <div className="flex items-center space-x-4">
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center space-x-1.5 text-slate-300 hover:text-white text-xs font-semibold transition-colors"
+            className="flex items-center space-x-1.5 text-white/70 hover:text-white text-xs font-semibold transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </button>
-          <div className="h-4 w-px bg-slate-700" />
+          <div className="h-4 w-px bg-white/20" />
           <div>
             <span className="text-white font-black text-sm">{docTitle}</span>
-            <span className="text-slate-400 text-xs ml-2">{profileLabel}</span>
+            <span className="text-white/50 text-xs ml-2">{profileLabel}</span>
           </div>
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="text-xs text-slate-400 font-medium">
+          <div className="text-xs text-white/50 font-medium">
             {packageModel ? 'Package Print Stream' : isLandscape ? 'Letter Landscape' : 'Letter Portrait'}
           </div>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="flex items-center space-x-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold shadow transition-colors"
-          >
+          <button type="button" onClick={handlePrint} className="btn btn-accent">
             <Printer className="w-3.5 h-3.5" />
             <span>{packageModel ? 'Print Complete Package' : 'Print'}</span>
           </button>
@@ -216,12 +212,12 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
 
       {/* ── SCREEN PREVIEW AREA (no-print) ── */}
       {hasPreviewWarnings && (
-        <div className="no-print fixed left-0 right-0 top-[56px] z-40 border-b border-amber-300 bg-amber-50 px-5 py-3 shadow-md">
-          <div className="mx-auto flex max-w-6xl items-start space-x-2.5 text-amber-950">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+        <div className="no-print fixed left-0 right-0 top-[56px] z-40 border-b border-warning bg-warning-soft px-5 py-3 shadow-elevated">
+          <div className="mx-auto flex max-w-6xl items-start space-x-2.5 text-warning">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="min-w-0">
-              {generationExceptions.length > 0 && <><p className="text-xs font-black">Exceptions / Needs Review — {generationExceptions.length} timed task{generationExceptions.length === 1 ? '' : 's'} withheld</p><p className="mt-0.5 text-[11px] text-amber-900">{generationExceptions.map(exception => `${exception.roomNumber ? `Room ${exception.roomNumber}` : 'Unit task'} — ${exception.title} — ${exception.time} — ${exception.shiftCode} (${exception.shiftStart}–${exception.shiftEnd})`).join(' · ')}</p></>}
-              {bathingCapacityExceptions.length > 0 && <><p className="text-xs font-black">Bathing Capacity / Needs Review — {bathingCapacityExceptions.length} over-capacity cell{bathingCapacityExceptions.length === 1 ? '' : 's'}</p><p className="mt-0.5 text-[11px] text-amber-900">{bathingCapacityExceptions.map(({ line, day, slot }) => `${line.shiftCode} ${day.label}: ${slot.scheduled} of ${slot.capacity}`).join(' · ')}</p></>}
+              {generationExceptions.length > 0 && <><p className="text-xs font-black">Exceptions / Needs Review — {generationExceptions.length} timed task{generationExceptions.length === 1 ? '' : 's'} withheld</p><p className="mt-0.5 text-[11px]">{generationExceptions.map(exception => `${exception.roomNumber ? `Room ${exception.roomNumber}` : 'Unit task'} — ${exception.title} — ${exception.time} — ${exception.shiftCode} (${exception.shiftStart}–${exception.shiftEnd})`).join(' · ')}</p></>}
+              {bathingCapacityExceptions.length > 0 && <><p className="text-xs font-black">Bathing Capacity / Needs Review — {bathingCapacityExceptions.length} over-capacity cell{bathingCapacityExceptions.length === 1 ? '' : 's'}</p><p className="mt-0.5 text-[11px]">{bathingCapacityExceptions.map(({ line, day, slot }) => `${line.shiftCode} ${day.label}: ${slot.scheduled} of ${slot.capacity}`).join(' · ')}</p></>}
             </div>
           </div>
         </div>
@@ -232,7 +228,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
         style={{
           paddingTop: hasPreviewWarnings ? '124px' : '56px',
           minHeight: '100vh',
-          background: '#334155',
+          background: 'var(--color-ink)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -244,7 +240,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
         <div style={{
           width: '100%', maxWidth: `${(packageModel ? 1056 : paperW) + 40}px`,
           display: 'flex', justifyContent: 'space-between',
-          padding: '12px 8px 10px', fontSize: '11px', color: '#94a3b8', fontFamily: 'sans-serif',
+          padding: '12px 8px 10px', fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontFamily: 'sans-serif',
         }}>
           <span>{subheaderText}</span>
           <span>TaskSheet Print Engine V2</span>

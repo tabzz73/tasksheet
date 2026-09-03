@@ -76,66 +76,52 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* 1. BINDER HEADER & PHYSICAL STATUS BANNER */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+      <div className="title-block rounded-surface p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center space-x-2.5">
-              <div className="p-2 bg-teal-100 text-teal-800 rounded-lg">
-                <BookOpen className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black tracking-tight text-slate-900">FYI Binder</h2>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Standing information staff need to know but do not complete as tasks
-                </p>
-              </div>
+          <div className="flex items-center space-x-2.5">
+            <BookOpen className="w-5 h-5 text-accent shrink-0" />
+            <div>
+              <h2 className="text-[22px] font-bold tracking-tight text-ink">FYI Binder</h2>
+              <p className="text-xs text-muted font-medium mt-0.5">
+                Standing information staff need to know but do not complete as tasks
+              </p>
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex items-center space-x-2.5">
-            <button
-              type="button"
-              onClick={handlePrintBinder}
-              className="px-3.5 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors"
-            >
-              <Printer className="w-4 h-4" />
+            <button type="button" onClick={handlePrintBinder} className="btn btn-secondary">
+              <Printer className="w-3.5 h-3.5" />
               <span>Print Binder</span>
             </button>
 
-            <button
-              type="button"
-              onClick={onOpenAddFYI}
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow flex items-center space-x-1.5 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ Add FYI</span>
+            <button type="button" onClick={onOpenAddFYI} className="btn btn-accent">
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add FYI</span>
             </button>
           </div>
         </div>
 
         {/* Physical Binder Sync Status Bar */}
-        <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+        <div className={`p-3.5 rounded-control border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
           binderState.status === 'current'
-            ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
-            : 'bg-amber-50 border-amber-300 text-amber-950'
+            ? 'bg-positive-soft border-positive text-positive'
+            : 'bg-warning-soft border-warning text-warning'
         }`}>
           <div className="flex items-start sm:items-center space-x-3">
             {binderState.status === 'current' ? (
-              <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+              <CheckCircle2 className="w-4.5 h-4.5 shrink-0 mt-0.5" />
             ) : (
-              <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+              <AlertTriangle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
             )}
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-black text-sm uppercase tracking-wide">
+                <span className="font-bold text-[13px] uppercase tracking-wide">
                   {binderState.status === 'current' ? 'Physical Binder Current' : 'Physical Binder Update Required'}
                 </span>
-                <span className="text-[11px] font-mono font-bold bg-white/80 px-2 py-0.5 rounded border">
-                  Version {binderState.version}
-                </span>
+                <span className="badge badge-neutral">Version {binderState.version}</span>
               </div>
-              <p className="text-xs mt-0.5 opacity-90">
+              <p className="text-xs mt-0.5">
                 {binderState.status === 'current'
                   ? `Confirmed updated at ${new Date(binderState.lastConfirmedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   : `${binderState.pendingChangesCount} new/modified notes pending physical placement in nursing station binder.`}
@@ -144,11 +130,7 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
           </div>
 
           {binderState.status === 'update_required' && (
-            <button
-              type="button"
-              onClick={handleMarkUpdated}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow transition-colors flex-shrink-0"
-            >
+            <button type="button" onClick={handleMarkUpdated} className="btn btn-primary shrink-0">
               Mark Physical Copy Updated
             </button>
           )}
@@ -156,34 +138,32 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
       </div>
 
       {/* 2. SEARCH & SCOPE FILTER */}
-      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="title-block rounded-surface px-3.5 h-12 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:w-80">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search standing notes or rooms..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:ring-2 focus:ring-teal-500"
+            className="w-full pl-9 pr-4 h-8 bg-panel-sunken border border-hairline rounded-control text-xs focus:bg-panel focus:ring-1 focus:ring-accent focus:outline-none"
           />
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-3.5 h-3.5 text-faint absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
 
-        <div className="flex items-center space-x-1.5 text-xs overflow-x-auto w-full sm:w-auto">
+        <div className="flex items-center border border-hairline-strong rounded-control overflow-x-auto text-xs w-full sm:w-auto sm:shrink-0">
           {[
             { id: 'all', label: 'All Scopes' },
             { id: 'shared', label: 'Shared / Unit' },
             { id: 'role-hca-0001', label: 'HCA Scope' },
             { id: 'role-lpn-0002', label: 'LPN Scope' },
             { id: 'role-rn-0003', label: 'RN Scope' },
-          ].map(s => (
+          ].map((s, i) => (
             <button
               key={s.id}
               type="button"
               onClick={() => setScopeFilter(s.id as any)}
-              className={`px-3 py-1.5 rounded-md font-semibold transition-colors ${
-                scopeFilter === s.id
-                  ? 'bg-teal-700 text-white shadow-sm'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+              className={`px-2.5 h-8 font-semibold whitespace-nowrap transition-colors ${i > 0 ? 'border-l border-hairline-strong' : ''} ${
+                scopeFilter === s.id ? 'bg-ink text-white' : 'text-ink-soft hover:bg-panel-sunken'
               }`}
             >
               {s.label}
@@ -193,22 +173,23 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
       </div>
 
       {/* 3. BINDER ENTRIES TABLE */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <table className="w-full text-xs text-left border-collapse">
+      <div className="title-block rounded-surface overflow-hidden">
+        <div className="overflow-x-auto">
+        <table className="table-schedule w-full min-w-[640px]">
           <thead>
-            <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-              <th className="p-3.5 w-16 text-center rounded-tl-xl">Room</th>
-              <th className="p-3.5 w-36">Resident / Target</th>
-              <th className="p-3.5 w-28">Category</th>
-              <th className="p-3.5">FYI / Standing Information</th>
-              <th className="p-3.5 w-24">Effective</th>
-              <th className="p-3.5 w-12 text-center rounded-tr-xl"></th>
+            <tr>
+              <th style={{ width: '7%' }} className="text-center">Room</th>
+              <th style={{ width: '16%' }}>Resident / Target</th>
+              <th style={{ width: '12%' }}>Category</th>
+              <th>FYI / Standing Information</th>
+              <th style={{ width: '10%' }}>Effective</th>
+              <th style={{ width: '6%' }}></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {filteredFYIs.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-400 italic">
+                <td colSpan={6} className="p-8 text-center text-faint italic">
                   No standing FYI notes found. Click '+ Add FYI' to record one.
                 </td>
               </tr>
@@ -216,30 +197,30 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
               filteredFYIs.map(f => {
                 const res = f.residentId ? residents.find(r => r.id === f.residentId) : null;
                 return (
-                  <tr key={f.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-3.5 text-center font-mono font-bold text-slate-900 tabular-nums">
+                  <tr key={f.id}>
+                    <td className="text-center font-mono font-bold text-ink tabular-nums">
                       {res ? res.roomNumber : 'UNIT'}
                     </td>
-                    <td className="p-3.5 font-semibold text-slate-900">
+                    <td className="font-semibold text-ink">
                       {res ? `${res.firstName} ${res.lastName}` : 'Shared (All Staff)'}
                     </td>
-                    <td className="p-3.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        f.category === 'safety' ? 'bg-rose-100 text-rose-800' :
-                        f.category === 'preference' ? 'bg-teal-100 text-teal-800' :
-                        f.category === 'protocol' ? 'bg-purple-100 text-purple-800' :
-                        'bg-slate-100 text-slate-700'
+                    <td>
+                      <span className={`badge ${
+                        f.category === 'safety' ? 'badge-danger' :
+                        f.category === 'protocol' ? 'badge-warning' :
+                        f.category === 'preference' ? 'badge-accent' :
+                        'badge-neutral'
                       }`}>
                         {f.category}
                       </span>
                     </td>
-                    <td className="p-3.5 text-slate-800 font-medium leading-relaxed">
+                    <td className="text-ink-soft font-medium leading-relaxed">
                       {f.text}
                     </td>
-                    <td className="p-3.5 text-slate-500 tabular-nums font-mono text-[11px]">
+                    <td className="text-muted tabular-nums font-mono text-[11px]">
                       {f.effectiveDate}
                     </td>
-                    <td className="p-3.5 text-center">
+                    <td className="text-center">
                       <div className="flex justify-center shrink-0">
                         <TaskActionMenu
                           onEdit={() => setEditFyi(f)}
@@ -255,6 +236,7 @@ export const FYIBinderView: React.FC<FYIBinderViewProps> = ({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Edit FYI Modal */}

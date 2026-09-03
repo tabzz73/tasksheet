@@ -426,14 +426,14 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
     >
       <div className="space-y-5">
         {isResidentCarePaused(resident.status) && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950" role="alert">
+          <div className="rounded-surface border border-warning bg-warning-soft p-3 text-warning" role="alert">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <div>
                 <p className="text-xs font-black">Care generation is paused: {getResidentStatusLabel(resident.status)}</p>
                 <p className="mt-1 text-[11px] leading-relaxed">New routines will be stored but will not appear on TaskSheets until this resident returns to Active.</p>
                 <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] font-bold">
-                  <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-amber-700" />
+                  <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-warning" />
                   <span>I understand and want to configure future care while this resident is paused.</span>
                 </label>
               </div>
@@ -443,62 +443,62 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
         {/* ── STEP 1: DISCOVER & SELECT CARE ROUTINES ── */}
         {step === 'select' && (
           <div className="space-y-4">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted">
               Select the common care this resident requires. You can customize schedules and specific instructions in the next step.
             </p>
 
             {/* Discovery Tabs & Search Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-              <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-hairline-strong pb-3">
+              <div className="flex space-x-1 bg-panel-sunken p-1 rounded-surface">
                 <button
                   type="button"
                   onClick={() => setDiscoveryTab('common')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-control text-xs font-bold transition-all flex items-center space-x-1.5 ${
                     discoveryTab === 'common'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-panel text-ink'
+                      : 'text-ink-soft hover:text-ink'
                   }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                  <Sparkles className="w-3.5 h-3.5 text-accent" />
                   <span>Common ({presets.filter(p => p.isActive).length})</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDiscoveryTab('recent')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-control text-xs font-bold transition-all flex items-center space-x-1.5 ${
                     discoveryTab === 'recent'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-panel text-ink'
+                      : 'text-ink-soft hover:text-ink'
                   }`}
                 >
-                  <Clock className="w-3.5 h-3.5 text-blue-600" />
+                  <Clock className="w-3.5 h-3.5 text-accent" />
                   <span>Recent ({recentTemplates.length})</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDiscoveryTab('all')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-control text-xs font-bold transition-all flex items-center space-x-1.5 ${
                     discoveryTab === 'all'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-panel text-ink'
+                      : 'text-ink-soft hover:text-ink'
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5 text-purple-600" />
+                  <Layers className="w-3.5 h-3.5 text-accent" />
                   <span>All Tasks ({state.catalogTaskTemplates.length})</span>
                 </button>
               </div>
 
               {/* Search Bar */}
               <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-faint absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search care routines..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-teal-500"
+                  className="w-full pl-8 pr-3 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs focus:ring-2 focus:ring-accent"
                 />
               </div>
             </div>
@@ -513,10 +513,10 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                   return (
                     <div
                       key={preset.id}
-                      className={`rounded-xl border transition-all ${
+                      className={`rounded-surface border transition-all ${
                         isSelected
-                          ? 'border-teal-600 bg-teal-50/40 ring-1 ring-teal-600'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
+                          ? 'border-accent bg-accent-soft ring-1 ring-accent'
+                          : 'border-hairline-strong bg-panel hover:border-hairline-strong'
                       }`}
                     >
                       {/* Card Header Row */}
@@ -526,23 +526,23 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleTogglePreset(preset.id)}
-                            className="w-4 h-4 mt-0.5 rounded text-teal-600 focus:ring-teal-500"
+                            className="w-4 h-4 mt-0.5 rounded text-accent focus:ring-accent"
                           />
                           <div>
                             <div className="flex items-center space-x-2">
-                              <span className="font-bold text-xs text-slate-900">{preset.label}</span>
+                              <span className="font-bold text-xs text-ink">{preset.label}</span>
                               {preset.defaultTime && (
-                                <span className="text-[10px] bg-slate-100 text-slate-600 font-mono px-1.5 py-0.5 rounded font-bold">
+                                <span className="text-[10px] bg-panel-sunken text-ink-soft font-mono px-1.5 py-0.5 rounded font-bold">
                                   Default {preset.defaultTime}
                                 </span>
                               )}
                               {isPresetAlreadyActive(preset) && (
-                                <span className="text-[10px] bg-sky-50 text-sky-700 border border-sky-200 px-1.5 py-0.5 rounded font-bold">
+                                <span className="badge badge-positive">
                                   ✓ Active on Resident
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{preset.subtitle}</p>
+                            <p className="text-[11px] text-muted mt-0.5">{preset.subtitle}</p>
                           </div>
                         </label>
 
@@ -550,7 +550,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setExpandedPresetId(isExpanded ? null : preset.id)}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
+                            className="p-1 text-faint hover:text-ink-soft rounded-control hover:bg-panel-sunken"
                             title="Customize options"
                           >
                             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -560,17 +560,17 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
 
                       {/* Expandable Sub-Options */}
                       {isSelected && isExpanded && (
-                        <div className="px-4 pb-3 pt-1 border-t border-slate-200/60 space-y-3 bg-white/70 rounded-b-xl text-xs">
+                        <div className="px-4 pb-3 pt-1 border-t border-hairline-strong/60 space-y-3 bg-panel/70 rounded-b-xl text-xs">
                           {/* AM Care / PM Care Bundled Preview */}
                           {preset.includedBundledItems && (
                             <div>
-                              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                              <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider block mb-1">
                                 Included in this routine:
                               </span>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-slate-700">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-ink-soft">
                                 {preset.includedBundledItems.map((item, i) => (
                                   <div key={i} className="flex items-center space-x-1.5">
-                                    <Check className="w-3 h-3 text-teal-600 shrink-0" />
+                                    <Check className="w-3 h-3 text-accent shrink-0" />
                                     <span>{item}</span>
                                   </div>
                                 ))}
@@ -582,12 +582,12 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                           {preset.id === 'preset_meals' && (
                             <div className="space-y-2.5">
                               <div>
-                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider block mb-1">
                                   Assistance Required:
                                 </span>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                                   {preset.options.map(opt => (
-                                    <label key={opt.id} className="flex items-center space-x-1.5 text-[11px] text-slate-700 cursor-pointer">
+                                    <label key={opt.id} className="flex items-center space-x-1.5 text-[11px] text-ink-soft cursor-pointer">
                                       <input
                                         type="checkbox"
                                         checked={mealSubOptions.includes(opt.id)}
@@ -596,7 +596,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                                             prev.includes(opt.id) ? prev.filter(x => x !== opt.id) : [...prev, opt.id]
                                           );
                                         }}
-                                        className="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5"
+                                        className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
                                       />
                                       <span>{opt.label}</span>
                                     </label>
@@ -605,7 +605,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                               </div>
 
                               <div>
-                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                                <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider block mb-1">
                                   Scheduled Meals:
                                 </span>
                                 <div className="flex flex-wrap gap-2">
@@ -615,7 +615,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                                     { key: 'supper', label: 'Supper (1715)' },
                                     { key: 'snacks', label: 'Snacks (1030)' },
                                   ].map(m => (
-                                    <label key={m.key} className="flex items-center space-x-1.5 text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded cursor-pointer">
+                                    <label key={m.key} className="flex items-center space-x-1.5 text-[11px] font-bold text-ink bg-panel-sunken px-2 py-1 rounded cursor-pointer">
                                       <input
                                         type="checkbox"
                                         checked={mealTimingOptions.includes(m.key)}
@@ -624,7 +624,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                                             prev.includes(m.key) ? prev.filter(x => x !== m.key) : [...prev, m.key]
                                           );
                                         }}
-                                        className="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5"
+                                        className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
                                       />
                                       <span>{m.label}</span>
                                     </label>
@@ -637,7 +637,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                           {/* Compression Stockings Choice */}
                           {preset.id === 'preset_stockings' && (
                             <div>
-                              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                              <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider block mb-1">
                                 Stocking Routine:
                               </span>
                               <div className="flex space-x-2">
@@ -646,13 +646,13 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                                   { id: 'apply', label: 'Apply Only (0800)' },
                                   { id: 'remove', label: 'Remove Only (2000)' },
                                 ].map(s => (
-                                  <label key={s.id} className="flex items-center space-x-1.5 text-[11px] text-slate-800 cursor-pointer">
+                                  <label key={s.id} className="flex items-center space-x-1.5 text-[11px] text-ink cursor-pointer">
                                     <input
                                       type="radio"
                                       name="stocking_mode"
                                       checked={stockingMode === s.id}
                                       onChange={() => setStockingMode(s.id as any)}
-                                      className="text-teal-600 focus:ring-teal-500"
+                                      className="text-accent focus:ring-accent"
                                     />
                                     <span>{s.label}</span>
                                   </label>
@@ -664,22 +664,22 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                           {/* Medication Assistance Choice (MAP1/2/3) */}
                           {preset.id === 'preset_med_assist' && (
                             <div>
-                              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                              <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider block mb-1">
                                 MAP Assistance Level:
                               </span>
                               <div className="space-y-1">
                                 {preset.options.map(opt => (
-                                  <label key={opt.id} className="flex items-start space-x-2 text-[11px] text-slate-800 cursor-pointer">
+                                  <label key={opt.id} className="flex items-start space-x-2 text-[11px] text-ink cursor-pointer">
                                     <input
                                       type="radio"
                                       name="map_option"
                                       checked={mapSelection === opt.id}
                                       onChange={() => setMapSelection(opt.id as any)}
-                                      className="text-teal-600 focus:ring-teal-500 mt-0.5"
+                                      className="text-accent focus:ring-accent mt-0.5"
                                     />
                                     <div>
                                       <span className="font-bold">{opt.label}</span>
-                                      <span className="text-slate-500 block text-[10px]">{opt.defaultInstructions}</span>
+                                      <span className="text-muted block text-[10px]">{opt.defaultInstructions}</span>
                                     </div>
                                   </label>
                                 ))}
@@ -690,18 +690,18 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                           {/* General Radio Options (Toileting, Mobility, Bathing, Catheter, Exercise) */}
                           {preset.id !== 'preset_meals' && preset.id !== 'preset_stockings' && preset.id !== 'preset_med_assist' && (
                             <div>
-                              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                              <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider block mb-1">
                                 Specific Option:
                               </span>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                                 {preset.options.map(opt => (
-                                  <label key={opt.id} className="flex items-center space-x-2 text-[11px] text-slate-800 cursor-pointer">
+                                  <label key={opt.id} className="flex items-center space-x-2 text-[11px] text-ink cursor-pointer">
                                     <input
                                       type="radio"
                                       name={`opt_${preset.id}`}
                                       checked={(presetSubOptionMap[preset.id] || preset.options[0]?.id) === opt.id}
                                       onChange={() => setPresetSubOptionMap({ ...presetSubOptionMap, [preset.id]: opt.id })}
-                                      className="text-teal-600 focus:ring-teal-500"
+                                      className="text-accent focus:ring-accent"
                                     />
                                     <span>{opt.label}</span>
                                   </label>
@@ -721,15 +721,15 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
             {discoveryTab === 'recent' && (
               <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                 {recentTemplates.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 text-xs">No recent tasks recorded yet.</div>
+                  <div className="p-8 text-center text-faint text-xs">No recent tasks recorded yet.</div>
                 ) : (
                   recentTemplates.map(tmpl => {
                     const isSelected = selectedCatalogSlugs.has(tmpl.slug);
                     return (
                       <label
                         key={tmpl.slug}
-                        className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                          isSelected ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 bg-white hover:border-slate-300'
+                        className={`p-3 rounded-surface border flex items-center justify-between cursor-pointer transition-all ${
+                          isSelected ? 'border-accent bg-accent-soft' : 'border-hairline-strong bg-panel hover:border-hairline-strong'
                         }`}
                       >
                         <div className="flex items-center space-x-3">
@@ -737,21 +737,21 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleCatalogTask(tmpl.slug)}
-                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                            className="w-4 h-4 rounded text-accent focus:ring-accent"
                           />
                           <div>
                             <div className="flex items-center space-x-2">
-                              <span className="font-bold text-xs text-slate-900">{tmpl.title}</span>
+                              <span className="font-bold text-xs text-ink">{tmpl.title}</span>
                               {isTaskAlreadyActive(tmpl.slug, tmpl.title, tmpl.defaultTime) && (
-                                <span className="text-[10px] bg-sky-50 text-sky-700 border border-sky-200 px-1.5 py-0.5 rounded font-bold">
+                                <span className="badge badge-positive">
                                   ✓ Active
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-slate-500">{getCatalogCategoryName(tmpl.categoryId)} · Default {tmpl.defaultTime || '0800'}</span>
+                            <span className="text-[10px] text-muted">{getCatalogCategoryName(tmpl.categoryId)} · Default {tmpl.defaultTime || '0800'}</span>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold font-mono text-slate-400">{tmpl.roleCode}</span>
+                        <span className="text-[10px] font-bold font-mono text-faint">{tmpl.roleCode}</span>
                       </label>
                     );
                   })
@@ -767,8 +767,8 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                   return (
                     <label
                       key={tmpl.slug}
-                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                        isSelected ? 'border-purple-600 bg-purple-50/50' : 'border-slate-200 bg-white hover:border-slate-300'
+                      className={`p-3 rounded-surface border flex items-center justify-between cursor-pointer transition-all ${
+                        isSelected ? 'border-accent bg-accent-soft' : 'border-hairline-strong bg-panel hover:border-hairline-strong'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
@@ -776,21 +776,21 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToggleCatalogTask(tmpl.slug)}
-                          className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500"
+                          className="w-4 h-4 rounded text-accent focus:ring-accent"
                         />
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className="font-bold text-xs text-slate-900">{tmpl.title}</span>
+                            <span className="font-bold text-xs text-ink">{tmpl.title}</span>
                             {isTaskAlreadyActive(tmpl.slug, tmpl.title, tmpl.defaultTime) && (
-                              <span className="text-[10px] bg-sky-50 text-sky-700 border border-sky-200 px-1.5 py-0.5 rounded font-bold">
+                              <span className="badge badge-positive">
                                 ✓ Active
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-slate-500">{getCatalogCategoryName(tmpl.categoryId)} · Default {tmpl.defaultTime || '0800'}</span>
+                          <span className="text-[10px] text-muted">{getCatalogCategoryName(tmpl.categoryId)} · Default {tmpl.defaultTime || '0800'}</span>
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold font-mono text-slate-400">{tmpl.roleCode}</span>
+                      <span className="text-[10px] font-bold font-mono text-faint">{tmpl.roleCode}</span>
                     </label>
                   );
                 })}
@@ -798,25 +798,16 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
             )}
 
             {/* Selection Summary & Navigation */}
-            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">
-                Selected: <strong className="text-slate-900">{totalSelectedCount} care routine{totalSelectedCount !== 1 ? 's' : ''}</strong>
+            <div className="pt-4 border-t border-hairline-strong flex items-center justify-between">
+              <span className="text-xs font-bold text-ink-soft">
+                Selected: <strong className="text-ink">{totalSelectedCount} care routine{totalSelectedCount !== 1 ? 's' : ''}</strong>
               </span>
 
               <div className="flex items-center space-x-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium"
-                >
+                <button type="button" onClick={onClose} className="btn btn-secondary">
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  disabled={totalSelectedCount === 0}
-                  onClick={handleProceedToConfigure}
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-colors"
-                >
+                <button type="button" disabled={totalSelectedCount === 0} onClick={handleProceedToConfigure} className="btn btn-accent">
                   <span>Configure Selected ({totalSelectedCount})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -829,13 +820,13 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
         {step === 'configure' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted">
                 Fine-tune shift, scheduled time, and recurrence for the selected care tasks.
               </p>
               <button
                 type="button"
                 onClick={() => setStep('select')}
-                className="text-xs text-teal-700 font-bold hover:underline flex items-center space-x-1"
+                className="text-xs text-accent-strong font-bold hover:underline flex items-center space-x-1"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back to Selection</span>
@@ -845,30 +836,30 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
             {/* List of Draft Tasks */}
             <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
               {draftTasks.map((task, index) => (
-                <div key={task.id} className={`p-4 bg-slate-50 border rounded-xl space-y-3 text-xs ${draftTimeErrors.has(task.id) ? 'border-red-300' : 'border-slate-200'}`}>
+                <div key={task.id} className={`p-4 bg-panel-sunken border rounded-surface space-y-3 text-xs ${draftTimeErrors.has(task.id) ? 'border-danger' : 'border-hairline-strong'}`}>
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
                           Routine #{index + 1} · {task.category}
                         </span>
                         {isTaskAlreadyActive(task.templateSlug, task.title, task.time) && (
-                          <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
+                          <span className="text-[10px] bg-warning-soft text-warning border border-warning px-1.5 py-0.5 rounded font-bold">
                             🔄 Updates Existing Task
                           </span>
                         )}
                       </div>
                       <div className="mt-0.5 flex items-center gap-2">
-                        <h4 className="font-bold text-sm text-slate-900">{task.title}</h4>
+                        <h4 className="font-bold text-sm text-ink">{task.title}</h4>
                         <TaskAttentionBadges attentionConfig={task.attentionConfig} maxVisible={3} />
-                        {task.trackingConfig && <span className="rounded bg-cyan-100 px-1.5 py-0.5 text-[9px] font-black uppercase text-cyan-800">Tracking</span>}
+                        {task.trackingConfig && <span className="badge badge-accent">Tracking</span>}
                       </div>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => handleRemoveDraft(task.id)}
-                      className="text-slate-400 hover:text-rose-600 text-xs font-semibold"
+                      className="text-faint hover:text-danger text-xs font-semibold"
                       title="Remove this task"
                     >
                       Remove
@@ -878,13 +869,13 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* Shift */}
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      <label className="block text-[10px] font-bold text-ink-soft uppercase mb-1">
                         Assigned Shift
                       </label>
                       <select
                         value={task.shiftId}
                         onChange={e => handleUpdateDraft(task.id, { shiftId: e.target.value })}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold"
+                        className="w-full px-2.5 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs font-bold"
                       >
                         {shifts.filter(s => s.roleId === task.roleId).length === 0 && (
                           <option value="">No active role-matching shift</option>
@@ -897,7 +888,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
 
                     {/* Time */}
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      <label className="block text-[10px] font-bold text-ink-soft uppercase mb-1">
                         Time (Military 24h)
                       </label>
                       <input
@@ -905,28 +896,28 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                         value={task.time}
                         onChange={e => handleUpdateDraft(task.id, { time: e.target.value })}
                         aria-invalid={draftTimeErrors.has(task.id)}
-                        className={`w-full px-2.5 py-1.5 bg-white border rounded-lg text-xs font-mono font-bold ${draftTimeErrors.has(task.id) ? 'border-red-400' : 'border-slate-300'}`}
+                        className={`w-full px-2.5 py-1.5 bg-panel border rounded-control text-xs font-mono font-bold ${draftTimeErrors.has(task.id) ? 'border-danger' : 'border-hairline-strong'}`}
                         placeholder="0800"
                       />
                     </div>
 
                     {/* Instructions */}
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      <label className="block text-[10px] font-bold text-ink-soft uppercase mb-1">
                         Instructions
                       </label>
                       <input
                         type="text"
                         value={task.instructions}
                         onChange={e => handleUpdateDraft(task.id, { instructions: e.target.value })}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs"
+                        className="w-full px-2.5 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs"
                         placeholder="Special resident instructions..."
                       />
                     </div>
                   </div>
 
                   {draftTimeErrors.has(task.id) && (
-                    <p className="flex items-start space-x-1.5 text-[11px] font-semibold text-red-700" role="alert">
+                    <p className="flex items-start space-x-1.5 text-[11px] font-semibold text-danger" role="alert">
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       <span>{draftTimeErrors.get(task.id)}</span>
                     </p>
@@ -936,12 +927,8 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
             </div>
 
             {/* Footer Actions */}
-            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep('select')}
-                className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1"
-              >
+            <div className="pt-4 border-t border-hairline-strong flex items-center justify-between">
+              <button type="button" onClick={() => setStep('select')} className="btn btn-secondary">
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back</span>
               </button>
@@ -950,7 +937,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                 type="button"
                 onClick={handleSaveAll}
                 disabled={draftTimeErrors.size > 0 || (isResidentCarePaused(resident.status) && !allowPausedResidentCare)}
-                className="px-6 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg text-xs font-bold shadow-md flex items-center space-x-1.5 transition-colors"
+                className="btn btn-accent px-6"
               >
                 <Check className="w-4 h-4" />
                 <span>Save {draftTasks.length} Care Routines to {resident.firstName}</span>

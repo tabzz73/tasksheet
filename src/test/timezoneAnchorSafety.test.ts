@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { localDateFromTimestamp, formatLocalDate, getTodayLocalDateString, isTaskDueOnDate } from '../services/recurrence';
 import { db } from '../db';
 import { generateShiftSheet } from '../services/generator';
@@ -19,6 +19,10 @@ describe('local-date anchoring across the UTC day boundary (MDT, UTC-6)', () => 
 
   afterAll(() => {
     process.env.TZ = ORIGINAL_TZ;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('reads the LOCAL calendar date from a timestamp whose UTC date has already rolled to the next day', () => {
@@ -43,6 +47,13 @@ describe('local-date anchoring across the UTC day boundary (MDT, UTC-6)', () => 
   });
 
   it('end-to-end: a wound added this evening prints on today\'s shift sheet, not tomorrow\'s', () => {
+    // Pin the system clock to the exact evening instant this test is about
+    // (19:13 MDT on Aug 31 == 01:13 UTC on Sep 1), so db.addWound's internal
+    // `new Date().toISOString()` stamps createdAt there regardless of the
+    // real wall-clock date the suite happens to run on.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-01T01:13:19.664Z'));
+
     db.resetToDemoState();
     db.clearAllOperationalData();
     const resident = db.addResident({ firstName: 'Evening', lastName: 'Entry', roomNumber: '401', status: 'active' });

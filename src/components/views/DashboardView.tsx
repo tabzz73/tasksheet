@@ -1,21 +1,21 @@
 import React from 'react';
-import { 
-  Clock, 
-  Printer, 
-  Users, 
-  BookOpen, 
-  Calendar,
+import {
+  Clock,
+  Printer,
+  Users,
+  BookOpen,
   Plus,
   Info,
-  UserCheck,
+  ClipboardList,
   Bandage,
-  Sparkles,
-  ClipboardList
+  ChevronDown
 } from 'lucide-react';
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
 import { AddEntityType } from '../modals/GlobalAddModal';
 import { CardNavigationButton } from '../common/CardNavigationButton';
+
+const SHIFT_ROW_GRID = '11% 1fr 13% 13% 11% 9% 9%';
 
 interface DashboardViewProps {
   currentDate: string;
@@ -40,7 +40,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     .filter(s => s.isActive !== false)
     .sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99));
 
-  // Generate sheets for all active shifts for today
   const shiftSheets = activeShifts.map(s => {
     try {
       return generateShiftSheet(currentDate, s.id);
@@ -49,13 +48,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }).filter((s): s is GeneratedShiftSheet => s !== null);
 
-  // Scheduling-based summary counts
   const totalScheduledToday = shiftSheets.reduce((sum, s) => sum + s.metrics.totalScheduled, 0);
 
   const activeResidentCount = state.residents.filter(r => r.status === 'active').length;
   const inHospitalCount = state.residents.filter(r => r.status === 'in_hospital').length;
   const outOnPassCount = state.residents.filter(r => r.status === 'out_on_pass').length;
   const onHoldCount = state.residents.filter(r => r.status === 'on_hold').length;
+  const suspendedCount = inHospitalCount + outOnPassCount + onHoldCount;
 
   const binderNeedsUpdate = state.binderState.status === 'update_required';
 
@@ -64,231 +63,154 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* 1. HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-5 max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            TaskSheet Overview · {formattedDate}
-          </p>
+          <h2 className="text-[22px] font-bold tracking-tight text-ink">Dashboard</h2>
+          <p className="text-[12px] text-muted mt-0.5 tabular-nums">{formattedDate}</p>
         </div>
 
-        {/* Contextual Quick Add Dropdown */}
-        <div className="relative self-start sm:self-auto">
+        <div className="relative">
           <button
             type="button"
             onClick={() => setQuickAddOpen(!quickAddOpen)}
-            className="px-3.5 py-1.5 bg-white hover:bg-teal-50 text-teal-700 border border-teal-600 rounded-lg text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors"
+            className="btn btn-accent"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Quick Add ▾</span>
+            <span>Quick Add</span>
+            <ChevronDown className="w-3 h-3 opacity-80" />
           </button>
 
           {quickAddOpen && (
-            <div 
+            <div
               onClick={() => setQuickAddOpen(false)}
-              className="absolute right-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-100"
+              className="absolute right-0 mt-1.5 w-56 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
             >
-              <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                Create & Assign
-              </div>
-              <button
-                type="button"
-                onClick={() => onOpenQuickAdd('care_task')}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 font-semibold text-slate-800 flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4 text-teal-600" />
-                <span>+ Resident Care Task</span>
+              <button type="button" onClick={() => onOpenQuickAdd('care_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                <Plus className="w-3.5 h-3.5 text-accent" />
+                <span>Resident Care Task</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onOpenQuickAdd('unit_task')}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 font-semibold text-slate-800 flex items-center space-x-2"
-              >
-                <ClipboardList className="w-4 h-4 text-teal-600" />
-                <span>+ Shift Unit Task</span>
+              <button type="button" onClick={() => onOpenQuickAdd('unit_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                <ClipboardList className="w-3.5 h-3.5 text-accent" />
+                <span>Unit Task</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onOpenQuickAdd('resident')}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 font-semibold text-slate-800 flex items-center space-x-2"
-              >
-                <Users className="w-4 h-4 text-teal-600" />
-                <span>+ Add Resident</span>
+              <button type="button" onClick={() => onOpenQuickAdd('resident')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                <Users className="w-3.5 h-3.5 text-accent" />
+                <span>Resident</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onOpenQuickAdd('fyi')}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 font-semibold text-slate-800 flex items-center space-x-2"
-              >
-                <Info className="w-4 h-4 text-teal-600" />
-                <span>+ FYI Standing Note</span>
+              <button type="button" onClick={() => onOpenQuickAdd('fyi')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                <Info className="w-3.5 h-3.5 text-accent" />
+                <span>FYI Standing Note</span>
               </button>
-              <button
-                type="button"
-                onClick={() => onOpenQuickAdd('wound')}
-                className="w-full px-3.5 py-2 text-left hover:bg-slate-50 font-semibold text-slate-800 flex items-center space-x-2"
-              >
-                <Bandage className="w-4 h-4 text-rose-600" />
-                <span>+ Wound Protocol</span>
+              <button type="button" onClick={() => onOpenQuickAdd('wound')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
+                <Bandage className="w-3.5 h-3.5 text-danger" />
+                <span>Wound Protocol</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* 2. TOP 4 KPI SUMMARY CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Scheduled Today */}
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center">
-          <div className="p-3 bg-teal-50/80 text-teal-600 rounded-xl mr-3.5 shrink-0">
-            <Calendar className="w-6 h-6" />
+      {/* Operational summary strip — one bordered bar, not four cards */}
+      <div className="title-block rounded-surface flex flex-wrap divide-x divide-hairline">
+        <div className="px-4 py-3 flex-1 min-w-[140px]">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Scheduled Today</div>
+          <div className="text-xl font-bold text-ink tabular-nums mt-0.5">{totalScheduledToday}</div>
+          <div className="text-[11px] text-muted">across {activeShifts.length} shift{activeShifts.length === 1 ? '' : 's'}</div>
+        </div>
+        <button type="button" onClick={onNavigateToResidents} className="px-4 py-3 flex-1 min-w-[140px] text-left hover:bg-panel-sunken transition-colors">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Residents</div>
+          <div className="text-xl font-bold text-ink tabular-nums mt-0.5">{activeResidentCount}</div>
+          <div className="text-[11px] text-muted">
+            {suspendedCount > 0 ? `${inHospitalCount} hosp · ${outOnPassCount} pass · ${onHoldCount} hold` : 'no care suspensions'}
           </div>
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">SCHEDULED TODAY</span>
-            <div className="text-2xl font-black text-slate-900 tabular-nums mt-0.5">{totalScheduledToday}</div>
-            <span className="text-xs text-slate-400">Across {activeShifts.length} shifts</span>
+        </button>
+        <div className="px-4 py-3 flex-1 min-w-[140px]">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Active Shifts</div>
+          <div className="text-xl font-bold text-ink tabular-nums mt-0.5">{activeShifts.length}</div>
+          <div className="text-[11px] text-muted truncate">
+            {activeShifts.slice(0, 3).map(s => s.shortCode || s.name).join(' · ')}{activeShifts.length > 3 ? ` +${activeShifts.length - 3}` : ''}
           </div>
         </div>
-
-        {/* Card 2: Residents */}
-        <div 
-          onClick={onNavigateToResidents}
-          className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center cursor-pointer hover:border-slate-300 transition-colors"
-        >
-          <div className="p-3 bg-teal-50/80 text-teal-600 rounded-xl mr-3.5 shrink-0">
-            <Users className="w-6 h-6" />
+        <button type="button" onClick={onNavigateToBinder} className="px-4 py-3 flex-1 min-w-[140px] text-left hover:bg-panel-sunken transition-colors">
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">FYI Binder</div>
+          <div className={`text-xl font-bold mt-0.5 ${binderNeedsUpdate ? 'text-warning' : 'text-positive'}`}>
+            {binderNeedsUpdate ? 'Update Req.' : 'Current'}
           </div>
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">RESIDENTS</span>
-            <div className="text-2xl font-black text-slate-900 tabular-nums mt-0.5">{activeResidentCount}</div>
-            <span className="text-xs text-slate-400">
-              {inHospitalCount > 0 || outOnPassCount > 0 || onHoldCount > 0
-                ? `${inHospitalCount} hosp · ${outOnPassCount} pass · ${onHoldCount} hold`
-                : 'No care suspensions'}
-            </span>
+          <div className="text-[11px] text-muted">
+            {binderNeedsUpdate ? `${state.binderState.pendingChangesCount} pending change${state.binderState.pendingChangesCount === 1 ? '' : 's'}` : 'physical binder confirmed'}
           </div>
-        </div>
-
-        {/* Card 3: Active Shifts */}
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center">
-          <div className="p-3 bg-teal-50/80 text-teal-600 rounded-xl mr-3.5 shrink-0">
-            <UserCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">ACTIVE SHIFTS</span>
-            <div className="text-2xl font-black text-slate-900 tabular-nums mt-0.5">{activeShifts.length}</div>
-            <span className="text-xs text-slate-400 truncate block max-w-[140px]">
-              {activeShifts.slice(0, 3).map(s => s.shortCode || s.name).join(' · ')}{activeShifts.length > 3 ? ` +${activeShifts.length - 3}` : ''}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 4: FYI Binder */}
-        <div 
-          onClick={onNavigateToBinder}
-          className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center cursor-pointer hover:border-slate-300 transition-colors"
-        >
-          <div className="p-3 bg-teal-50/80 text-teal-600 rounded-xl mr-3.5 shrink-0">
-            <BookOpen className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">FYI BINDER</span>
-            <div className={`text-xl font-bold mt-0.5 ${binderNeedsUpdate ? 'text-amber-700' : 'text-teal-700'}`}>
-              {binderNeedsUpdate ? 'Update Req' : 'Current'}
-            </div>
-            <span className="text-xs text-slate-400">
-              {binderNeedsUpdate ? `${state.binderState.pendingChangesCount} pending changes` : 'Physical binder confirmed'}
-            </span>
-          </div>
-        </div>
+        </button>
       </div>
 
-      {/* 3. TODAY'S SHIFTS SECTION */}
+      {/* Today's shifts — schedule table, not a card grid */}
       <div>
-        <div className="mb-4">
-          <h3 className="text-lg font-bold text-slate-900">Today's Shifts</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Select a shift to review the schedule or generate a printed TaskSheet.
-          </p>
+        <div className="mb-2 flex items-baseline justify-between">
+          <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft">Today's Shifts</h3>
+          <p className="text-[11px] text-muted">Select a shift to review or print.</p>
         </div>
 
         {shiftSheets.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
-            <Clock className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-            <h4 className="text-sm font-semibold text-slate-600">No active shifts configured</h4>
-            <p className="text-xs text-slate-400 mt-1">Go to Settings → Roles & Shifts to add shifts.</p>
+          <div className="title-block rounded-surface py-10 text-center text-muted">
+            <Clock className="w-7 h-7 mx-auto text-faint mb-2" />
+            <p className="text-[13px] font-semibold text-ink-soft">No active shifts configured</p>
+            <p className="text-[12px] text-muted mt-0.5">Go to Settings → Roles &amp; Shifts to add shifts.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {shiftSheets.map(sheet => (
-              <div
-                key={sheet.shift.id}
-                className="relative bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-teal-300 hover:shadow-sm transition-all p-5 flex flex-col justify-between group"
-              >
-                <CardNavigationButton
-                  label={`Open ${sheet.shift.shortCode || sheet.shift.name} shift`}
-                  onActivate={() => onOpenShift(sheet.shift.id)}
-                  roundedClassName="rounded-2xl"
-                />
-                <div>
-                  {/* Card Header: Code Badge + Name + Role + Time Pill */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3">
-                      <div className="px-2.5 py-1.5 bg-[#0B192C] text-white rounded-lg font-mono font-bold text-xs tracking-wider shrink-0 shadow-xs">
-                        {sheet.shift.shortCode || '—'}
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 leading-snug">{sheet.shift.name}</h4>
-                        <p className="text-xs text-teal-600 font-semibold mt-0.5">{sheet.role.name}</p>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md font-mono shrink-0">
-                      {sheet.shift.startTime}–{sheet.shift.endTime}
+          <div className="title-block rounded-surface overflow-hidden">
+            <div className="overflow-x-auto">
+            <div
+              className="grid px-3.5 h-9 items-center border-b border-hairline-strong text-[10.5px] font-bold uppercase tracking-wide text-muted min-w-[560px]"
+              style={{ gridTemplateColumns: SHIFT_ROW_GRID }}
+            >
+              <div className="min-w-0 truncate">Code</div>
+              <div className="min-w-0 truncate">Shift</div>
+              <div className="min-w-0 truncate">Time</div>
+              <div className="min-w-0 truncate">Resident Care</div>
+              <div className="min-w-0 truncate">Unit Tasks</div>
+              <div className="min-w-0 truncate">FYI</div>
+              <div className="min-w-0 truncate text-right">Print</div>
+            </div>
+            <div className="min-w-[560px]">
+              {shiftSheets.map(sheet => (
+                <div
+                  key={sheet.shift.id}
+                  className="relative grid px-3.5 h-12 items-center border-b border-hairline last:border-b-0 hover:bg-panel-sunken transition-colors"
+                  style={{ gridTemplateColumns: SHIFT_ROW_GRID }}
+                >
+                  <CardNavigationButton
+                    label={`Open ${sheet.shift.shortCode || sheet.shift.name} shift`}
+                    onActivate={() => onOpenShift(sheet.shift.id)}
+                    roundedClassName="rounded-none"
+                  />
+                  <div className="relative z-20 pointer-events-none">
+                    <span className="inline-flex items-center justify-center px-2 h-6 bg-ink text-white rounded-control font-mono font-bold text-[11px] tracking-wide">
+                      {sheet.shift.shortCode || '—'}
                     </span>
                   </div>
-
-                  {/* 2-Column Stats Box */}
-                  <div className="my-3.5 p-3 bg-slate-50/80 rounded-xl border border-slate-100 grid grid-cols-2 text-xs">
-                    <div>
-                      <span className="text-slate-500 block text-[11px]">Resident Care</span>
-                      <span className="font-bold text-slate-900 text-xs tabular-nums mt-0.5 block">
-                        {sheet.metrics.totalResidentTasks} Scheduled
-                      </span>
-                    </div>
-                    <div className="border-l border-slate-200/80 pl-3">
-                      <span className="text-slate-500 block text-[11px]">Unit Tasks</span>
-                      <span className="font-bold text-slate-900 text-xs tabular-nums mt-0.5 block">
-                        {sheet.metrics.totalUnitTasks} Scheduled
-                      </span>
-                    </div>
+                  <div className="relative z-20 pointer-events-none min-w-0">
+                    <div className="font-semibold text-ink text-[13px] truncate">{sheet.shift.name}</div>
+                    <div className="text-[11px] text-accent font-medium truncate">{sheet.role.name}</div>
                   </div>
-
-                  {/* FYI Line */}
-                  <div className="flex items-center space-x-1 text-xs text-teal-700 font-medium">
-                    <Info className="w-3.5 h-3.5 text-teal-600" />
-                    <span>{sheet.metrics.fyiCount} FYI{sheet.metrics.fyiCount !== 1 ? 's' : ''}</span>
+                  <div className="relative z-20 pointer-events-none font-mono text-[12px] text-ink-soft tabular-nums">{sheet.shift.startTime}–{sheet.shift.endTime}</div>
+                  <div className="relative z-20 pointer-events-none tabular-nums text-[13px] text-ink-soft">{sheet.metrics.totalResidentTasks}</div>
+                  <div className="relative z-20 pointer-events-none tabular-nums text-[13px] text-ink-soft">{sheet.metrics.totalUnitTasks}</div>
+                  <div className="relative z-20 pointer-events-none tabular-nums text-[13px] text-ink-soft">{sheet.metrics.fyiCount}</div>
+                  <div className="relative z-20 text-right">
+                    <button
+                      type="button"
+                      onClick={() => onPrintShift(sheet)}
+                      aria-label={`Print ${sheet.shift.shortCode || sheet.shift.name}`}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-control border border-hairline-strong text-ink-soft hover:bg-panel-sunken hover:text-ink transition-colors"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                {/* Bottom Action Buttons */}
-                <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={event => {
-                      event.stopPropagation();
-                      onPrintShift(sheet);
-                    }}
-                    className="relative z-20 px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Print</span>
-                  </button>
-
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            </div>
           </div>
         )}
       </div>

@@ -171,13 +171,13 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
   return (
     <div className="space-y-6">
       {/* ── HEADER TOOLBAR ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-panel-sunken p-4 rounded-surface border border-hairline-strong">
         <div>
-          <h3 className="text-sm font-black text-slate-900 flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-teal-600" />
+          <h3 className="text-sm font-black text-ink flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-accent" />
             <span>Facility Quick Add Presets Manager</span>
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Customize which care groups appear in the resident Quick Add setup screen and their default times.
           </p>
         </div>
@@ -186,7 +186,7 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
           <button
             type="button"
             onClick={handleReset}
-            className="px-3 py-1.5 text-xs text-slate-600 hover:text-rose-700 font-bold border border-slate-300 rounded-lg hover:bg-slate-100 flex items-center space-x-1 transition-colors"
+            className="px-3 py-1.5 text-xs text-ink-soft hover:text-danger font-bold border border-hairline-strong rounded-control hover:bg-panel-sunken flex items-center space-x-1 transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Defaults</span>
@@ -195,7 +195,7 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
           <button
             type="button"
             onClick={handleOpenNew}
-            className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-sm transition-colors"
+            className="px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>Add Quick Preset</span>
@@ -208,8 +208,8 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
         {sortedPresets.map((preset, index) => (
           <div
             key={preset.id}
-            className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
-              preset.isActive ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'
+            className={`p-3.5 rounded-surface border transition-all flex items-center justify-between ${
+              preset.isActive ? 'bg-panel border-hairline-strong' : 'bg-panel-sunken border-hairline-strong opacity-60'
             }`}
           >
             <div className="flex items-center space-x-3">
@@ -219,7 +219,7 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
                   type="button"
                   disabled={index === 0}
                   onClick={() => handleMove(preset.id, 'up')}
-                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                  className="p-1 hover:bg-panel-sunken rounded text-faint hover:text-ink-soft disabled:opacity-30"
                   title="Move Up"
                 >
                   <ArrowUp className="w-3.5 h-3.5" />
@@ -228,7 +228,7 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
                   type="button"
                   disabled={index === sortedPresets.length - 1}
                   onClick={() => handleMove(preset.id, 'down')}
-                  className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 disabled:opacity-30"
+                  className="p-1 hover:bg-panel-sunken rounded text-faint hover:text-ink-soft disabled:opacity-30"
                   title="Move Down"
                 >
                   <ArrowDown className="w-3.5 h-3.5" />
@@ -238,20 +238,20 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
               {/* Title & Subtitle */}
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="font-bold text-xs text-slate-900">{preset.label}</span>
-                  <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                  <span className="font-bold text-xs text-ink">{preset.label}</span>
+                  <span className="text-[10px] font-mono font-bold bg-panel-sunken text-ink-soft px-1.5 py-0.5 rounded">
                     Default {preset.defaultTime || '0800'}
                   </span>
-                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-bold text-accent-strong bg-accent-soft px-1.5 py-0.5 rounded">
                     {preset.roleCode}
                   </span>
                   {!preset.isActive && (
-                    <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold text-danger bg-danger-soft px-1.5 py-0.5 rounded">
                       Inactive
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">{preset.subtitle}</p>
+                <p className="text-[11px] text-muted mt-0.5">{preset.subtitle}</p>
               </div>
             </div>
 
@@ -260,10 +260,10 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
               <button
                 type="button"
                 onClick={() => handleToggleActive(preset.id)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors ${
+                className={`px-2.5 py-1 text-xs font-bold rounded-control border transition-colors ${
                   preset.isActive 
-                    ? 'border-slate-300 text-slate-700 hover:bg-slate-100' 
-                    : 'border-teal-300 bg-teal-50 text-teal-800'
+                    ? 'border-hairline-strong text-ink-soft hover:bg-panel-sunken' 
+                    : 'border-accent bg-accent-soft text-accent-strong'
                 }`}
               >
                 {preset.isActive ? 'Deactivate' : 'Activate'}
@@ -272,7 +272,7 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
               <button
                 type="button"
                 onClick={() => handleOpenEdit(preset)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900"
+                className="p-1.5 hover:bg-panel-sunken rounded-control text-muted hover:text-ink"
                 title="Edit preset"
               >
                 <Edit2 className="w-4 h-4" />
@@ -292,46 +292,46 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
         >
           <form onSubmit={handleSavePreset} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Preset Label</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Preset Label</label>
               <input
                 type="text"
                 required
                 value={formLabel}
                 onChange={e => setFormLabel(e.target.value)}
                 placeholder="e.g. AM Care"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Subtitle / Description</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Subtitle / Description</label>
               <input
                 type="text"
                 value={formSubtitle}
                 onChange={e => setFormSubtitle(e.target.value)}
                 placeholder="e.g. Morning personal care routine"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Default Time</label>
+                <label className="block text-xs font-bold text-ink-soft mb-1">Default Time</label>
                 <input
                   type="text"
                   value={formDefaultTime}
                   onChange={e => setFormDefaultTime(e.target.value)}
                   placeholder="0800"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold"
+                  className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs font-mono font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Role Scope</label>
+                <label className="block text-xs font-bold text-ink-soft mb-1">Role Scope</label>
                 <select
                   value={formRoleCode}
                   onChange={e => setFormRoleCode(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-bold"
+                  className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs bg-panel font-bold"
                 >
                   <option value="HCA">HCA (Health Care Aide)</option>
                   <option value="LPN">LPN (Nurse)</option>
@@ -340,17 +340,17 @@ export const QuickAddPresetsTab: React.FC<QuickAddPresetsTabProps> = ({ onShowFe
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+            <div className="pt-3 border-t border-hairline-strong flex justify-end space-x-2">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-medium"
+                className="px-4 py-2 border border-hairline-strong rounded-control text-xs font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold"
+                className="px-5 py-2 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold"
               >
                 Save Preset
               </button>

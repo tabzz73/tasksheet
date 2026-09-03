@@ -88,19 +88,19 @@ export const CareTimingSettingsTab: React.FC<CareTimingSettingsTabProps> = ({ on
     description: string,
     Icon: React.ComponentType<{ className?: string }>,
   ) => (
-    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/70 flex items-start justify-between gap-4">
+    <section className="bg-panel border border-hairline-strong rounded-surface overflow-hidden">
+      <div className="px-5 py-4 border-b border-hairline-strong bg-panel-sunken/70 flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <span className="p-2 rounded-xl bg-teal-100 text-teal-800"><Icon className="w-4 h-4" /></span>
+          <span className="p-2 rounded-surface bg-accent-soft text-accent-strong"><Icon className="w-4 h-4" /></span>
           <div>
-            <h3 className="text-sm font-black text-slate-900">{title}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+            <h3 className="text-sm font-black text-ink">{title}</h3>
+            <p className="text-xs text-muted mt-0.5">{description}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => addPreset(group)}
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold"
         >
           <Plus className="w-3.5 h-3.5" /> Add time
         </button>
@@ -108,20 +108,20 @@ export const CareTimingSettingsTab: React.FC<CareTimingSettingsTabProps> = ({ on
 
       <div className="p-4 space-y-2">
         {timings[group].length === 0 && (
-          <div className="p-5 border border-dashed border-slate-300 rounded-xl text-center text-xs text-slate-500">
+          <div className="p-5 border border-dashed border-hairline-strong rounded-surface text-center text-xs text-muted">
             No timings configured. Add at least one facility time.
           </div>
         )}
         {timings[group].map(item => {
           const invalidTime = item.time.length > 0 && parseMilitaryTime(item.time) === null;
           return (
-            <div key={item.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,1fr)_110px_auto] gap-3 items-center p-3 rounded-xl border border-slate-200 bg-white">
+            <div key={item.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,1fr)_110px_auto] gap-3 items-center p-3 rounded-surface border border-hairline-strong bg-panel">
               <input
                 type="checkbox"
                 checked={item.isActive !== false}
                 onChange={event => updatePreset(group, item.id, { isActive: event.target.checked })}
                 aria-label={`Enable ${item.label}`}
-                className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500"
+                className="w-4 h-4 rounded text-accent focus:ring-accent"
               />
               <input
                 type="text"
@@ -129,7 +129,7 @@ export const CareTimingSettingsTab: React.FC<CareTimingSettingsTabProps> = ({ on
                 onChange={event => updatePreset(group, item.id, { label: event.target.value })}
                 aria-label={`${title} label`}
                 placeholder={group === 'medicationTimes' ? 'e.g. Morning medications' : 'e.g. Breakfast'}
-                className="min-w-0 px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-teal-500"
+                className="min-w-0 px-3 py-2 border border-hairline-strong rounded-control text-xs font-semibold focus:ring-2 focus:ring-accent"
               />
               <div className="col-start-2 sm:col-start-auto">
                 <input
@@ -144,14 +144,14 @@ export const CareTimingSettingsTab: React.FC<CareTimingSettingsTabProps> = ({ on
                   aria-label={`${item.label} time`}
                   placeholder="0800"
                   maxLength={4}
-                  className={`w-full px-3 py-2 border rounded-lg text-xs font-mono font-black tracking-wider focus:ring-2 focus:ring-teal-500 ${invalidTime ? 'border-rose-400 bg-rose-50' : 'border-slate-300'}`}
+                  className={`w-full px-3 py-2 border rounded-control text-xs font-mono font-black tracking-wider focus:ring-2 focus:ring-accent ${invalidTime ? 'border-danger bg-danger-soft' : 'border-hairline-strong'}`}
                 />
               </div>
               <button
                 type="button"
                 onClick={() => removePreset(group, item.id)}
                 aria-label={`Remove ${item.label}`}
-                className="p-2 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg"
+                className="p-2 text-faint hover:text-danger hover:bg-danger-soft rounded-control"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -164,12 +164,12 @@ export const CareTimingSettingsTab: React.FC<CareTimingSettingsTabProps> = ({ on
 
   return (
     <div className="space-y-5">
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+      <div className="bg-panel rounded-surface border border-hairline-strong p-5">
         <div className="flex items-start gap-3">
-          <span className="p-2 rounded-xl bg-teal-100 text-teal-800"><Clock3 className="w-5 h-5" /></span>
+          <span className="p-2 rounded-surface bg-accent-soft text-accent-strong"><Clock3 className="w-5 h-5" /></span>
           <div>
-            <h2 className="text-base font-black text-slate-900">Facility Care Timing Presets</h2>
-            <p className="text-xs text-slate-500 mt-1 max-w-2xl">These times appear as quick choices when staff add Medication Assistance or meal-related resident tasks. Only times inside the selected shift are offered.</p>
+            <h2 className="text-base font-black text-ink">Facility Care Timing Presets</h2>
+            <p className="text-xs text-muted mt-1 max-w-2xl">These times appear as quick choices when staff add Medication Assistance or meal-related resident tasks. Only times inside the selected shift are offered.</p>
           </div>
         </div>
       </div>
@@ -178,10 +178,10 @@ export const CareTimingSettingsTab: React.FC<CareTimingSettingsTabProps> = ({ on
       {renderGroup('mealTimes', 'Meal Timing Presets', 'Breakfast, lunch, dinner, snacks, or other facility meal times.', Utensils)}
 
       <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-1">
-        <button type="button" onClick={handleReset} className="inline-flex justify-center items-center gap-2 px-4 py-2.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50">
+        <button type="button" onClick={handleReset} className="inline-flex justify-center items-center gap-2 px-4 py-2.5 border border-hairline-strong rounded-control text-xs font-bold text-ink-soft hover:bg-panel-sunken">
           <RotateCcw className="w-3.5 h-3.5" /> Restore standard times
         </button>
-        <button type="button" onClick={handleSave} className="inline-flex justify-center items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow-sm">
+        <button type="button" onClick={handleSave} className="inline-flex justify-center items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold">
           <Save className="w-3.5 h-3.5" /> Save Timing Presets
         </button>
       </div>

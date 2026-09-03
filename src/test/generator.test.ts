@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { db } from '../db';
 import { generateShiftSheet, isDateDue, sortRoomNumbers } from '../services/generator';
 import { PrintService, calculateAdaptivePrintLayout } from '../services/print';
@@ -16,6 +16,10 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
   beforeEach(() => {
     // Reset database to fresh clean default state
     db.resetToDemoState();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('preserves every configured attention indicator in print preview rows', () => {
@@ -41,6 +45,14 @@ describe('TaskSheet Generator & Domain Core Tests', () => {
   });
 
   it('prints a wound protocol only on its assigned LPN shift and due date', () => {
+    // Pin the clock to the Monday this test targets so db.addWound's internal
+    // `new Date().toISOString()` createdAt stamp is never later than the
+    // '2026-08-31' date the assertions below generate sheets for — otherwise
+    // the recurrence engine correctly (and deterministically) treats the
+    // wound as not-yet-started on a date before its real creation instant.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-31T12:00:00.000Z'));
+
     db.clearAllOperationalData();
     const resident = db.addResident({ firstName: 'Wound', lastName: 'Schedule', roomNumber: '210', status: 'active' });
     db.addWound({

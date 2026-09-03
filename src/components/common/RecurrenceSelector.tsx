@@ -191,18 +191,18 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
   };
 
   return (
-    <div className="space-y-4 text-slate-800">
+    <div className="space-y-4 text-ink">
       {/* ── COMMON PRESETS TOOLBAR ── */}
       <div>
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+        <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-2">
           How often?
         </label>
         <div className="flex flex-wrap gap-1.5">
           {allowPrn && <button
             type="button"
             onClick={() => applyPreset('daily')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('daily') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('daily') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             Daily
@@ -211,8 +211,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('every_other_day')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('every_other_day') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('every_other_day') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             Every Other Day
@@ -221,8 +221,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('mwf')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('mwf') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('mwf') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             Mon / Wed / Fri
@@ -231,8 +231,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('weekly')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('weekly') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('weekly') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             Weekly
@@ -241,8 +241,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('every_other_week')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('every_other_week') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('every_other_week') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             Every Other Week
@@ -251,8 +251,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('monthly')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('monthly') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('monthly') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             Monthly
@@ -261,8 +261,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('every_28_days')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('every_28_days') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('every_28_days') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             Every 28 Days
@@ -271,8 +271,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('one_time')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('one_time') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('one_time') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             One Time
@@ -281,8 +281,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => applyPreset('prn')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              isPresetActive('prn') ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            className={`px-3 py-1.5 rounded-control text-xs font-bold transition-all ${
+              isPresetActive('prn') ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
             }`}
           >
             PRN / If Required
@@ -291,7 +291,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <button
             type="button"
             onClick={() => setShowFullMenu(!showFullMenu)}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold text-teal-700 hover:bg-teal-50 border border-teal-200 flex items-center space-x-1 transition-colors"
+            className="px-3 py-1.5 rounded-control text-xs font-bold text-accent-strong hover:bg-accent-soft border border-hairline-strong flex items-center space-x-1 transition-colors"
           >
             <span>{showFullMenu ? 'Hide options' : 'More options...'}</span>
             {showFullMenu ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -301,8 +301,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
 
       {/* ── EXPANDED FULL FREQUENCY SELECTOR ── */}
       {showFullMenu && (
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
-          <div className="font-bold text-slate-700 mb-1">All Recurring Patterns:</div>
+        <div className="p-3 bg-panel-sunken border border-hairline-strong rounded-surface space-y-2 text-xs">
+          <div className="font-bold text-ink-soft mb-1">All Recurring Patterns:</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               { id: 'ONE_TIME', label: 'One Time (Specific Date)' },
@@ -320,8 +320,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
             ].filter(item => allowPrn || item.id !== 'PRN').map(item => (
               <label
                 key={item.id}
-                className={`flex items-center space-x-2 p-2 rounded-lg border cursor-pointer ${
-                  activeType === item.id ? 'border-teal-600 bg-teal-50 font-bold text-teal-900' : 'border-slate-200 bg-white text-slate-700'
+                className={`flex items-center space-x-2 p-2 rounded-control border cursor-pointer ${
+                  activeType === item.id ? 'border-accent bg-accent-soft font-bold text-accent-strong' : 'border-hairline-strong bg-panel text-ink-soft'
                 }`}
               >
                 <input
@@ -329,7 +329,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                   name="recurrence_type"
                   checked={activeType === item.id}
                   onChange={() => updateRule({}, item.id as RecurrenceType)}
-                  className="text-teal-600 focus:ring-teal-500"
+                  className="text-accent focus:ring-accent"
                 />
                 <span>{item.label}</span>
               </label>
@@ -339,18 +339,18 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
       )}
 
       {/* ── CONTEXTUAL RECURRENCE CONFIGURATION FIELDS ── */}
-      <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-4 shadow-2xs">
+      <div className="p-4 bg-panel border border-hairline-strong rounded-surface space-y-4 shadow-2xs">
 
         {/* 1. ONE TIME */}
         {activeType === 'ONE_TIME' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Date</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Date</label>
               <input
                 type="date"
                 value={rule.specificDate || rule.startDate || defaultAnchorDate}
                 onChange={e => updateRule({ specificDate: e.target.value, startDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
           </div>
@@ -360,7 +360,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         {activeType === 'EVERY_N_DAYS' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Repeat Every</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Repeat Every</label>
               <div className="flex items-center space-x-2">
                 <input
                   type="number"
@@ -368,19 +368,19 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                   max="365"
                   value={rule.interval || 2}
                   onChange={e => updateRule({ interval: Math.max(1, Number(e.target.value)) })}
-                  className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                  className="w-24 px-3 py-2 border border-hairline-strong rounded-control text-xs font-bold"
                 />
-                <span className="text-xs text-slate-600 font-semibold">days</span>
+                <span className="text-xs text-ink-soft font-semibold">days</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Starting Date</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Starting Date</label>
               <input
                 type="date"
                 value={rule.startDate || defaultAnchorDate}
                 onChange={e => updateRule({ startDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
           </div>
@@ -389,7 +389,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         {/* 3. SELECTED DAYS */}
         {activeType === 'SELECTED_WEEKDAYS' && (
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Repeat on Days</label>
+            <label className="block text-xs font-bold text-ink-soft mb-1.5">Repeat on Days</label>
             <div className="flex space-x-1.5">
               {WEEKDAYS.map(w => {
                 const selected = (rule.weekdays || []).includes(w.id);
@@ -398,8 +398,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                     key={w.id}
                     type="button"
                     onClick={() => toggleWeekday(w.id)}
-                    className={`w-9 h-9 rounded-lg text-xs font-bold flex flex-col items-center justify-center transition-all ${
-                      selected ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    className={`w-9 h-9 rounded-control text-xs font-bold flex flex-col items-center justify-center transition-all ${
+                      selected ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
                     }`}
                   >
                     <span>{w.label}</span>
@@ -414,7 +414,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         {activeType === 'WEEKLY' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">On Day of Week</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1.5">On Day of Week</label>
               <div className="flex space-x-1.5">
                 {WEEKDAYS.map(w => {
                   const selected = (rule.weekdays || []).includes(w.id);
@@ -423,8 +423,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                       key={w.id}
                       type="button"
                       onClick={() => updateRule({ weekdays: [w.id] })}
-                      className={`w-9 h-9 rounded-lg text-xs font-bold flex items-center justify-center transition-all ${
-                        selected ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      className={`w-9 h-9 rounded-control text-xs font-bold flex items-center justify-center transition-all ${
+                        selected ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
                       }`}
                     >
                       <span>{w.label}</span>
@@ -435,12 +435,12 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Starting Date</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Starting Date</label>
               <input
                 type="date"
                 value={rule.startDate || defaultAnchorDate}
                 onChange={e => updateRule({ startDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
           </div>
@@ -451,7 +451,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Every</label>
+                <label className="block text-xs font-bold text-ink-soft mb-1">Every</label>
                 <div className="flex items-center space-x-2">
                   <input
                     type="number"
@@ -459,25 +459,25 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                     max="52"
                     value={rule.interval || 2}
                     onChange={e => updateRule({ interval: Math.max(1, Number(e.target.value)) })}
-                    className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                    className="w-24 px-3 py-2 border border-hairline-strong rounded-control text-xs font-bold"
                   />
-                  <span className="text-xs text-slate-600 font-semibold">weeks</span>
+                  <span className="text-xs text-ink-soft font-semibold">weeks</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Starting Date</label>
+                <label className="block text-xs font-bold text-ink-soft mb-1">Starting Date</label>
                 <input
                   type="date"
                   value={rule.startDate || defaultAnchorDate}
                   onChange={e => updateRule({ startDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">On Days</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1.5">On Days</label>
               <div className="flex space-x-1.5">
                 {WEEKDAYS.map(w => {
                   const selected = (rule.weekdays || []).includes(w.id);
@@ -486,8 +486,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                       key={w.id}
                       type="button"
                       onClick={() => toggleWeekday(w.id)}
-                      className={`w-9 h-9 rounded-lg text-xs font-bold flex items-center justify-center transition-all ${
-                        selected ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      className={`w-9 h-9 rounded-control text-xs font-bold flex items-center justify-center transition-all ${
+                        selected ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
                       }`}
                     >
                       <span>{w.label}</span>
@@ -503,7 +503,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         {(activeType === 'MONTHLY_DAY' || activeType === 'MONTHLY_ORDINAL_WEEKDAY') && (
           <div className="space-y-3">
             <div className="space-y-2">
-              <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 cursor-pointer">
+              <label className="flex items-center space-x-2 text-xs font-bold text-ink-soft cursor-pointer">
                 <input
                   type="radio"
                   name="monthly_radio"
@@ -512,27 +512,27 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                     setMonthlyMode('day');
                     updateRule({}, 'MONTHLY_DAY');
                   }}
-                  className="text-teal-600 focus:ring-teal-500"
+                  className="text-accent focus:ring-accent"
                 />
                 <span>On day of every month</span>
               </label>
 
               {activeType === 'MONTHLY_DAY' && (
                 <div className="pl-6 flex items-center space-x-2">
-                  <span className="text-xs text-slate-500">Day:</span>
+                  <span className="text-xs text-muted">Day:</span>
                   <input
                     type="number"
                     min="1"
                     max="31"
                     value={rule.dayOfMonth || 15}
                     onChange={e => updateRule({ dayOfMonth: Math.min(31, Math.max(1, Number(e.target.value))) })}
-                    className="w-20 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold"
+                    className="w-20 px-3 py-1.5 border border-hairline-strong rounded-control text-xs font-bold"
                   />
-                  <span className="text-xs text-slate-500">of every month</span>
+                  <span className="text-xs text-muted">of every month</span>
                 </div>
               )}
 
-              <label className="flex items-center space-x-2 text-xs font-bold text-slate-700 cursor-pointer pt-2 border-t border-slate-100">
+              <label className="flex items-center space-x-2 text-xs font-bold text-ink-soft cursor-pointer pt-2 border-t border-hairline">
                 <input
                   type="radio"
                   name="monthly_radio"
@@ -541,18 +541,18 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                     setMonthlyMode('ordinal');
                     updateRule({}, 'MONTHLY_ORDINAL_WEEKDAY');
                   }}
-                  className="text-teal-600 focus:ring-teal-500"
+                  className="text-accent focus:ring-accent"
                 />
                 <span>On ordinal weekday of every month</span>
               </label>
 
               {activeType === 'MONTHLY_ORDINAL_WEEKDAY' && (
                 <div className="pl-6 flex items-center space-x-2">
-                  <span className="text-xs text-slate-500">The</span>
+                  <span className="text-xs text-muted">The</span>
                   <select
                     value={rule.ordinal || 'first'}
                     onChange={e => updateRule({ ordinal: e.target.value as RecurrenceOrdinal })}
-                    className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-bold"
+                    className="px-3 py-1.5 border border-hairline-strong rounded-control text-xs bg-panel font-bold"
                   >
                     <option value="first">First</option>
                     <option value="second">Second</option>
@@ -564,7 +564,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                   <select
                     value={rule.ordinalWeekday !== undefined ? rule.ordinalWeekday : 1}
                     onChange={e => updateRule({ ordinalWeekday: Number(e.target.value) })}
-                    className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white font-bold"
+                    className="px-3 py-1.5 border border-hairline-strong rounded-control text-xs bg-panel font-bold"
                   >
                     <option value={1}>Monday</option>
                     <option value={2}>Tuesday</option>
@@ -574,7 +574,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                     <option value={6}>Saturday</option>
                     <option value={0}>Sunday</option>
                   </select>
-                  <span className="text-xs text-slate-500">of every month</span>
+                  <span className="text-xs text-muted">of every month</span>
                 </div>
               )}
             </div>
@@ -585,7 +585,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         {activeType === 'EVERY_N_MONTHS' && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Repeat Every</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Repeat Every</label>
               <div className="flex items-center space-x-2">
                 <input
                   type="number"
@@ -593,31 +593,31 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                   max="12"
                   value={rule.interval || 3}
                   onChange={e => updateRule({ interval: Math.max(1, Number(e.target.value)) })}
-                  className="w-20 px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                  className="w-20 px-3 py-2 border border-hairline-strong rounded-control text-xs font-bold"
                 />
-                <span className="text-xs text-slate-600 font-semibold">months</span>
+                <span className="text-xs text-ink-soft font-semibold">months</span>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Day of Month</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Day of Month</label>
               <input
                 type="number"
                 min="1"
                 max="31"
                 value={rule.dayOfMonth || 15}
                 onChange={e => updateRule({ dayOfMonth: Math.min(31, Math.max(1, Number(e.target.value))) })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Starting Date</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Starting Date</label>
               <input
                 type="date"
                 value={rule.startDate || defaultAnchorDate}
                 onChange={e => updateRule({ startDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
           </div>
@@ -627,7 +627,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         {activeType === 'SELECTED_MONTHS' && (
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Repeat in Months</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1.5">Repeat in Months</label>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
                 {MONTHS.map(m => {
                   const selected = (rule.months || []).includes(m.id);
@@ -636,8 +636,8 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                       key={m.id}
                       type="button"
                       onClick={() => toggleMonth(m.id)}
-                      className={`p-2 rounded-lg text-xs font-bold text-center transition-all ${
-                        selected ? 'bg-teal-600 text-white shadow-xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      className={`p-2 rounded-control text-xs font-bold text-center transition-all ${
+                        selected ? 'bg-accent text-white shadow-xs' : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
                       }`}
                     >
                       {m.name}
@@ -649,14 +649,14 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Day of Month</label>
+                <label className="block text-xs font-bold text-ink-soft mb-1">Day of Month</label>
                 <input
                   type="number"
                   min="1"
                   max="31"
                   value={rule.dayOfMonth || 15}
                   onChange={e => updateRule({ dayOfMonth: Math.min(31, Math.max(1, Number(e.target.value))) })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold"
+                  className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs font-bold"
                 />
               </div>
             </div>
@@ -667,21 +667,21 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
         {activeType === 'DATE_RANGE' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">From Date</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">From Date</label>
               <input
                 type="date"
                 value={rule.startDate || defaultAnchorDate}
                 onChange={e => updateRule({ startDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">To Date</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">To Date</label>
               <input
                 type="date"
                 value={rule.endDate || defaultAnchorDate}
                 onChange={e => updateRule({ endDate: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
           </div>
@@ -689,12 +689,12 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
 
         {/* 10. PRN / IF REQUIRED */}
         {activeType === 'PRN' && (
-          <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg text-xs text-teal-900">
+          <div className="p-3 bg-accent-soft border border-hairline-strong rounded-control text-xs text-accent-strong">
             <div className="font-bold flex items-center space-x-1.5 mb-1">
-              <Sparkles className="w-4 h-4 text-teal-600" />
+              <Sparkles className="w-4 h-4 text-accent" />
               <span>PRN / As-Needed Operational Task</span>
             </div>
-            <p className="text-[11px] text-teal-800">
+            <p className="text-[11px] text-accent-strong">
               This task will be placed under the dedicated <strong>PRN / IF REQUIRED</strong> section on printed working sheets rather than mixed into timed hourly schedules.
             </p>
           </div>
@@ -702,46 +702,46 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
 
         {/* ── ENDS CONTROLS (FOR ALL RECURRING RULES EXCEPT ONE_TIME) ── */}
         {activeType !== 'ONE_TIME' && activeType !== 'PRN' && (
-          <div className="pt-3 border-t border-slate-100 space-y-2">
-            <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+          <div className="pt-3 border-t border-hairline space-y-2">
+            <label className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider">
               Ends
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <label className={`flex items-center space-x-2 p-2 rounded-lg border text-xs cursor-pointer ${
-                rule.endType === 'never' ? 'border-teal-600 bg-teal-50 text-teal-900 font-bold' : 'border-slate-200 bg-white text-slate-700'
+              <label className={`flex items-center space-x-2 p-2 rounded-control border text-xs cursor-pointer ${
+                rule.endType === 'never' ? 'border-accent bg-accent-soft text-accent-strong font-bold' : 'border-hairline-strong bg-panel text-ink-soft'
               }`}>
                 <input
                   type="radio"
                   name="end_type"
                   checked={rule.endType === 'never'}
                   onChange={() => updateRule({ endType: 'never', endDate: undefined })}
-                  className="text-teal-600 focus:ring-teal-500"
+                  className="text-accent focus:ring-accent"
                 />
                 <span>No end date</span>
               </label>
 
-              <label className={`flex items-center space-x-2 p-2 rounded-lg border text-xs cursor-pointer ${
-                rule.endType === 'on_date' ? 'border-teal-600 bg-teal-50 text-teal-900 font-bold' : 'border-slate-200 bg-white text-slate-700'
+              <label className={`flex items-center space-x-2 p-2 rounded-control border text-xs cursor-pointer ${
+                rule.endType === 'on_date' ? 'border-accent bg-accent-soft text-accent-strong font-bold' : 'border-hairline-strong bg-panel text-ink-soft'
               }`}>
                 <input
                   type="radio"
                   name="end_type"
                   checked={rule.endType === 'on_date'}
                   onChange={() => updateRule({ endType: 'on_date' })}
-                  className="text-teal-600 focus:ring-teal-500"
+                  className="text-accent focus:ring-accent"
                 />
                 <span>On date</span>
               </label>
 
-              <label className={`flex items-center space-x-2 p-2 rounded-lg border text-xs cursor-pointer ${
-                rule.endType === 'after_occurrences' ? 'border-teal-600 bg-teal-50 text-teal-900 font-bold' : 'border-slate-200 bg-white text-slate-700'
+              <label className={`flex items-center space-x-2 p-2 rounded-control border text-xs cursor-pointer ${
+                rule.endType === 'after_occurrences' ? 'border-accent bg-accent-soft text-accent-strong font-bold' : 'border-hairline-strong bg-panel text-ink-soft'
               }`}>
                 <input
                   type="radio"
                   name="end_type"
                   checked={rule.endType === 'after_occurrences'}
                   onChange={() => updateRule({ endType: 'after_occurrences' })}
-                  className="text-teal-600 focus:ring-teal-500"
+                  className="text-accent focus:ring-accent"
                 />
                 <span>After occurrences</span>
               </label>
@@ -753,43 +753,43 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                   type="date"
                   value={rule.endDate || defaultAnchorDate}
                   onChange={e => updateRule({ endDate: e.target.value })}
-                  className="w-full sm:w-64 px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
+                  className="w-full sm:w-64 px-3 py-1.5 border border-hairline-strong rounded-control text-xs"
                 />
               </div>
             )}
 
             {rule.endType === 'after_occurrences' && (
               <div className="pt-2 flex items-center space-x-2">
-                <span className="text-xs text-slate-500">Stop after</span>
+                <span className="text-xs text-muted">Stop after</span>
                 <input
                   type="number"
                   min="1"
                   max="1000"
                   value={rule.endOccurrencesCount || 6}
                   onChange={e => updateRule({ endOccurrencesCount: Math.max(1, Number(e.target.value)) })}
-                  className="w-20 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold"
+                  className="w-20 px-3 py-1.5 border border-hairline-strong rounded-control text-xs font-bold"
                 />
-                <span className="text-xs text-slate-500">total occurrences</span>
+                <span className="text-xs text-muted">total occurrences</span>
               </div>
             )}
           </div>
         )}
 
         {/* ── ADVANCED: SCHEDULE METHOD (FROM LAST PERFORMED) ── */}
-        <div className="pt-2 border-t border-slate-100">
+        <div className="pt-2 border-t border-hairline">
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="text-[11px] font-bold text-slate-500 hover:text-slate-800 flex items-center space-x-1"
+            className="text-[11px] font-bold text-muted hover:text-ink flex items-center space-x-1"
           >
             <Sliders className="w-3.5 h-3.5" />
             <span>{showAdvanced ? 'Hide Advanced Options' : 'Advanced Schedule Options...'}</span>
           </button>
 
           {showAdvanced && (
-            <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-3 text-xs">
+            <div className="mt-3 p-3 bg-panel-sunken border border-hairline-strong rounded-control space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Schedule Anchor Method</label>
+                <label className="block text-xs font-bold text-ink-soft mb-1.5">Schedule Anchor Method</label>
                 <div className="space-y-1.5">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -797,7 +797,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                       name="schedule_method"
                       checked={rule.scheduleMethod === 'fixed_schedule'}
                       onChange={() => updateRule({ scheduleMethod: 'fixed_schedule' })}
-                      className="text-teal-600 focus:ring-teal-500"
+                      className="text-accent focus:ring-accent"
                     />
                     <span><strong>Fixed Schedule:</strong> Calculated forward from anchor date</span>
                   </label>
@@ -808,7 +808,7 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
                       name="schedule_method"
                       checked={rule.scheduleMethod === 'from_last_performed'}
                       onChange={() => updateRule({ scheduleMethod: 'from_last_performed' })}
-                      className="text-teal-600 focus:ring-teal-500"
+                      className="text-accent focus:ring-accent"
                     />
                     <span><strong>From Last Performed:</strong> Calculated from manual last performed date</span>
                   </label>
@@ -816,20 +816,20 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
               </div>
 
               {rule.scheduleMethod === 'from_last_performed' && (
-                <div className="p-2.5 bg-white border border-slate-200 rounded-lg space-y-2">
+                <div className="p-2.5 bg-panel border border-hairline-strong rounded-control space-y-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-ink-soft mb-1">
                       Last Performed Date
                     </label>
                     <input
                       type="date"
                       value={rule.lastPerformedDate || defaultAnchorDate}
                       onChange={e => updateRule({ lastPerformedDate: e.target.value })}
-                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs"
+                      className="w-full px-3 py-1.5 border border-hairline-strong rounded-control text-xs"
                     />
                   </div>
                   {getNextDueFromPerformed() && (
-                    <p className="text-[11px] text-teal-800 font-semibold">
+                    <p className="text-[11px] text-accent-strong font-semibold">
                       → Calculated Next Due: <strong>{getNextDueFromPerformed()}</strong>
                     </p>
                   )}
@@ -842,10 +842,10 @@ export const RecurrenceSelector: React.FC<RecurrenceSelectorProps> = ({
       </div>
 
       {/* ── HUMAN READABLE SUMMARY BANNER ── */}
-      <div className="px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
-        <div className="flex items-center space-x-2 text-slate-700">
-          <CalendarDays className="w-4 h-4 text-teal-600 shrink-0" />
-          <span>Schedule: <strong className="text-slate-900">{formatRecurrenceHuman(rule)}</strong></span>
+      <div className="px-3.5 py-2.5 bg-panel-sunken border border-hairline-strong rounded-surface flex items-center justify-between text-xs">
+        <div className="flex items-center space-x-2 text-ink-soft">
+          <CalendarDays className="w-4 h-4 text-accent shrink-0" />
+          <span>Schedule: <strong className="text-ink">{formatRecurrenceHuman(rule)}</strong></span>
         </div>
       </div>
     </div>

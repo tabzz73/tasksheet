@@ -1,32 +1,207 @@
 @import "tailwindcss";
 
+/*
+  TaskSheet design system — "schedule & title-block"
+  ===================================================
+  Direction: the visual world of a technical drawing schedule (a door
+  schedule, a room-finish schedule) and its title block — bordered header
+  blocks, dense ruled tables, a visible hairline grid, confident numeral-led
+  identifiers (room, shift code, time) set against smaller quiet metadata.
+  One restrained accent (the existing TaskSheet teal, desaturated and used
+  only where it means something interactive or in-progress). This is a
+  screen-UI system only — it must never touch `.tasksheet-print-document` or
+  anything under the print stylesheet below, which is separately verified.
+
+  Semantic tokens live here (`@theme`) so `bg-app`, `bg-panel`, `text-ink`,
+  `text-muted`, `border-hairline`, `border-hairline-strong`, `text-accent`,
+  `bg-accent`, `rounded-control`, `rounded-surface`, `shadow-elevated`, and
+  the `h-control` spacing token are real utilities, not one-off hex codes
+  repeated across components.
+*/
+@theme {
+  /* Surfaces: warm paper, not a blue-tinted SaaS background */
+  --color-app: #f4f3ef;
+  --color-panel: #ffffff;
+  --color-panel-sunken: #faf9f6;
+
+  /* Ink */
+  --color-ink: #17191c;
+  --color-ink-soft: #43474d;
+  --color-muted: #6b7076;
+  --color-faint: #9a9ea3;
+
+  /* Hairlines, not shadows, carry structure */
+  --color-hairline: #dcdad3;
+  --color-hairline-strong: #b9b6ac;
+
+  /* One accent, desaturated deep teal — continuity with the shipped brand */
+  --color-accent: #0d6e6e;
+  --color-accent-strong: #084c4c;
+  --color-accent-soft: #e4f0ef;
+
+  /* Semantic — reserved for meaning, never decoration */
+  --color-danger: #b3261e;
+  --color-danger-soft: #fbeae9;
+  --color-warning: #8a5a00;
+  --color-warning-soft: #faf1de;
+  --color-positive: #1e6b45;
+  --color-positive-soft: #e7f2ec;
+
+  /* Radius: modest and intentional, never bubbly */
+  --radius-control: 0.25rem;
+  --radius-surface: 0.375rem;
+
+  /* One elevation, for things that actually float */
+  --shadow-elevated: 0 8px 24px -8px rgb(23 25 28 / 0.28), 0 1px 0 rgb(23 25 28 / 0.04);
+
+  --spacing-control-h: 2.25rem;
+}
+
 @layer base {
   body {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: #f6f8fa;
-    color: #0f172a;
+    background-color: var(--color-app);
+    color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
   }
 
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-accent-strong);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
 }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: var(--color-hairline-strong);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-faint);
+}
+
+/* ─── TaskSheet screen-UI component language ──────────────────────────────────
+   Shared primitives so button/badge/table treatment is decided once, here,
+   rather than recomposed per screen. Screen UI only — never applies inside
+   .tasksheet-print-document.
+*/
+@layer components {
+  /* Buttons: exactly four levels, flat and structured, not floating pills */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: var(--spacing-control-h);
+    padding-inline: 0.85rem;
+    border-radius: var(--radius-control);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--color-ink);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { background: #000; }
+
+  .btn-accent {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .btn-accent:hover:not(:disabled) { background: var(--color-accent-strong); }
+
+  .btn-secondary {
+    background: var(--color-panel);
+    color: var(--color-ink);
+    border: 1px solid var(--color-hairline-strong);
+  }
+  .btn-secondary:hover:not(:disabled) { background: var(--color-panel-sunken); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink-soft);
+  }
+  .btn-ghost:hover:not(:disabled) { background: var(--color-panel-sunken); color: var(--color-ink); }
+
+  .btn-danger {
+    background: var(--color-danger);
+    color: #fff;
+  }
+  .btn-danger:hover:not(:disabled) { background: #8f1e18; }
+
+  /* Badges: reserved for identity/state, not ordinary metadata */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    height: 1.25rem;
+    padding-inline: 0.4rem;
+    border-radius: 0.2rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .badge-neutral { background: var(--color-panel-sunken); color: var(--color-ink-soft); border: 1px solid var(--color-hairline); }
+  .badge-accent { background: var(--color-accent-soft); color: var(--color-accent-strong); }
+  .badge-warning { background: var(--color-warning-soft); color: var(--color-warning); }
+  .badge-danger { background: var(--color-danger-soft); color: var(--color-danger); }
+  .badge-positive { background: var(--color-positive-soft); color: var(--color-positive); }
+
+  /* Schedule-table language: hairline rules, no cell boxing, dense rows */
+  .table-schedule {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+  .table-schedule thead th {
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-hairline-strong);
+  }
+  .table-schedule tbody td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--color-hairline);
+    vertical-align: middle;
+  }
+  .table-schedule tbody tr:hover {
+    background: var(--color-panel-sunken);
+  }
+  .table-schedule tbody tr:focus-within {
+    background: var(--color-accent-soft);
+  }
+
+  /* Title-block header: bordered context bar, the schedule's own heritage */
+  .title-block {
+    border: 1px solid var(--color-hairline-strong);
+    background: var(--color-panel);
+  }
 }
 
 /* ─── Print CSS ─────────────────────────────────────────────────────────────── */

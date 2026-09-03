@@ -149,14 +149,14 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
   return (
     <div className="space-y-6">
       {/* ── GLOBAL MASTER TOGGLE ── */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-panel p-4 rounded-surface border border-hairline-strong shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center space-x-3">
-          <div className={`p-2.5 rounded-xl ${isSuggestionsEnabled ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
+          <div className={`p-2.5 rounded-surface ${isSuggestionsEnabled ? 'bg-warning-soft text-warning' : 'bg-panel-sunken text-faint'}`}>
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-900">Smart Task Attention Detection</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h3 className="text-sm font-black text-ink">Smart Task Attention Detection</h3>
+            <p className="text-xs text-muted mt-0.5">
               Automatically proposes clinically relevant attention flags (High Alert, Time-Critical, 2P, Meal-Linked) when creating or modifying custom tasks.
             </p>
           </div>
@@ -165,10 +165,10 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
         <button
           type="button"
           onClick={handleToggleGlobalSuggestions}
-          className={`px-4 py-2 text-xs font-bold rounded-lg border transition-colors ${
+          className={`px-4 py-2 text-xs font-bold rounded-control border transition-colors ${
             isSuggestionsEnabled
-              ? 'bg-amber-600 border-amber-700 text-white shadow-xs'
-              : 'bg-slate-100 border-slate-300 text-slate-600'
+              ? 'bg-warning border-warning text-white'
+              : 'bg-panel-sunken border-hairline-strong text-ink-soft'
           }`}
         >
           {isSuggestionsEnabled ? 'Suggestions Active (ON)' : 'Suggestions Disabled (OFF)'}
@@ -176,12 +176,12 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
       </div>
 
       {/* ── TOOLBAR ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-panel-sunken p-4 rounded-surface border border-hairline-strong">
         <div>
-          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+          <h4 className="text-xs font-bold text-ink uppercase tracking-wider">
             Facility Attention Rules ({rules.length})
           </h4>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Configured patterns and their corresponding operational attention indicators.
           </p>
         </div>
@@ -190,7 +190,7 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
           <button
             type="button"
             onClick={handleReset}
-            className="px-3 py-1.5 text-xs text-slate-600 hover:text-rose-700 font-bold border border-slate-300 rounded-lg hover:bg-slate-100 flex items-center space-x-1"
+            className="px-3 py-1.5 text-xs text-ink-soft hover:text-danger font-bold border border-hairline-strong rounded-control hover:bg-panel-sunken flex items-center space-x-1"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Defaults</span>
@@ -199,7 +199,7 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-sm"
+            className="px-3.5 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5"
           >
             <Plus className="w-4 h-4" />
             <span>Add Attention Rule</span>
@@ -212,18 +212,18 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
         {filteredRules.map(rule => (
           <div
             key={rule.id}
-            className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
-              rule.isActive ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'
+            className={`p-3.5 rounded-surface border transition-all flex items-center justify-between ${
+              rule.isActive ? 'bg-panel border-hairline-strong' : 'bg-panel-sunken border-hairline-strong opacity-60'
             }`}
           >
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
-                <span className="font-bold text-xs text-slate-900">{rule.name}</span>
-                <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                <span className="font-bold text-xs text-ink">{rule.name}</span>
+                <span className="text-[10px] font-mono bg-panel-sunken text-ink-soft px-1.5 py-0.5 rounded">
                   Pattern: {rule.pattern}
                 </span>
                 {!rule.isActive && (
-                  <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-bold text-danger bg-danger-soft px-1.5 py-0.5 rounded">
                     Disabled
                   </span>
                 )}
@@ -244,12 +244,12 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
                 })}
 
                 {rule.equipmentNote && (
-                  <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 font-semibold">
+                  <span className="text-[10px] text-warning bg-warning-soft px-1.5 py-0.5 rounded border border-warning font-semibold">
                     Equipment: {rule.equipmentNote}
                   </span>
                 )}
                 {rule.docRefNote && (
-                  <span className="text-[10px] text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-semibold">
+                  <span className="text-[10px] text-accent-strong bg-accent-soft px-1.5 py-0.5 rounded border border-hairline-strong font-semibold">
                     Doc: {rule.docRefNote}
                   </span>
                 )}
@@ -261,10 +261,10 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
               <button
                 type="button"
                 onClick={() => handleToggleRuleActive(rule.id)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors ${
+                className={`px-2.5 py-1 text-xs font-bold rounded-control border transition-colors ${
                   rule.isActive 
-                    ? 'border-slate-300 text-slate-700 hover:bg-slate-100' 
-                    : 'border-teal-300 bg-teal-50 text-teal-800'
+                    ? 'border-hairline-strong text-ink-soft hover:bg-panel-sunken' 
+                    : 'border-accent bg-accent-soft text-accent-strong'
                 }`}
               >
                 {rule.isActive ? 'Disable' : 'Enable'}
@@ -273,7 +273,7 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
               <button
                 type="button"
                 onClick={() => handleOpenEdit(rule)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-900"
+                className="p-1.5 hover:bg-panel-sunken rounded-control text-muted hover:text-ink"
                 title="Edit rule"
               >
                 <Edit2 className="w-4 h-4" />
@@ -293,32 +293,32 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
         >
           <form onSubmit={handleSaveRule} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Rule Name</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Rule Name</label>
               <input
                 type="text"
                 required
                 value={formName}
                 onChange={e => setFormName(e.target.value)}
                 placeholder="e.g. Anticoagulant Injection"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Trigger Pattern (Keyword or Regex)</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Trigger Pattern (Keyword or Regex)</label>
               <input
                 type="text"
                 required
                 value={formPattern}
                 onChange={e => setFormPattern(e.target.value)}
                 placeholder="e.g. \b(heparin|dalteparin|fragmin)\b"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs font-mono"
               />
             </div>
 
             {/* Indicator Toggles */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Associated Indicators</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1.5">Associated Indicators</label>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {([
                   'HIGH_ALERT', 
@@ -335,7 +335,7 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
                   const isChecked = formIndicators.includes(ind);
 
                   return (
-                    <label key={ind} className="flex items-center space-x-2 text-[11px] text-slate-800 cursor-pointer">
+                    <label key={ind} className="flex items-center space-x-2 text-[11px] text-ink cursor-pointer">
                       <input
                         type="checkbox"
                         checked={isChecked}
@@ -344,7 +344,7 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
                             isChecked ? prev.filter(x => x !== ind) : [...prev, ind]
                           );
                         }}
-                        className="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5"
+                        className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
                       />
                       <span>[{d.shortAbbreviation}] {d.label}</span>
                     </label>
@@ -356,11 +356,11 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
             {/* Meal relation if meal-linked is selected */}
             {formIndicators.includes('MEAL_LINKED') && (
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Meal Timing Link</label>
+                <label className="block text-xs font-bold text-ink-soft mb-1">Meal Timing Link</label>
                 <select
                   value={formMealRelation || 'BEFORE_MEAL'}
                   onChange={e => setFormMealRelation(e.target.value as MealRelation)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-bold"
+                  className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs bg-panel font-bold"
                 >
                   <option value="BEFORE_MEAL">Before Meal</option>
                   <option value="WITH_MEAL">With Meal</option>
@@ -370,38 +370,38 @@ export const AttentionRulesTab: React.FC<AttentionRulesTabProps> = ({ onShowFeed
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Equipment Note (Optional)</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Equipment Note (Optional)</label>
               <input
                 type="text"
                 value={formEquipmentNote}
                 onChange={e => setFormEquipmentNote(e.target.value)}
                 placeholder="e.g. Transfer belt required"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Documentation Reference Note (Optional)</label>
+              <label className="block text-xs font-bold text-ink-soft mb-1">Documentation Reference Note (Optional)</label>
               <input
                 type="text"
                 value={formDocRefNote}
                 onChange={e => setFormDocRefNote(e.target.value)}
                 placeholder="e.g. Record BG in MAR / Flow Sheet"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs"
               />
             </div>
 
-            <div className="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+            <div className="pt-3 border-t border-hairline-strong flex justify-end space-x-2">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-medium"
+                className="px-4 py-2 border border-hairline-strong rounded-control text-xs font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold"
+                className="px-5 py-2 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold"
               >
                 Save Rule
               </button>

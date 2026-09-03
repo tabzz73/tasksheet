@@ -123,10 +123,10 @@ const ChangeBadge: React.FC<{ changes: PrintChangesSummary }> = ({ changes }) =>
   if (changes.modified > 0) parts.push(`~${changes.modified}`);
   if (changes.removed > 0) parts.push(`−${changes.removed}`);
   return (
-    <div className="flex items-center space-x-1.5 text-[10px] font-semibold text-amber-700">
-      <AlertTriangle className="w-3 h-3 text-amber-500" />
+    <div className="flex items-center space-x-1.5 text-[10px] font-semibold text-warning">
+      <AlertTriangle className="w-3 h-3 text-warning" />
       <span>Changed since {formatGeneratedAt(changes.lastGeneratedAt)}</span>
-      <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">
+      <span className="bg-warning-soft text-warning px-1.5 py-0.5 rounded font-bold">
         {parts.join(' · ')}
       </span>
     </div>
@@ -285,16 +285,16 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-slate-900 flex items-center space-x-2.5">
-            <Printer className="w-6 h-6 text-teal-600" />
+          <h2 className="text-2xl font-black tracking-tight text-ink flex items-center space-x-2.5">
+            <Printer className="w-6 h-6 text-accent" />
             <span>Report &amp; Print Center</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Generate · preview · print — the final stage of TaskSheet's core workflow.
           </p>
         </div>
         {hasChangedShifts && (
-          <div className="flex items-center space-x-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+          <div className="flex items-center space-x-1.5 text-xs font-semibold text-warning bg-warning-soft border border-warning rounded-control px-3 py-1.5">
             <AlertTriangle className="w-3.5 h-3.5" />
             <span>Some shifts have changed since last generated</span>
           </div>
@@ -304,35 +304,35 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       <ReportCatalogPanel selectedDate={selectedDate} onPreview={onPrintSpecializedDoc} />
 
       {packageConfigurationError && (
-        <div className="flex items-start space-x-2.5 rounded-xl border border-rose-300 bg-rose-50 p-3 text-rose-950" role="alert">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" />
+        <div className="flex items-start space-x-2.5 rounded-surface border border-danger bg-danger-soft p-3 text-danger" role="alert">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
           <div>
             <p className="text-xs font-black">Package Cannot Be Generated Safely</p>
-            <p className="mt-0.5 text-[11px] text-rose-900">{packageConfigurationError}</p>
+            <p className="mt-0.5 text-[11px] text-danger">{packageConfigurationError}</p>
           </div>
         </div>
       )}
 
       {/* ── DATE NAVIGATOR ── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Assignment Date</p>
+      <div className="bg-panel rounded-surface border border-hairline-strong px-5 py-4">
+        <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Assignment Date</p>
         <div className="flex items-center space-x-2">
           <button
             type="button"
             onClick={() => handleDateChange(stepDate(selectedDate, -1))}
-            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
+            className="p-1.5 hover:bg-panel-sunken rounded-control text-muted transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
           <div className="flex-1 text-center">
-            <p className="text-base font-bold text-slate-900">{dateLabel}</p>
+            <p className="text-base font-bold text-ink">{dateLabel}</p>
           </div>
 
           <button
             type="button"
             onClick={() => handleDateChange(stepDate(selectedDate, 1))}
-            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
+            className="p-1.5 hover:bg-panel-sunken rounded-control text-muted transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -341,7 +341,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
             <button
               type="button"
               onClick={() => handleDateChange(today)}
-              className="ml-1 px-3 py-1.5 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors"
+              className="ml-1 px-3 py-1.5 text-xs font-bold text-accent-strong bg-accent-soft hover:bg-accent-soft border border-hairline-strong rounded-control transition-colors"
             >
               Today
             </button>
@@ -350,12 +350,12 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       </div>
 
       {/* ── QUICK PRINT ── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         {/* Section header */}
-        <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="px-5 py-3 border-b border-hairline flex items-center justify-between bg-panel-sunken">
           <div className="flex items-center space-x-2">
-            <Printer className="w-4 h-4 text-slate-500" />
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Quick Print</h3>
+            <Printer className="w-4 h-4 text-muted" />
+            <h3 className="text-xs font-black text-ink uppercase tracking-widest">Quick Print</h3>
           </div>
           <div className="flex items-center space-x-2">
             {selectedShiftIds.size > 0 && (
@@ -363,7 +363,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                 type="button"
                 onClick={handlePrintSelected}
                 disabled={printing}
-                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors disabled:opacity-50"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Print Selected ({selectedShiftIds.size})</span>
@@ -373,7 +373,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
               type="button"
               onClick={handlePrintAll}
               disabled={printing || shiftSheets.length === 0}
-              className="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors disabled:opacity-50"
             >
               <Layers className="w-3.5 h-3.5" />
               <span>Print All Shifts</span>
@@ -383,14 +383,14 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
 
         {/* Select all row */}
         {shiftSheets.length > 1 && (
-          <div className="px-5 py-2 border-b border-slate-100 flex items-center">
+          <div className="px-5 py-2 border-b border-hairline flex items-center">
             <button
               type="button"
               onClick={toggleSelectAll}
-              className="flex items-center space-x-2 text-xs text-slate-500 hover:text-slate-800 font-semibold"
+              className="flex items-center space-x-2 text-xs text-muted hover:text-ink font-semibold"
             >
               {selectedShiftIds.size === shiftSheets.length
-                ? <CheckSquare className="w-4 h-4 text-teal-600" />
+                ? <CheckSquare className="w-4 h-4 text-accent" />
                 : <Square className="w-4 h-4" />
               }
               <span>{selectedShiftIds.size === shiftSheets.length ? 'Deselect all' : 'Select all'}</span>
@@ -400,11 +400,11 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
 
         {/* Shift rows */}
         {shiftSheets.length === 0 ? (
-          <div className="px-5 py-8 text-center text-xs text-slate-400">
+          <div className="px-5 py-8 text-center text-xs text-faint">
             No active shifts configured.
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-hairline">
             {shiftSheets.map(({ sheet, changes, structuredTasks }) => {
               const { shift, role, metrics } = sheet;
               const isSelected = selectedShiftIds.has(shift.id);
@@ -412,25 +412,25 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
               const lastEntry = getEntry(shift.id, selectedDate);
 
               return (
-                <div key={shift.id} className={`px-5 py-3.5 ${hasChanges ? 'bg-amber-50/40' : ''}`}>
+                <div key={shift.id} className={`px-5 py-3.5 ${hasChanges ? 'bg-warning-soft' : ''}`}>
                   {/* Main row */}
                   <div className="flex items-center">
                     {/* Checkbox */}
                     <button
                       type="button"
                       onClick={() => toggleSelect(shift.id)}
-                      className="mr-3 flex-shrink-0 text-slate-400 hover:text-teal-600 transition-colors"
+                      className="mr-3 flex-shrink-0 text-faint hover:text-accent transition-colors"
                       aria-label={`Select ${shift.shortCode || shift.name} for batch print`}
                     >
                       {isSelected
-                        ? <CheckSquare className="w-4 h-4 text-teal-600" />
+                        ? <CheckSquare className="w-4 h-4 text-accent" />
                         : <Square className="w-4 h-4" />
                       }
                     </button>
 
                     {/* Short code */}
                     <div className="w-14 shrink-0">
-                      <span className={`inline-block px-2 py-1 rounded-md font-mono font-black text-xs tracking-wider text-white transition-colors ${hasChanges ? 'bg-amber-600' : 'bg-slate-900'}`}>
+                      <span className={`inline-block px-2 py-1 rounded-control font-mono font-black text-xs tracking-wider text-white transition-colors ${hasChanges ? 'bg-warning' : 'bg-ink'}`}>
                         {shift.shortCode || '—'}
                       </span>
                     </div>
@@ -438,32 +438,32 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                     {/* Name + role + time */}
                     <div className="flex-1 min-w-0 pl-2">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-slate-900">{shift.name}</span>
-                        {hasChanges && <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                        <span className="text-sm font-bold text-ink">{shift.name}</span>
+                        {hasChanges && <AlertTriangle className="w-3.5 h-3.5 text-warning shrink-0" />}
                       </div>
-                      <div className="text-[11px] text-slate-500 font-medium flex items-center space-x-1.5">
+                      <div className="text-[11px] text-muted font-medium flex items-center space-x-1.5">
                         <span>{role.name}</span>
-                        <span className="text-slate-300">·</span>
+                        <span className="text-hairline-strong">·</span>
                         <span className="font-mono tabular-nums">{shift.startTime}–{shift.endTime}</span>
-                        <span className="text-slate-300">·</span>
+                        <span className="text-hairline-strong">·</span>
                         <span className="font-medium">{metrics.totalScheduled} items</span>
                         {metrics.exceptionCount > 0 && (
                           <>
-                            <span className="text-slate-300">·</span>
-                            <span className="inline-flex items-center space-x-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 font-bold text-amber-800">
+                            <span className="text-hairline-strong">·</span>
+                            <span className="inline-flex items-center space-x-1 rounded border border-warning bg-warning-soft px-1.5 py-0.5 font-bold text-warning">
                               <AlertTriangle className="h-3 w-3" />
                               <span>{metrics.exceptionCount} needs review</span>
                             </span>
                           </>
                         )}
-                        <span className="text-slate-300">·</span>
-                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded font-bold">
+                        <span className="text-hairline-strong">·</span>
+                        <span className="text-positive bg-positive-soft border border-positive px-1.5 py-0.2 rounded font-bold">
                           {role.defaultPrintProfile === 'clinical_worksheet' ? '~2 pages' : '1 page'}
                         </span>
                         {metrics.fyiCount > 0 && (
                           <>
-                            <span className="text-slate-300">·</span>
-                            <span className="text-teal-700 font-semibold">{metrics.fyiCount} FYI{metrics.fyiCount !== 1 ? 's' : ''}</span>
+                            <span className="text-hairline-strong">·</span>
+                            <span className="text-accent-strong font-semibold">{metrics.fyiCount} FYI{metrics.fyiCount !== 1 ? 's' : ''}</span>
                           </>
                         )}
                       </div>
@@ -471,11 +471,11 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
 
                     {/* Last generated timestamp */}
                     {lastEntry && !hasChanges && (
-                      <div className="hidden md:flex items-center space-x-1 text-[10px] text-slate-400 font-medium mr-4 shrink-0">
+                      <div className="hidden md:flex items-center space-x-1 text-[10px] text-faint font-medium mr-4 shrink-0">
                         <History className="w-3 h-3" />
                         <span>Generated {formatGeneratedAt(lastEntry.generatedAt)}</span>
                         {lastEntry.revision > 1 && (
-                          <span className="text-slate-300">· Rev {lastEntry.revision}</span>
+                          <span className="text-hairline-strong">· Rev {lastEntry.revision}</span>
                         )}
                       </div>
                     )}
@@ -490,7 +490,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                               const delta = buildWhatChangedModel(shift.id, selectedDate, structuredTasks);
                               if (delta) onPrintSpecializedDoc({ type: 'what_changed', model: delta });
                             }}
-                            className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1 shadow-sm transition-colors"
+                            className="px-2.5 py-1.5 bg-warning hover:bg-warning text-white rounded-control text-xs font-bold flex items-center space-x-1 transition-colors"
                             title="Print 1-page What Changed delta update sheet"
                           >
                             <FileText className="w-3 h-3" />
@@ -499,7 +499,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                           <button
                             type="button"
                             onClick={() => handlePrintSingle(sheet)}
-                            className="px-2.5 py-1.5 bg-slate-900 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1 shadow-sm transition-colors"
+                            className="px-2.5 py-1.5 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1 transition-colors"
                             title="Reprint full sheet with updated revision"
                           >
                             <RefreshCw className="w-3 h-3" />
@@ -510,7 +510,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                         <button
                           type="button"
                           onClick={() => handlePrintSingle(sheet)}
-                          className="px-3 py-1.5 border border-slate-300 hover:bg-teal-50 hover:border-teal-400 text-slate-700 hover:text-teal-800 rounded-lg text-xs font-bold flex items-center space-x-1 transition-colors"
+                          className="px-3 py-1.5 border border-hairline-strong hover:bg-accent-soft hover:border-accent text-ink-soft hover:text-accent-strong rounded-control text-xs font-bold flex items-center space-x-1 transition-colors"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           <span>Print</span>
@@ -533,49 +533,49 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       </div>
 
       {/* ── WOUND QUICK PRINTS ── */}
-      <div className="bg-white rounded-xl border border-rose-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-rose-100 bg-rose-50 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-panel rounded-surface border border-danger overflow-hidden">
+        <div className="px-5 py-3 border-b border-danger bg-danger-soft flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
-            <Bandage className="w-4 h-4 text-rose-700" />
-            <div><h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Wound Quick Prints</h3><p className="text-[11px] text-slate-500">Preview-first operational reports · no clinical results stored</p></div>
+            <Bandage className="w-4 h-4 text-danger" />
+            <div><h3 className="text-xs font-black text-ink uppercase tracking-widest">Wound Quick Prints</h3><p className="text-[11px] text-muted">Preview-first operational reports · no clinical results stored</p></div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button type="button" aria-label="Previous wound week" onClick={() => setWoundWeekAnchor(stepDate(woundWeekAnchor, -7))} className="p-1.5 border border-slate-300 rounded-md hover:bg-white"><ChevronLeft className="w-3.5 h-3.5" /></button>
-            <button type="button" onClick={() => setWoundWeekAnchor(today)} className="px-2.5 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold hover:bg-white">Current Week</button>
-            <button type="button" aria-label="Next wound week" onClick={() => setWoundWeekAnchor(stepDate(woundWeekAnchor, 7))} className="p-1.5 border border-slate-300 rounded-md hover:bg-white"><ChevronRight className="w-3.5 h-3.5" /></button>
-            <span className="ml-2 text-xs font-bold text-slate-700">{getWoundWeek(woundWeekAnchor).weekRange}</span>
+            <button type="button" aria-label="Previous wound week" onClick={() => setWoundWeekAnchor(stepDate(woundWeekAnchor, -7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronLeft className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => setWoundWeekAnchor(today)} className="px-2.5 py-1.5 border border-hairline-strong rounded-control text-[11px] font-bold hover:bg-panel">Current Week</button>
+            <button type="button" aria-label="Next wound week" onClick={() => setWoundWeekAnchor(stepDate(woundWeekAnchor, 7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronRight className="w-3.5 h-3.5" /></button>
+            <span className="ml-2 text-xs font-bold text-ink-soft">{getWoundWeek(woundWeekAnchor).weekRange}</span>
           </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-hairline">
           <div className="p-4 flex items-start justify-between gap-4">
-            <div><p className="text-sm font-bold text-slate-900">Weekly Wound Care Overview</p><p className="text-xs text-slate-500 mt-1">Mon–Sun schedule · all active clinical shifts · Full/Partial assessment markers</p></div>
-            <button type="button" onClick={() => onPrintSpecializedDoc({ type: 'wound_weekly', model: buildWeeklyWoundOverviewModel(woundWeekAnchor) })} className="px-3 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-lg text-xs font-bold shrink-0">Preview</button>
+            <div><p className="text-sm font-bold text-ink">Weekly Wound Care Overview</p><p className="text-xs text-muted mt-1">Mon–Sun schedule · all active clinical shifts · Full/Partial assessment markers</p></div>
+            <button type="button" onClick={() => onPrintSpecializedDoc({ type: 'wound_weekly', model: buildWeeklyWoundOverviewModel(woundWeekAnchor) })} className="px-3 py-2 bg-danger hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
           </div>
           <div className="p-4 flex items-start justify-between gap-4">
-            <div className="min-w-0"><p className="text-sm font-bold text-slate-900">Wound Supplies Re-Order List</p><p className="text-xs text-slate-500 mt-1">Exact supply names · scheduled-use counts · resident/wound traceability</p>
-              <select aria-label="Wound supply report scope" value={woundSupplyScope} onChange={event => setWoundSupplyScope(event.target.value as 'current_week' | 'all_active')} className="mt-2 px-2.5 py-1.5 border border-slate-300 rounded-md text-xs bg-white"><option value="current_week">Current Week</option><option value="all_active">All Active Wounds</option></select>
+            <div className="min-w-0"><p className="text-sm font-bold text-ink">Wound Supplies Re-Order List</p><p className="text-xs text-muted mt-1">Exact supply names · scheduled-use counts · resident/wound traceability</p>
+              <select aria-label="Wound supply report scope" value={woundSupplyScope} onChange={event => setWoundSupplyScope(event.target.value as 'current_week' | 'all_active')} className="mt-2 px-2.5 py-1.5 border border-hairline-strong rounded-control text-xs bg-panel"><option value="current_week">Current Week</option><option value="all_active">All Active Wounds</option></select>
             </div>
-            <button type="button" onClick={() => onPrintSpecializedDoc({ type: 'wound_supplies', model: buildWoundSupplyReorderModel(woundWeekAnchor, woundSupplyScope) })} className="px-3 py-2 bg-slate-900 hover:bg-rose-800 text-white rounded-lg text-xs font-bold shrink-0">Preview</button>
+            <button type="button" onClick={() => onPrintSpecializedDoc({ type: 'wound_supplies', model: buildWoundSupplyReorderModel(woundWeekAnchor, woundSupplyScope) })} className="px-3 py-2 bg-ink hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
           </div>
         </div>
       </div>
 
       {/* ── PRINT PACKAGES ── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center space-x-2">
-          <Package className="w-4 h-4 text-slate-500" />
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Print Packages</h3>
+      <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
+        <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
+          <Package className="w-4 h-4 text-muted" />
+          <h3 className="text-xs font-black text-ink uppercase tracking-widest">Print Packages</h3>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-hairline">
           {/* HCA Daily Package */}
           <div className="px-5 py-4 flex items-start justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-900">HCA Daily Package</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-sm font-bold text-ink">HCA Daily Package</p>
+              <p className="text-xs text-muted mt-0.5">
                 Simple Checklist TaskSheets · All HCA shifts · Relevant FYIs + Bathing schedule
               </p>
-              <div className="flex items-center space-x-2 mt-1.5 text-[11px] text-slate-400">
+              <div className="flex items-center space-x-2 mt-1.5 text-[11px] text-faint">
                 <span>{shiftSheets.filter(r => {
                   const role = state.roles.find(ro => ro.id === r.sheet.shift.roleId);
                   return role?.defaultPrintProfile === 'simple_checklist';
@@ -588,7 +588,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
             <button
               type="button"
               onClick={handleHcaPackage}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0 ml-4"
+              className="px-3.5 py-2 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0 ml-4"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Generate Package</span>
@@ -598,11 +598,11 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           {/* LPN Clinical Package */}
           <div className="px-5 py-4 flex items-start justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-900">LPN Clinical Package</p>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-sm font-bold text-ink">LPN Clinical Package</p>
+              <p className="text-xs text-muted mt-0.5">
                 Clinical Worksheets · All LPN/RN shifts · FYIs + Wound treatment schedule
               </p>
-              <div className="flex items-center space-x-2 mt-1.5 text-[11px] text-slate-400">
+              <div className="flex items-center space-x-2 mt-1.5 text-[11px] text-faint">
                 <span>{shiftSheets.filter(r => {
                   const role = state.roles.find(ro => ro.id === r.sheet.shift.roleId);
                   return role?.defaultPrintProfile === 'clinical_worksheet';
@@ -612,9 +612,9 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
                 }).length !== 1 ? 's' : ''}</span>
                 {woundCount > 0 && (
                   <>
-                    <span className="text-slate-300">·</span>
+                    <span className="text-hairline-strong">·</span>
                     <span className="flex items-center space-x-1">
-                      <Bandage className="w-3 h-3 text-rose-500" />
+                      <Bandage className="w-3 h-3 text-danger" />
                       <span>{woundCount} active wound protocol{woundCount !== 1 ? 's' : ''}</span>
                     </span>
                   </>
@@ -624,7 +624,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
             <button
               type="button"
               onClick={handleLpnPackage}
-              className="px-3.5 py-2 bg-slate-900 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0 ml-4"
+              className="px-3.5 py-2 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0 ml-4"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Generate Package</span>
@@ -634,35 +634,35 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       </div>
 
       {/* ── OTHER DOCUMENTS (SPECIALIZED SUITE) ── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center space-x-2">
-          <FileText className="w-4 h-4 text-slate-500" />
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">Specialized Operational Documents</h3>
+      <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
+        <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
+          <FileText className="w-4 h-4 text-muted" />
+          <h3 className="text-xs font-black text-ink uppercase tracking-widest">Specialized Operational Documents</h3>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-hairline">
           {/* 1. Bathing Schedule Grid */}
-          <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">
-              <Clock className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
+              <Clock className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-bold text-slate-900">Weekly Bathing Grid</p>
-                  <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">Letter Landscape</span>
+                  <p className="text-sm font-bold text-ink">Weekly Bathing Grid</p>
+                  <span className="text-[10px] bg-accent-soft text-accent-strong font-bold px-1.5 py-0.5 rounded">Letter Landscape</span>
                 </div>
-                <p className="text-xs text-slate-500">AcuiCare-style room-only grid · all configured lines · capacity and open slots</p>
+                <p className="text-xs text-muted">AcuiCare-style room-only grid · all configured lines · capacity and open slots</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <button type="button" aria-label="Previous bathing week" onClick={() => setBathingWeekAnchor(stepDate(bathingWeekAnchor, -7))} className="p-1.5 border border-slate-300 rounded-md hover:bg-white"><ChevronLeft className="w-3.5 h-3.5" /></button>
-                  <button type="button" onClick={() => setBathingWeekAnchor(today)} className="px-2.5 py-1.5 border border-slate-300 rounded-md text-[11px] font-bold hover:bg-white">Current Week</button>
-                  <button type="button" aria-label="Next bathing week" onClick={() => setBathingWeekAnchor(stepDate(bathingWeekAnchor, 7))} className="p-1.5 border border-slate-300 rounded-md hover:bg-white"><ChevronRight className="w-3.5 h-3.5" /></button>
-                  <label className="text-[11px] font-bold text-slate-600">Select Week <input aria-label="Select bathing week" type="date" value={bathingWeekAnchor} onChange={event => setBathingWeekAnchor(event.target.value)} className="ml-1 px-2 py-1 border border-slate-300 rounded-md bg-white" /></label>
+                  <button type="button" aria-label="Previous bathing week" onClick={() => setBathingWeekAnchor(stepDate(bathingWeekAnchor, -7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                  <button type="button" onClick={() => setBathingWeekAnchor(today)} className="px-2.5 py-1.5 border border-hairline-strong rounded-control text-[11px] font-bold hover:bg-panel">Current Week</button>
+                  <button type="button" aria-label="Next bathing week" onClick={() => setBathingWeekAnchor(stepDate(bathingWeekAnchor, 7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronRight className="w-3.5 h-3.5" /></button>
+                  <label className="text-[11px] font-bold text-ink-soft">Select Week <input aria-label="Select bathing week" type="date" value={bathingWeekAnchor} onChange={event => setBathingWeekAnchor(event.target.value)} className="ml-1 px-2 py-1 border border-hairline-strong rounded-control bg-panel" /></label>
                 </div>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onPrintSpecializedDoc({ type: 'bathing', model: buildBathingScheduleModel(bathingWeekAnchor) })}
-              className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Preview Schedule</span>
@@ -670,15 +670,15 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
 
           {/* 2. Wound Treatment Schedule */}
-          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">
-              <Bandage className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+              <Bandage className="w-4 h-4 text-danger mt-0.5 shrink-0" />
               <div>
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-bold text-slate-900">Wound & Dressing Treatment Schedule</p>
-                  <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">Letter Landscape</span>
+                  <p className="text-sm font-bold text-ink">Wound & Dressing Treatment Schedule</p>
+                  <span className="text-[10px] bg-danger-soft text-danger font-bold px-1.5 py-0.5 rounded">Letter Landscape</span>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted">
                   Focused clinical treatment orders · Shower coordination · {woundCount} active wound protocol{woundCount !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -686,7 +686,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
             <button
               type="button"
               onClick={() => onPrintSpecializedDoc({ type: 'wound', model: buildWoundScheduleModel(selectedDate) })}
-              className="px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 bg-danger hover:bg-danger text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Worksheet</span>
@@ -694,21 +694,21 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
 
           {/* 3. Upcoming 7-Day Care Lookahead */}
-          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">
-              <CalendarDays className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+              <CalendarDays className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-bold text-slate-900">Upcoming 7-Day Care Lookahead</p>
-                  <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">Letter Landscape</span>
+                  <p className="text-sm font-bold text-ink">Upcoming 7-Day Care Lookahead</p>
+                  <span className="text-[10px] bg-accent-soft text-accent-strong font-bold px-1.5 py-0.5 rounded">Letter Landscape</span>
                 </div>
-                <p className="text-xs text-slate-500">Multi-day lookahead projecting periodic care, scheduled baths, catheter changes & weights</p>
+                <p className="text-xs text-muted">Multi-day lookahead projecting periodic care, scheduled baths, catheter changes & weights</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onPrintSpecializedDoc({ type: 'upcoming', currentDateStr: selectedDate })}
-              className="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Lookahead</span>
@@ -716,21 +716,21 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
 
           {/* 4. Shift Configuration Reference */}
-          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">
-              <Layers className="w-4 h-4 text-slate-600 mt-0.5 shrink-0" />
+              <Layers className="w-4 h-4 text-ink-soft mt-0.5 shrink-0" />
               <div>
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-bold text-slate-900">Master Shift Configuration Reference</p>
-                  <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded">Letter Portrait</span>
+                  <p className="text-sm font-bold text-ink">Master Shift Configuration Reference</p>
+                  <span className="text-[10px] bg-panel-sunken text-ink-soft font-bold px-1.5 py-0.5 rounded">Letter Portrait</span>
                 </div>
-                <p className="text-xs text-slate-500">Audit sheet of facility shift profiles, scheduled hours, roles, and assigned routines</p>
+                <p className="text-xs text-muted">Audit sheet of facility shift profiles, scheduled hours, roles, and assigned routines</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onPrintSpecializedDoc({ type: 'shift_config', model: buildShiftConfigReferenceModel(selectedDate) })}
-              className="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Reference</span>
@@ -738,18 +738,18 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
 
           {/* 5. FYI Standing Binder */}
-          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">
-              <BookOpen className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+              <BookOpen className="w-4 h-4 text-muted mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-bold text-slate-900">FYI Standing Information Binder</p>
-                <p className="text-xs text-slate-500">Professional continuing care binder pages · {fyiCount} active entr{fyiCount === 1 ? 'y' : 'ies'}</p>
+                <p className="text-sm font-bold text-ink">FYI Standing Information Binder</p>
+                <p className="text-xs text-muted">Professional continuing care binder pages · {fyiCount} active entr{fyiCount === 1 ? 'y' : 'ies'}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={handleFyiBinder}
-              className="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Binder</span>
@@ -757,18 +757,18 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
 
           {/* 6. Blank TaskSheet */}
-          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">
-              <FilePlus2 className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+              <FilePlus2 className="w-4 h-4 text-muted mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-bold text-slate-900">Blank TaskSheet Template</p>
-                <p className="text-xs text-slate-500">Facility header + writing areas only · Intentional blank form</p>
+                <p className="text-sm font-bold text-ink">Blank TaskSheet Template</p>
+                <p className="text-xs text-muted">Facility header + writing areas only · Intentional blank form</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onPrintSpecializedDoc({ type: 'blank_template', model: buildBlankTaskSheetModel(selectedDate) })}
-              className="px-3 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Blank</span>
@@ -776,21 +776,21 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
 
           {/* 7. Printer Calibration Test Sheet */}
-          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">
-              <Printer className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
+              <Printer className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <div className="flex items-center space-x-2">
-                  <p className="text-sm font-bold text-slate-900">Printer Hardware Calibration Sheet</p>
-                  <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">Hardware Test</span>
+                  <p className="text-sm font-bold text-ink">Printer Hardware Calibration Sheet</p>
+                  <span className="text-[10px] bg-accent-soft text-accent-strong font-bold px-1.5 py-0.5 rounded">Hardware Test</span>
                 </div>
-                <p className="text-xs text-slate-500">1-Page alignment target · 10mm margins · 100mm precision scale ruler · Toner density</p>
+                <p className="text-xs text-muted">1-Page alignment target · 10mm margins · 100mm precision scale ruler · Toner density</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => onPrintSpecializedDoc({ type: 'calibration' })}
-              className="px-3 py-1.5 bg-slate-900 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+              className="px-3 py-1.5 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Test Page</span>
@@ -800,15 +800,15 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       </div>
 
       {/* ── PRINT GUIDANCE NOTE ── */}
-      <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start space-x-2.5 text-xs text-slate-500">
-        <Info className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+      <div className="px-4 py-3 bg-panel-sunken border border-hairline-strong rounded-surface flex items-start space-x-2.5 text-xs text-muted">
+        <Info className="w-4 h-4 text-faint mt-0.5 shrink-0" />
         <div className="flex-1">
           <div className="flex items-center justify-between">
-            <strong className="text-slate-700">Printer Setup:</strong>
+            <strong className="text-ink-soft">Printer Setup:</strong>
             <button
               type="button"
               onClick={() => onPrintSpecializedDoc({ type: 'calibration' })}
-              className="text-[11px] font-bold text-teal-700 hover:underline flex items-center space-x-1"
+              className="text-[11px] font-bold text-accent-strong hover:underline flex items-center space-x-1"
             >
               <span>Verify printer with Calibration Page →</span>
             </button>

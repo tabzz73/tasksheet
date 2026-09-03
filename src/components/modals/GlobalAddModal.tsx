@@ -675,74 +675,64 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
       {mutationConflict && <div className="mb-4"><ConflictNotice result={mutationConflict} onAction={action => { if (action === 'confirm_stop') setWoundStopConfirmed(true); if (action === 'confirm_coverage') setCoverageChangeConfirmed(true); setMutationConflict(null); }} /></div>}
       {/* 1. SELECTION SCREEN */}
       {!selectedType && mode === 'add' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+        <div className="border border-hairline-strong rounded-surface divide-y divide-hairline overflow-hidden">
           <button
             type="button"
             onClick={() => setSelectedType('care_task')}
-            className="flex items-start p-4 rounded-xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition-all text-left group cursor-pointer"
+            className="w-full flex items-start gap-3 px-4 py-3.5 hover:bg-panel-sunken transition-colors text-left"
           >
-            <div className="p-3 bg-teal-100 text-teal-700 rounded-lg group-hover:bg-teal-600 group-hover:text-white transition-colors">
-              <HeartHandshake className="w-6 h-6" />
-            </div>
-            <div className="ml-3.5">
-              <h4 className="font-semibold text-slate-900 group-hover:text-teal-900">Care Task</h4>
-              <p className="text-xs text-slate-500 mt-1">Resident-specific care assignment, vitals, BG check, MAP, or hygiene.</p>
+            <HeartHandshake className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <h4 className="text-[13px] font-bold text-ink">Care Task</h4>
+              <p className="text-xs text-muted mt-0.5">Resident-specific care assignment, vitals, BG check, MAP, or hygiene.</p>
             </div>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedType('unit_task')}
-            className="flex items-start p-4 rounded-xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition-all text-left group cursor-pointer"
+            className="w-full flex items-start gap-3 px-4 py-3.5 hover:bg-panel-sunken transition-colors text-left"
           >
-            <div className="p-3 bg-blue-100 text-blue-700 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <ClipboardList className="w-6 h-6" />
-            </div>
-            <div className="ml-3.5">
-              <h4 className="font-semibold text-slate-900 group-hover:text-blue-900">Unit Task</h4>
-              <p className="text-xs text-slate-500 mt-1">Shift & role routines, fridge temperature, narcotic count, or safety checks.</p>
+            <ClipboardList className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <h4 className="text-[13px] font-bold text-ink">Unit Task</h4>
+              <p className="text-xs text-muted mt-0.5">Shift & role routines, fridge temperature, narcotic count, or safety checks.</p>
             </div>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedType('resident')}
-            className="flex items-start p-4 rounded-xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition-all text-left group cursor-pointer"
+            className="w-full flex items-start gap-3 px-4 py-3.5 hover:bg-panel-sunken transition-colors text-left"
           >
-            <div className="p-3 bg-purple-100 text-purple-700 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <UserPlus className="w-6 h-6" />
-            </div>
-            <div className="ml-3.5">
-              <h4 className="font-semibold text-slate-900 group-hover:text-purple-900">Resident</h4>
-              <p className="text-xs text-slate-500 mt-1">Add a new resident and room to the facility directory.</p>
+            <UserPlus className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <h4 className="text-[13px] font-bold text-ink">Resident</h4>
+              <p className="text-xs text-muted mt-0.5">Add a new resident and room to the facility directory.</p>
             </div>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedType('fyi')}
-            className="flex items-start p-4 rounded-xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition-all text-left group cursor-pointer"
+            className="w-full flex items-start gap-3 px-4 py-3.5 hover:bg-panel-sunken transition-colors text-left"
           >
-            <div className="p-3 bg-amber-100 text-amber-700 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-colors">
-              <Info className="w-6 h-6" />
-            </div>
-            <div className="ml-3.5">
-              <h4 className="font-semibold text-slate-900 group-hover:text-amber-900">FYI / Standing Info</h4>
-              <p className="text-xs text-slate-500 mt-1">Information staff need to know without marking as a task row.</p>
+            <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <h4 className="text-[13px] font-bold text-ink">FYI / Standing Info</h4>
+              <p className="text-xs text-muted mt-0.5">Information staff need to know without marking as a task row.</p>
             </div>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedType('wound')}
-            className="flex items-start p-4 rounded-xl border-2 border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition-all text-left group sm:col-span-2 cursor-pointer"
+            className="w-full flex items-start gap-3 px-4 py-3.5 hover:bg-panel-sunken transition-colors text-left"
           >
-            <div className="p-3 bg-rose-100 text-rose-700 rounded-lg group-hover:bg-rose-600 group-hover:text-white transition-colors">
-              <Bandage className="w-6 h-6" />
-            </div>
-            <div className="ml-3.5">
-              <h4 className="font-semibold text-slate-900 group-hover:text-rose-900">Wound Protocol</h4>
-              <p className="text-xs text-slate-500 mt-1">Track site, dressing changes, treatment schedule, and bathing relations.</p>
+            <Bandage className="w-4 h-4 text-danger shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <h4 className="text-[13px] font-bold text-ink">Wound Protocol</h4>
+              <p className="text-xs text-muted mt-0.5">Track site, dressing changes, treatment schedule, and bathing relations.</p>
             </div>
           </button>
         </div>
@@ -755,7 +745,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <button
               type="button"
               onClick={() => setSelectedType(null)}
-              className="inline-flex items-center text-xs text-slate-500 hover:text-slate-800 mb-1"
+              className="inline-flex items-center text-xs text-muted hover:text-ink mb-1"
             >
               <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Choose different type
             </button>
@@ -763,27 +753,27 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           {/* Context Banner */}
           {currentResidentObj && currentShiftObj && (
-            <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg flex items-center justify-between text-xs text-teal-900 font-medium">
+            <div className="p-3 bg-accent-soft border border-hairline-strong rounded-control flex items-center justify-between text-xs text-accent-strong font-medium">
               <div>
                 <span className="font-bold">Room {currentResidentObj?.roomNumber} — {currentResidentObj?.firstName} {currentResidentObj?.lastName}</span>
                 <span className="mx-2">·</span>
                 <span>{currentShiftObj?.shortCode ? `${currentShiftObj.shortCode} — ` : ''}{currentShiftObj?.name} ({currentShiftObj?.startTime}–{currentShiftObj?.endTime})</span>
               </div>
-              <span className="px-2 py-0.5 bg-teal-200/80 rounded font-semibold">{currentRoleObj?.name}</span>
+              <span className="px-2 py-0.5 bg-accent-soft rounded font-semibold">{currentRoleObj?.name}</span>
             </div>
           )}
 
           {/* Resident Picker (if not in context or in edit/duplicate mode where change is supported) */}
           {(!contextResidentId || mode === 'duplicate') && (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Resident <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Resident <span className="text-danger">*</span>
               </label>
               <select
                 value={residentId}
                 onChange={(e) => setResidentId(e.target.value)}
                 required
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               >
                 <option value="">Select resident or room...</option>
                 {residents.map(r => (
@@ -796,14 +786,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           )}
 
           {selectedResident && isResidentCarePaused(selectedResident.status) && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-950" role="alert">
+            <div className="rounded-surface border border-warning bg-warning-soft p-3 text-warning" role="alert">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <div>
                   <p className="text-xs font-black">Care generation is paused: {getResidentStatusLabel(selectedResident.status)}</p>
                   <p className="mt-1 text-[11px] leading-relaxed">This task will be stored but cannot appear on a TaskSheet until the resident returns to Active.</p>
                   <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] font-bold">
-                    <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-amber-700" />
+                    <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-warning" />
                     <span>I understand and want to configure future care while this resident is paused.</span>
                   </label>
                 </div>
@@ -814,13 +804,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           {/* Shift Picker */}
           {(!contextShiftId || mode === 'duplicate' || mode === 'edit') && (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Shift
               </label>
               <select
                 value={shiftId}
                 onChange={(e) => setShiftId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               >
                 <option value="">Select active shift...</option>
                 {shifts.map(s => {
@@ -833,7 +823,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 })}
               </select>
               {mode === 'edit' && shiftId !== initialResidentTask?.shiftId && (
-                <p className="text-[11px] text-amber-700 font-medium mt-1">
+                <p className="text-[11px] text-warning font-medium mt-1">
                   Notice: Moving to another shift will apply to future generated assignments.
                 </p>
               )}
@@ -843,22 +833,22 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           {/* What needs to be done? (Role-Aware Search + Optional Category Filter) */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                What needs to be done? <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider">
+                What needs to be done? <span className="text-danger">*</span>
               </label>
               {mode === 'add' && (
                 <div className="flex items-center space-x-1.5 text-[11px]">
                   <button
                     type="button"
                     onClick={() => setPickerTab('common')}
-                    className={`px-2 py-0.5 rounded font-medium ${pickerTab === 'common' ? 'bg-teal-100 text-teal-800 font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                    className={`px-2 py-0.5 rounded font-medium ${pickerTab === 'common' ? 'bg-accent-soft text-accent-strong font-bold' : 'text-muted hover:text-ink'}`}
                   >
                     Common
                   </button>
                   <button
                     type="button"
                     onClick={() => setPickerTab('search')}
-                    className={`px-2 py-0.5 rounded font-medium ${pickerTab === 'search' ? 'bg-teal-100 text-teal-800 font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                    className={`px-2 py-0.5 rounded font-medium ${pickerTab === 'search' ? 'bg-accent-soft text-accent-strong font-bold' : 'text-muted hover:text-ink'}`}
                   >
                     Search All
                   </button>
@@ -870,7 +860,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                       setTaskAttentionConfig(undefined);
                       setTaskTrackingConfig(undefined);
                     }}
-                    className={`px-2 py-0.5 rounded font-medium ${pickerTab === 'custom' ? 'bg-teal-100 text-teal-800 font-bold' : 'text-slate-500 hover:text-slate-800'}`}
+                    className={`px-2 py-0.5 rounded font-medium ${pickerTab === 'custom' ? 'bg-accent-soft text-accent-strong font-bold' : 'text-muted hover:text-ink'}`}
                   >
                     + Custom Task
                   </button>
@@ -881,16 +871,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             {/* Optional Category Quick Filter Pill Bar (in Add mode) */}
             {mode === 'add' && (
               <div className="mb-2 flex items-center space-x-1.5 overflow-x-auto pb-1 text-[11px]">
-                <span className="text-slate-400 font-medium flex items-center">
+                <span className="text-faint font-medium flex items-center">
                   <Filter className="w-3 h-3 mr-0.5" /> Domain:
                 </span>
                 <button
                   type="button"
                   onClick={() => setSelectedCategoryFilter('ALL')}
-                  className={`px-2 py-0.5 rounded-full whitespace-nowrap ${
+                  className={`px-2 py-0.5 rounded-control whitespace-nowrap ${
                     selectedCategoryFilter === 'ALL'
-                      ? 'bg-slate-800 text-white font-bold'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      ? 'bg-ink text-white font-bold'
+                      : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
                   }`}
                 >
                   All Care
@@ -900,10 +890,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                     key={c.id}
                     type="button"
                     onClick={() => setSelectedCategoryFilter(c.id)}
-                    className={`px-2 py-0.5 rounded-full whitespace-nowrap ${
+                    className={`px-2 py-0.5 rounded-control whitespace-nowrap ${
                       selectedCategoryFilter === c.id
-                        ? 'bg-teal-700 text-white font-bold'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        ? 'bg-ink text-white font-bold'
+                        : 'bg-panel-sunken hover:bg-panel-sunken text-ink-soft'
                     }`}
                   >
                     {c.name}
@@ -922,9 +912,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 }}
                 placeholder={`Search ${currentRoleCode} catalog (e.g. MAP, shower, BG check, vitals, transfer)...`}
                 required
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                className="w-full pl-9 pr-4 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Search className="w-4 h-4 text-faint absolute left-3 top-3" />
             </div>
 
             {/* Suggestions / Common Pickers */}
@@ -936,7 +926,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                       key={t.slug}
                       type="button"
                       onClick={() => selectCatalogTemplate(t)}
-                      className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-teal-100 hover:text-teal-900 text-slate-700 rounded-md transition-colors font-medium text-left"
+                      className="text-xs px-2.5 py-1 bg-panel-sunken hover:bg-accent-soft hover:text-accent-strong text-ink-soft rounded-md transition-colors font-medium text-left"
                     >
                       + {t.title}
                     </button>
@@ -946,19 +936,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             )}
 
             {mode === 'add' && taskSearchQuery && (
-              <div className="mt-2 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-sm divide-y divide-slate-100 text-xs">
+              <div className="mt-2 max-h-48 overflow-y-auto bg-panel border border-hairline-strong rounded-control divide-y divide-hairline text-xs">
                 {filteredCatalogTasks.slice(0, 10).map(t => (
                   <button
                     key={t.slug}
                     type="button"
                     onClick={() => selectCatalogTemplate(t)}
-                    className="w-full px-3 py-2 text-left hover:bg-teal-50 flex items-center justify-between group"
+                    className="w-full px-3 py-2 text-left hover:bg-accent-soft flex items-center justify-between group"
                   >
                     <div>
-                      <div className="font-semibold text-slate-800 group-hover:text-teal-900">{t.title}</div>
-                      <div className="text-[11px] text-slate-500 line-clamp-1">{t.defaultInstructions || t.description}</div>
+                      <div className="font-semibold text-ink group-hover:text-accent-strong">{t.title}</div>
+                      <div className="text-[11px] text-muted line-clamp-1">{t.defaultInstructions || t.description}</div>
                     </div>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 group-hover:bg-teal-200 group-hover:text-teal-900">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-panel-sunken text-ink-soft group-hover:bg-accent-soft group-hover:text-accent-strong">
                       {t.roleCode}
                     </span>
                   </button>
@@ -969,11 +959,11 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           {/* Time Field */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Timing Type</label>
-            <select value={taskTimingType} onChange={event => { const value = event.target.value as TaskTimingType; setTaskTimingType(value); setIsNoSpecificTime(value === 'period'); }} className="mb-2 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-teal-500">
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label>
+            <select value={taskTimingType} onChange={event => { const value = event.target.value as TaskTimingType; setTaskTimingType(value); setIsNoSpecificTime(value === 'period'); }} className="mb-2 w-full rounded-control border border-hairline-strong bg-panel px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-accent">
               <option value="fixed">Fixed Clock Time</option><option value="start_of_shift">Start of Shift</option><option value="end_of_shift">End of Shift</option><option value="period">During Shift / No Specific Time</option>
             </select>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{taskTimingType === 'fixed' ? 'Scheduled Time (Military 24h)' : 'Resolved Time'}</label>
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">{taskTimingType === 'fixed' ? 'Scheduled Time (Military 24h)' : 'Resolved Time'}</label>
             <input
               type="text"
               disabled={taskTimingType !== 'fixed'}
@@ -981,12 +971,12 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               onChange={(e) => setTaskTime(e.target.value)}
               placeholder="0800"
               aria-invalid={!!careTaskTimeError}
-              className={`w-full sm:w-48 px-3.5 py-2.5 bg-white disabled:bg-slate-100 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 tabular-nums font-mono font-bold ${careTaskTimeError ? 'border-red-400' : 'border-slate-300'}`}
+              className={`w-full sm:w-48 px-3.5 py-2.5 bg-panel disabled:bg-panel-sunken border rounded-control text-sm focus:ring-2 focus:ring-accent tabular-nums font-mono font-bold ${careTaskTimeError ? 'border-danger' : 'border-hairline-strong'}`}
             />
-            <p className="mt-1 text-[11px] text-slate-500">{taskTimingType === 'start_of_shift' ? 'Automatically follows the configured shift start.' : taskTimingType === 'end_of_shift' ? 'Automatically follows the configured shift end and is permitted at the exclusive boundary.' : taskTimingType === 'period' ? 'Prints within the shift without a fixed clock time.' : 'Fixed times remain unchanged when shift hours change.'}</p>
+            <p className="mt-1 text-[11px] text-muted">{taskTimingType === 'start_of_shift' ? 'Automatically follows the configured shift start.' : taskTimingType === 'end_of_shift' ? 'Automatically follows the configured shift end and is permitted at the exclusive boundary.' : taskTimingType === 'period' ? 'Prints within the shift without a fixed clock time.' : 'Fixed times remain unchanged when shift hours change.'}</p>
             {timingPresetKind && taskTimingType === 'fixed' && (
               <div className="mt-2">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                <p className="text-[10px] font-black uppercase tracking-wider text-muted">
                   Facility {timingPresetKind === 'medication' ? 'medication' : 'meal'} times
                 </p>
                 {availableTimingPresets.length > 0 ? (
@@ -996,10 +986,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                         key={preset.id}
                         type="button"
                         onClick={() => setTaskTime(preset.time)}
-                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition-colors ${
+                        className={`px-2.5 py-1.5 rounded-control border text-[11px] font-bold transition-colors ${
                           taskTime === preset.time
-                            ? 'border-teal-600 bg-teal-50 text-teal-900 ring-1 ring-teal-200'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:bg-teal-50'
+                            ? 'border-accent bg-accent-soft text-accent-strong ring-1 ring-accent'
+                            : 'border-hairline-strong bg-panel text-ink-soft hover:border-accent hover:bg-accent-soft'
                         }`}
                       >
                         {preset.label} <span className="font-mono">{preset.time}</span>
@@ -1007,12 +997,12 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-1 text-[11px] text-amber-700">No active preset falls inside this shift. Enter a valid time manually or update Care Timing Presets in Settings.</p>
+                  <p className="mt-1 text-[11px] text-warning">No active preset falls inside this shift. Enter a valid time manually or update Care Timing Presets in Settings.</p>
                 )}
               </div>
             )}
             {careTaskTimeError && (
-              <p className="mt-1.5 flex items-start space-x-1.5 text-xs font-semibold text-red-700" role="alert">
+              <p className="mt-1.5 flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>{careTaskTimeError}</span>
               </p>
@@ -1020,7 +1010,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           {/* Recurrence & Frequency Selector */}
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-hairline">
             <RecurrenceSelector
               value={taskRecurrenceRule}
               frequency={taskFrequency}
@@ -1031,28 +1021,28 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-3">
+          <div className="rounded-surface border border-hairline-strong bg-panel-sunken p-3.5 space-y-3">
             <div>
-              <label htmlFor="resident-task-service-coverage" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Service Coverage</label>
-              <select id="resident-task-service-coverage" value={coverageType} onChange={event => { const code = event.target.value; setCoverageType(code); if (code === 'FUNDED') setCoverageAdditional(false); }} className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-teal-500">
+              <label htmlFor="resident-task-service-coverage" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Service Coverage</label>
+              <select id="resident-task-service-coverage" value={coverageType} onChange={event => { const code = event.target.value; setCoverageType(code); if (code === 'FUNDED') setCoverageAdditional(false); }} className="w-full rounded-control border border-hairline-strong bg-panel px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-accent">
                 {getCoverageDefinitions(state.settings.serviceCoverageDefinitions).map(item => <option key={item.id} value={item.code}>{item.icon ? `${item.icon} ` : ''}{item.name}</option>)}
               </select>
-              <p className="mt-1 text-[11px] text-slate-500">Identifies why the service is provided. TaskSheet does not store prices, invoices, or payment information.</p>
+              <p className="mt-1 text-[11px] text-muted">Identifies why the service is provided. TaskSheet does not store prices, invoices, or payment information.</p>
             </div>
             {coverageType !== 'FUNDED' && <>
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={coverageAdditional} onChange={event => setCoverageAdditional(event.target.checked)} className="rounded border-slate-300 text-teal-700" />Additional to the resident's funded/authorized service</label>
+              <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft"><input type="checkbox" checked={coverageAdditional} onChange={event => setCoverageAdditional(event.target.checked)} className="rounded border-hairline-strong text-accent-strong" />Additional to the resident's funded/authorized service</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="text-xs font-semibold text-slate-700">Effective Start Date<input type="date" value={coverageStartDate} onChange={event => setCoverageStartDate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" /></label>
-                <label className="text-xs font-semibold text-slate-700">Optional End Date<input type="date" value={coverageEndDate} min={coverageStartDate || undefined} onChange={event => setCoverageEndDate(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" /></label>
+                <label className="text-xs font-semibold text-ink-soft">Effective Start Date<input type="date" value={coverageStartDate} onChange={event => setCoverageStartDate(event.target.value)} className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm" /></label>
+                <label className="text-xs font-semibold text-ink-soft">Optional End Date<input type="date" value={coverageEndDate} min={coverageStartDate || undefined} onChange={event => setCoverageEndDate(event.target.value)} className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm" /></label>
               </div>
-              <label className="block text-xs font-semibold text-slate-700">Coverage Note (Optional)<input value={coverageNote} onChange={event => setCoverageNote(event.target.value)} placeholder="Authorization/reference note; no billing details" className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal" /></label>
-              {coverageType === 'TEMPORARY_EXCEPTION' && !coverageEndDate && <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800"><AlertTriangle className="h-3.5 w-3.5" />Temporary exceptions normally need an end date so they do not continue indefinitely.</p>}
+              <label className="block text-xs font-semibold text-ink-soft">Coverage Note (Optional)<input value={coverageNote} onChange={event => setCoverageNote(event.target.value)} placeholder="Authorization/reference note; no billing details" className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm font-normal" /></label>
+              {coverageType === 'TEMPORARY_EXCEPTION' && !coverageEndDate && <p className="flex items-center gap-1.5 text-xs font-semibold text-warning"><AlertTriangle className="h-3.5 w-3.5" />Temporary exceptions normally need an end date so they do not continue indefinitely.</p>}
             </>}
           </div>
 
           {/* Instructions */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
               Instructions (Optional)
             </label>
             <textarea
@@ -1060,15 +1050,15 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               value={taskInstructions}
               onChange={(e) => setTaskInstructions(e.target.value)}
               placeholder="e.g. Fasting check before breakfast; notify nurse if BG < 4.0..."
-              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
             {taskTemplateSlug && (
-              <p className="mt-1 text-[11px] text-slate-500">Pre-filled from the task catalog. Edit these instructions for this resident as needed.</p>
+              <p className="mt-1 text-[11px] text-muted">Pre-filled from the task catalog. Edit these instructions for this resident as needed.</p>
             )}
           </div>
 
           {taskTrackingConfig && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-cyan-950">
+            <div className="flex items-center justify-between gap-3 rounded-surface border border-hairline-strong bg-accent-soft px-3 py-2 text-accent-strong">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wider">Paper Tracking Field</p>
                 <p className="text-[11px]">A structured {taskTrackingConfig.kind} write-in field will print on the resident's TaskSheet. Results are not stored electronically.</p>
@@ -1087,10 +1077,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             if (unappliedSuggestions.length === 0 && activeSet.size === 0) return null;
 
             return (
-              <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2 text-xs">
+              <div className="p-3 bg-warning-soft/70 border border-warning rounded-surface space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1.5 font-bold text-amber-900">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                  <div className="flex items-center space-x-1.5 font-bold text-warning">
+                    <Sparkles className="w-3.5 h-3.5 text-warning" />
                     <span>Task Attention & Safety Indicators</span>
                   </div>
 
@@ -1111,7 +1101,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                           ]
                         });
                       }}
-                      className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline"
+                      className="text-[11px] font-bold text-warning hover:text-warning underline"
                     >
                       + Apply All Suggestions ({unappliedSuggestions.length})
                     </button>
@@ -1121,7 +1111,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 {/* Active Badges */}
                 {activeSet.size > 0 && (
                   <div className="flex flex-wrap gap-1.5 items-center">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase mr-1">Active:</span>
+                    <span className="text-[10px] font-bold text-muted uppercase mr-1">Active:</span>
                     {Array.from(activeSet).map(ind => {
                       const d = getIndicatorBadgeDetails(ind, taskAttentionConfig?.mealRelation);
                       return (
@@ -1139,7 +1129,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                           title="Click to remove indicator"
                         >
                           <span>[{d.shortAbbreviation}] {d.label}</span>
-                          <span className="text-[10px] font-sans ml-1 text-slate-400">×</span>
+                          <span className="text-[10px] font-sans ml-1 text-faint">×</span>
                         </button>
                       );
                     })}
@@ -1148,9 +1138,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
                 {/* Unapplied Suggestions */}
                 {unappliedSuggestions.length > 0 && (
-                  <div className="space-y-1 pt-1 border-t border-amber-200/60">
+                  <div className="space-y-1 pt-1 border-t border-warning/60">
                     <div className="flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[10px] font-bold text-amber-700 uppercase mr-1">Suggested:</span>
+                      <span className="text-[10px] font-bold text-warning uppercase mr-1">Suggested:</span>
                       {unappliedSuggestions.map(ind => {
                         const d = getIndicatorBadgeDetails(ind, detection.mealRelation);
                         return (
@@ -1171,7 +1161,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                                 ]
                               });
                             }}
-                            className="inline-flex items-center space-x-1 px-2 py-0.5 rounded border border-dashed border-amber-400 bg-white text-amber-900 text-[11px] font-bold hover:bg-amber-100 transition-colors"
+                            className="inline-flex items-center space-x-1 px-2 py-0.5 rounded border border-dashed border-warning bg-panel text-warning text-[11px] font-bold hover:bg-warning-soft transition-colors"
                           >
                             <span>+ [{d.shortAbbreviation}] {d.label}</span>
                           </button>
@@ -1179,7 +1169,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                       })}
                     </div>
 
-                    <p className="text-[10px] text-amber-700 italic">
+                    <p className="text-[10px] text-warning italic">
                       Detected from wording in task title and instructions. Click to apply.
                     </p>
                   </div>
@@ -1189,20 +1179,20 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           })()}
 
           {/* Progressive Disclosure: Advanced Options */}
-          <div className="border-t border-slate-200 pt-2">
+          <div className="border-t border-hairline-strong pt-2">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center text-xs font-medium text-slate-500 hover:text-slate-800"
+              className="flex items-center text-xs font-medium text-muted hover:text-ink"
             >
               <span>{showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}</span>
               {showAdvanced ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
             </button>
 
             {showAdvanced && (
-              <div className="mt-3 p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-4 text-xs">
+              <div className="mt-3 p-3.5 bg-panel-sunken border border-hairline-strong rounded-control space-y-4 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-700">Priority:</span>
+                  <span className="font-medium text-ink-soft">Priority:</span>
                   <div className="flex items-center space-x-2">
                     {(['normal', 'high', 'urgent'] as TaskPriority[]).map((p) => (
                       <button
@@ -1211,8 +1201,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                         onClick={() => setTaskPriority(p)}
                         className={`px-2.5 py-1 rounded capitalize font-medium ${
                           taskPriority === p
-                            ? 'bg-teal-700 text-white font-bold'
-                            : 'bg-white border border-slate-300 text-slate-600'
+                            ? 'bg-ink text-white font-bold'
+                            : 'bg-panel border border-hairline-strong text-ink-soft'
                         }`}
                       >
                         {p}
@@ -1222,8 +1212,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 </div>
 
                 {/* Manual Attention Indicators Selector */}
-                <div className="pt-2 border-t border-slate-200 space-y-2">
-                  <span className="font-bold text-slate-700 block">Manual Attention & Safety Flags:</span>
+                <div className="pt-2 border-t border-hairline-strong space-y-2">
+                  <span className="font-bold text-ink-soft block">Manual Attention & Safety Flags:</span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {([
                       'HIGH_ALERT', 
@@ -1240,7 +1230,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                       const isChecked = taskAttentionConfig?.indicators?.includes(ind) || false;
 
                       return (
-                        <label key={ind} className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-slate-800">
+                        <label key={ind} className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -1255,7 +1245,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                                   : [...(taskAttentionConfig?.metadata || []), { indicator: ind, reason: 'Manually assigned by supervisor', source: 'user_override' }]
                               });
                             }}
-                            className="rounded text-teal-600 focus:ring-teal-500 w-3.5 h-3.5"
+                            className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
                           />
                           <span>[{d.shortAbbreviation}] {d.label}</span>
                         </label>
@@ -1272,14 +1262,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
+              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!!careTaskTimeError || pausedResidentNeedsAcknowledgement}
-              className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
+              className="btn btn-accent px-6"
             >
               {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Task'}
             </button>
@@ -1294,21 +1284,21 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <button
               type="button"
               onClick={() => setSelectedType(null)}
-              className="inline-flex items-center text-xs text-slate-500 hover:text-slate-800 mb-1"
+              className="inline-flex items-center text-xs text-muted hover:text-ink mb-1"
             >
               <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Choose different type
             </button>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Shift <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              Shift <span className="text-danger">*</span>
             </label>
             <select
               value={shiftId}
               onChange={(e) => setShiftId(e.target.value)}
               required
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             >
               {shifts.map(s => {
                 const r = roles.find(role => role.id === s.roleId);
@@ -1322,8 +1312,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              What needs to be done? <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              What needs to be done? <span className="text-danger">*</span>
             </label>
             <input
               type="text"
@@ -1331,18 +1321,18 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               onChange={(e) => setUnitTitle(e.target.value)}
               placeholder="e.g. Medication Fridge Temperature, Controlled Count..."
               required
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
 
             {mode === 'add' && (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className="text-[11px] text-slate-400 self-center mr-1">Templates:</span>
+                <span className="text-[11px] text-faint self-center mr-1">Templates:</span>
                 {unitTemplates.map(u => (
                   <button
                     key={u.slug}
                     type="button"
                     onClick={() => selectUnitTemplate(u)}
-                    className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-800 rounded-md transition-colors"
+                    className="text-[11px] px-2.5 py-1 bg-panel-sunken hover:bg-accent-soft text-ink-soft hover:text-accent-strong rounded-md transition-colors"
                   >
                     + {u.title}
                   </button>
@@ -1353,13 +1343,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 When in shift?
               </label>
               <select
                 value={unitShiftPhase}
                 onChange={(e) => setUnitShiftPhase(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               >
                 <option value="start">Start of Shift (Routines & Safety)</option>
                 <option value="during">During Shift (Routines & Restock)</option>
@@ -1367,10 +1357,10 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </select>
             </div>
 
-            <div><label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Timing Type</label><select value={unitTimingType} onChange={event => setUnitTimingType(event.target.value as TaskTimingType)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"><option value="fixed">Fixed Time</option><option value="start_of_shift">Shift Start</option><option value="end_of_shift">Shift End</option><option value="period">During Shift</option></select></div>
+            <div><label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label><select value={unitTimingType} onChange={event => setUnitTimingType(event.target.value as TaskTimingType)} className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"><option value="fixed">Fixed Time</option><option value="start_of_shift">Shift Start</option><option value="end_of_shift">Shift End</option><option value="period">During Shift</option></select></div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Time (Military 24h)
               </label>
               <input
@@ -1380,19 +1370,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 onChange={(e) => setUnitTime(e.target.value)}
                 placeholder="0715"
                 aria-invalid={!!unitTaskTimeError}
-                className={`w-full px-3.5 py-2 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 font-mono tabular-nums ${unitTaskTimeError ? 'border-red-400' : 'border-slate-300'}`}
+                className={`w-full px-3.5 py-2 bg-panel border rounded-control text-sm focus:ring-2 focus:ring-accent font-mono tabular-nums ${unitTaskTimeError ? 'border-danger' : 'border-hairline-strong'}`}
               />
             </div>
           </div>
 
           {unitTaskTimeError && (
-            <p className="flex items-start space-x-1.5 text-xs font-semibold text-red-700" role="alert">
+            <p className="flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>{unitTaskTimeError}</span>
             </p>
           )}
 
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-hairline">
             <RecurrenceSelector
               value={unitRecurrenceRule}
               frequency={unitFrequency}
@@ -1405,7 +1395,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
               Instructions (Optional)
             </label>
             <textarea
@@ -1413,7 +1403,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               value={unitInstructions}
               onChange={(e) => setUnitInstructions(e.target.value)}
               placeholder="e.g. Check emergency seals intact; test backup suction..."
-              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
           </div>
 
@@ -1422,14 +1412,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
+              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!!unitTaskTimeError}
-              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
+              className="btn btn-accent px-6"
             >
               {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Unit Task'}
             </button>
@@ -1443,15 +1433,15 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <button
             type="button"
             onClick={() => setSelectedType(null)}
-            className="inline-flex items-center text-xs text-slate-500 hover:text-slate-800 mb-1"
+            className="inline-flex items-center text-xs text-muted hover:text-ink mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Choose different type
           </button>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                First Name <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                First Name <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -1459,12 +1449,12 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 onChange={(e) => setResFirstName(e.target.value)}
                 placeholder="Arthur"
                 required
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Last Name <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Last Name <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
@@ -1472,21 +1462,21 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 onChange={(e) => setResLastName(e.target.value)}
                 placeholder="Pendleton"
                 required
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="resident-status" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Resident Status</label>
-            <select id="resident-status" value={resStatus} onChange={event => setResStatus(event.target.value as ResidentStatus)} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm">
+            <label htmlFor="resident-status" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Resident Status</label>
+            <select id="resident-status" value={resStatus} onChange={event => setResStatus(event.target.value as ResidentStatus)} className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm">
               <option value="active">Active</option><option value="in_hospital">In Hospital</option><option value="out_on_pass">Out on Pass</option><option value="on_hold">On Hold</option><option value="inactive">Inactive / Not Yet Admitted</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Room / Occupancy Location <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              Room / Occupancy Location <span className="text-danger">*</span>
             </label>
             <input
               type="text"
@@ -1495,16 +1485,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               placeholder="Search or enter a configured label, e.g. L101A"
               list="available-room-positions"
               required
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 font-mono"
+              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent font-mono"
             />
             <datalist id="available-room-positions">{availablePositions.map(position => <option key={position.id} value={position.displayLabel}>{position.displayLabel} — Available</option>)}</datalist>
-            <p className="mt-1 text-[11px] text-slate-500">Select an available configured position. A unique new label creates a simple room automatically.</p>
+            <p className="mt-1 text-[11px] text-muted">Select an available configured position. A unique new label creates a simple room automatically.</p>
           </div>
 
-          {residentSaveError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-800">{residentSaveError}</div>}
+          {residentSaveError && <div role="alert" className="rounded-control border border-danger bg-danger-soft p-3 text-xs font-bold text-danger">{residentSaveError}</div>}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
               Resident Notes (Optional)
             </label>
             <textarea
@@ -1512,7 +1502,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               value={resNotes}
               onChange={(e) => setResNotes(e.target.value)}
               placeholder="e.g. Uses rollator walker; prefers morning care after breakfast..."
-              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
           </div>
 
@@ -1520,13 +1510,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
+              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
+              className="btn btn-accent px-6"
             >
               Add Resident
             </button>
@@ -1540,14 +1530,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <button
             type="button"
             onClick={() => setSelectedType(null)}
-            className="inline-flex items-center text-xs text-slate-500 hover:text-slate-800 mb-1"
+            className="inline-flex items-center text-xs text-muted hover:text-ink mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Choose different type
           </button>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              FYI Standing Note / Instruction <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              FYI Standing Note / Instruction <span className="text-danger">*</span>
             </label>
             <textarea
               rows={3}
@@ -1555,19 +1545,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               onChange={(e) => setFyiText(e.target.value)}
               placeholder="e.g. Son visits on Saturdays at 14:00 with diabetic treats; check BG before dinner."
               required
-              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Category
               </label>
               <select
                 value={fyiCategory}
                 onChange={(e) => setFyiCategory(e.target.value as FYICategory)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
               >
                 <option value="preference">Resident Preference</option>
                 <option value="safety">Safety Alert</option>
@@ -1577,13 +1567,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Importance
               </label>
               <select
                 value={fyiImportance}
                 onChange={(e) => setFyiImportance(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
               >
                 <option value="normal">Normal</option>
                 <option value="high">High (Highlighted)</option>
@@ -1596,13 +1586,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
+              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
+              className="btn btn-accent px-6"
             >
               {mode === 'edit' ? 'Save Changes' : 'Add FYI'}
             </button>
@@ -1616,21 +1606,21 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <button
             type="button"
             onClick={() => setSelectedType(null)}
-            className="inline-flex items-center text-xs text-slate-500 hover:text-slate-800 mb-1"
+            className="inline-flex items-center text-xs text-muted hover:text-ink mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Choose different type
           </button>
 
           {!contextResidentId && (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Resident <span className="text-red-500">*</span>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Resident <span className="text-danger">*</span>
               </label>
               <select
                 value={residentId}
                 onChange={(e) => setResidentId(e.target.value)}
                 required
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               >
                 <option value="">Select resident...</option>
                 {residents.map(r => (
@@ -1643,8 +1633,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Site Location <span className="text-red-500">*</span>
+            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              Site Location <span className="text-danger">*</span>
             </label>
             <input
               type="text"
@@ -1652,19 +1642,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               onChange={(e) => setWoundSiteLocation(e.target.value)}
               placeholder="e.g. Left Lower Leg Venous Ulcer, Right Forearm Skin Tear"
               required
-              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Primary Action
               </label>
               <select
                 value={woundFirstAction}
                 onChange={(e) => setWoundFirstAction(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
               >
                 <option value="treatment">Wound Treatment</option>
                 <option value="dressing_change">Dressing Change</option>
@@ -1672,13 +1662,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Bathing Relation
               </label>
               <select
                 value={woundBathingRelation}
                 onChange={(e) => setWoundBathingRelation(e.target.value as any)}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
               >
                 <option value="independent">Independent of Bathing</option>
                 <option value="after_bath">Perform Immediately After Bath</option>
@@ -1690,15 +1680,15 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label htmlFor="wound-shift" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Assigned LPN/RN Shift <span className="text-red-500">*</span>
+              <label htmlFor="wound-shift" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Assigned LPN/RN Shift <span className="text-danger">*</span>
               </label>
               <select
                 id="wound-shift"
                 value={woundShiftId}
                 onChange={(event) => setWoundShiftId(event.target.value)}
                 required
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
               >
                 <option value="">Select clinical shift...</option>
                 {clinicalShifts.map(shift => (
@@ -1708,12 +1698,12 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 ))}
               </select>
               {clinicalShifts.length === 0 && (
-                <p className="mt-1 text-[11px] font-semibold text-red-700">No active LPN/RN shift is configured. Add one in Settings → Roles &amp; Shifts.</p>
+                <p className="mt-1 text-[11px] font-semibold text-danger">No active LPN/RN shift is configured. Add one in Settings → Roles &amp; Shifts.</p>
               )}
             </div>
             <div>
-              <label htmlFor="wound-time" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Scheduled Time <span className="text-red-500">*</span>
+              <label htmlFor="wound-time" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Scheduled Time <span className="text-danger">*</span>
               </label>
               <input
                 id="wound-time"
@@ -1722,20 +1712,20 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 onChange={(event) => setWoundTime(event.target.value)}
                 required
                 aria-invalid={!!woundShiftTimeError}
-                className={`w-full px-3 py-2 bg-white border rounded-lg text-sm font-mono font-bold ${woundShiftTimeError ? 'border-red-400' : 'border-slate-300'}`}
+                className={`w-full px-3 py-2 bg-panel border rounded-control text-sm font-mono font-bold ${woundShiftTimeError ? 'border-danger' : 'border-hairline-strong'}`}
                 placeholder="1000"
               />
             </div>
           </div>
 
           {woundShiftTimeError && (
-            <p className="flex items-start space-x-1.5 text-xs font-semibold text-red-700" role="alert">
+            <p className="flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>{woundShiftTimeError}</span>
             </p>
           )}
 
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-hairline">
             <RecurrenceSelector
               value={woundRecurrenceRule}
               frequency={woundFrequency}
@@ -1747,7 +1737,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </div>
 
           <div>
-            <label htmlFor="wound-protocol" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label htmlFor="wound-protocol" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
               Treatment Protocol / Dressing Instructions
             </label>
             <textarea
@@ -1756,27 +1746,27 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               value={woundInstructions}
               onChange={(e) => setWoundInstructions(e.target.value)}
               placeholder="Cleanse with sterile NS, apply barrier film, cover with Mepilex Border..."
-              className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <WoundSupplyPicker value={woundSupplies} onChange={setWoundSupplies} />
             <div>
-              <label htmlFor="wound-assessment-type" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label htmlFor="wound-assessment-type" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Assessment / Notes Prompt
               </label>
               <select
                 id="wound-assessment-type"
                 value={woundAssessmentType}
                 onChange={(event) => setWoundAssessmentType(event.target.value as 'none' | 'partial' | 'full')}
-                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm"
+                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
               >
                 <option value="none">Notes only</option>
                 <option value="partial">Partial assessment</option>
                 <option value="full">Full assessment</option>
               </select>
-              <p className="mt-1 text-[11px] text-slate-500">Creates a paper prompt only. No clinical result is stored in TaskSheet.</p>
+              <p className="mt-1 text-[11px] text-muted">Creates a paper prompt only. No clinical result is stored in TaskSheet.</p>
             </div>
           </div>
 
@@ -1784,13 +1774,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <button
               type="button"
               onClick={requestClose}
-              className="px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
+              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-semibold shadow-md transition-colors"
+              className="btn btn-accent px-6"
             >
               {mode === 'edit' ? 'Save Changes' : 'Add Wound Protocol'}
             </button>

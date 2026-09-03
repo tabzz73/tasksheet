@@ -77,7 +77,6 @@ describe('sidebar parent navigation', () => {
     fireEvent.click(settingsNav);
     const facilityName = screen.getByRole('textbox', { name: 'Facility or site name' }) as HTMLInputElement;
     fireEvent.change(facilityName, { target: { value: 'Unsaved Facility Name' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Application' }));
     fireEvent.click(screen.getByRole('button', { name: /Developer Information/ }));
     expect(screen.getByRole('heading', { name: 'Developer Information' })).not.toBeNull();
     fireEvent.click(settingsNav);

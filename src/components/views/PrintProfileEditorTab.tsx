@@ -118,31 +118,31 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
   return (
     <div className="space-y-6">
       {/* ── PROFILE SELECTOR TABS ── */}
-      <div className="flex items-center justify-between bg-slate-100 p-1.5 rounded-xl">
+      <div className="flex items-center justify-between bg-panel-sunken p-1.5 rounded-surface">
         <div className="flex space-x-1">
           <button
             type="button"
             onClick={() => handleSelectType('clinical_worksheet')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center space-x-2 ${
+            className={`px-4 py-2 text-xs font-bold rounded-control transition-all flex items-center space-x-2 ${
               selectedProfileType === 'clinical_worksheet'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-panel text-ink'
+                : 'text-ink-soft hover:text-ink'
             }`}
           >
-            <Printer className="w-3.5 h-3.5 text-teal-600" />
+            <Printer className="w-3.5 h-3.5 text-accent" />
             <span>LPN Clinical Worksheet (Landscape)</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleSelectType('simple_checklist')}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center space-x-2 ${
+            className={`px-4 py-2 text-xs font-bold rounded-control transition-all flex items-center space-x-2 ${
               selectedProfileType === 'simple_checklist'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-panel text-ink'
+                : 'text-ink-soft hover:text-ink'
             }`}
           >
-            <FileText className="w-3.5 h-3.5 text-blue-600" />
+            <FileText className="w-3.5 h-3.5 text-accent" />
             <span>HCA Simple Checklist (Portrait)</span>
           </button>
         </div>
@@ -150,7 +150,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
         <button
           type="button"
           onClick={handleReset}
-          className="px-3 py-1.5 text-xs text-slate-500 hover:text-rose-700 font-semibold flex items-center space-x-1 rounded-lg hover:bg-slate-200 transition-colors"
+          className="px-3 py-1.5 text-xs text-muted hover:text-danger font-semibold flex items-center space-x-1 rounded-control hover:bg-panel-sunken transition-colors"
           title="Reset to Alberta standard factory default"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -162,15 +162,15 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
         {/* ── LEFT: CONFIGURATION CONTROLS (7 COLS) ── */}
         <div className="lg:col-span-7 space-y-5">
           {/* 1. Typography & Density */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm space-y-4">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center space-x-1.5">
-              <Sliders className="w-4 h-4 text-teal-600" />
+          <div className="p-5 bg-panel border border-hairline-strong rounded-surface space-y-4">
+            <h3 className="text-xs font-black text-ink uppercase tracking-wider flex items-center space-x-1.5">
+              <Sliders className="w-4 h-4 text-accent" />
               <span>Print Density & Typography</span>
             </h3>
 
             {/* Density Selector */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 mb-1.5">
+              <label className="block text-[11px] font-bold text-ink-soft mb-1.5">
                 Print Density
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -179,14 +179,14 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                     key={mode}
                     type="button"
                     onClick={() => setConfig({ ...config, density: mode })}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                    className={`p-2.5 rounded-control border text-left transition-all ${
                       config.density === mode
-                        ? 'border-teal-600 bg-teal-50/70 ring-1 ring-teal-600'
-                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                        ? 'border-accent bg-accent-soft/70 ring-1 ring-accent'
+                        : 'border-hairline-strong hover:bg-panel-sunken text-ink-soft'
                     }`}
                   >
-                    <span className="block text-xs font-bold capitalize text-slate-900">{mode}</span>
-                    <span className="block text-[10px] text-slate-500 mt-0.5">
+                    <span className="block text-xs font-bold capitalize text-ink">{mode}</span>
+                    <span className="block text-[10px] text-muted mt-0.5">
                       {mode === 'compact' && 'Tighter rows · max tasks/page'}
                       {mode === 'standard' && 'Balanced Alberta default'}
                       {mode === 'spacious' && 'Larger boxes · night & gloves'}
@@ -197,10 +197,10 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
             </div>
 
             {/* Accessibility: Large Print */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-3 border-t border-hairline flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-900">Large Print Mode</span>
-                <p className="text-[11px] text-slate-500">
+                <span className="text-xs font-bold text-ink">Large Print Mode</span>
+                <p className="text-[11px] text-muted">
                   Boost base text to 12pt high-contrast for low-vision working environments
                 </p>
               </div>
@@ -208,20 +208,20 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                 type="checkbox"
                 checked={config.largePrint}
                 onChange={e => setConfig({ ...config, largePrint: e.target.checked })}
-                className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+                className="w-4 h-4 text-accent rounded focus:ring-accent"
               />
             </div>
           </div>
 
           {/* 2. Quick Vitals Columns (LPN only) */}
           {isClinical && (
-            <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm space-y-4">
+            <div className="p-5 bg-panel border border-hairline-strong rounded-surface space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                  <h3 className="text-xs font-black text-ink uppercase tracking-wider">
                     Quick Vitals Table Columns
                   </h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-muted mt-0.5">
                     Customize the columns printed on the LPN Quick Vitals reconciliation grid
                   </p>
                 </div>
@@ -231,8 +231,8 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                 {(config.quickVitalsColumns || []).map(col => (
                   <label
                     key={col.id}
-                    className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
-                      col.enabled ? 'border-slate-300 bg-slate-50 font-bold text-slate-900' : 'border-slate-200 text-slate-400 bg-white'
+                    className={`flex items-center justify-between p-2 rounded-control border text-xs cursor-pointer transition-colors ${
+                      col.enabled ? 'border-hairline-strong bg-panel-sunken font-bold text-ink' : 'border-hairline-strong text-faint bg-panel'
                     }`}
                   >
                     <div className="flex items-center space-x-2">
@@ -240,7 +240,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                         type="checkbox"
                         checked={col.enabled}
                         onChange={() => handleToggleColumn(col.id)}
-                        className="rounded text-teal-600 focus:ring-teal-500"
+                        className="rounded text-accent focus:ring-accent"
                       />
                       <span>{col.label} ({col.shortLabel})</span>
                     </div>
@@ -248,7 +248,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                       <button
                         type="button"
                         onClick={(e) => { e.preventDefault(); handleDeleteColumn(col.id); }}
-                        className="text-slate-400 hover:text-rose-600"
+                        className="text-faint hover:text-danger"
                         title="Delete custom column"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -259,24 +259,24 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
               </div>
 
               {/* Add custom column input */}
-              <form onSubmit={handleAddColumn} className="pt-2 border-t border-slate-100 flex items-center space-x-2">
+              <form onSubmit={handleAddColumn} className="pt-2 border-t border-hairline flex items-center space-x-2">
                 <input
                   type="text"
                   placeholder="Custom Column Name (e.g. O2 LPM)"
                   value={newColLabel}
                   onChange={e => setNewColLabel(e.target.value)}
-                  className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  className="flex-1 px-3 py-1.5 border border-hairline-strong rounded-control text-xs"
                 />
                 <input
                   type="text"
                   placeholder="Abbr (e.g. LPM)"
                   value={newColShort}
                   onChange={e => setNewColShort(e.target.value)}
-                  className="w-24 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono"
+                  className="w-24 px-3 py-1.5 border border-hairline-strong rounded-control text-xs font-mono"
                 />
                 <button
                   type="submit"
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-teal-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1"
+                  className="px-3 py-1.5 bg-ink hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add</span>
@@ -284,10 +284,10 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
               </form>
 
               {/* Blank rows slider */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div className="pt-3 border-t border-hairline flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-slate-900">Minimum Blank Vitals Rows</span>
-                  <p className="text-[11px] text-slate-500">Number of writing rows generated for write-ins</p>
+                  <span className="text-xs font-bold text-ink">Minimum Blank Vitals Rows</span>
+                  <p className="text-[11px] text-muted">Number of writing rows generated for write-ins</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input
@@ -297,9 +297,9 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                     step="1"
                     value={config.quickVitalsRowsCount || 8}
                     onChange={e => setConfig({ ...config, quickVitalsRowsCount: Number(e.target.value) })}
-                    className="w-24 accent-teal-600"
+                    className="w-24 accent-[var(--color-accent)]"
                   />
-                  <span className="font-mono text-xs font-bold text-slate-800 w-6 text-right">
+                  <span className="font-mono text-xs font-bold text-ink w-6 text-right">
                     {config.quickVitalsRowsCount || 8}
                   </span>
                 </div>
@@ -308,58 +308,58 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
           )}
 
           {/* 3. Section Visibility & Handoff */}
-          <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-sm space-y-4">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+          <div className="p-5 bg-panel border border-hairline-strong rounded-surface space-y-4">
+            <h3 className="text-xs font-black text-ink uppercase tracking-wider">
               Sections & Writing Clearance
             </h3>
 
             <div className="space-y-2.5">
-              <label className="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+              <label className="flex items-center space-x-2 text-xs text-ink-soft cursor-pointer">
                 <input
                   type="checkbox"
                   checked={config.showStartUnitTasks}
                   onChange={e => setConfig({ ...config, showStartUnitTasks: e.target.checked })}
-                  className="rounded text-teal-600 focus:ring-teal-500"
+                  className="rounded text-accent focus:ring-accent"
                 />
                 <span>Include <strong>Start of Shift</strong> Unit Routines</span>
               </label>
 
-              <label className="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+              <label className="flex items-center space-x-2 text-xs text-ink-soft cursor-pointer">
                 <input
                   type="checkbox"
                   checked={config.showDuringUnitTasks}
                   onChange={e => setConfig({ ...config, showDuringUnitTasks: e.target.checked })}
-                  className="rounded text-teal-600 focus:ring-teal-500"
+                  className="rounded text-accent focus:ring-accent"
                 />
                 <span>Include <strong>During Shift</strong> Unit Routines</span>
               </label>
 
-              <label className="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+              <label className="flex items-center space-x-2 text-xs text-ink-soft cursor-pointer">
                 <input
                   type="checkbox"
                   checked={config.showEndUnitTasks}
                   onChange={e => setConfig({ ...config, showEndUnitTasks: e.target.checked })}
-                  className="rounded text-teal-600 focus:ring-teal-500"
+                  className="rounded text-accent focus:ring-accent"
                 />
                 <span>Include <strong>End of Shift</strong> Unit Routines</span>
               </label>
 
-              <label className="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+              <label className="flex items-center space-x-2 text-xs text-ink-soft cursor-pointer">
                 <input
                   type="checkbox"
                   checked={config.showImportantFYIs}
                   onChange={e => setConfig({ ...config, showImportantFYIs: e.target.checked })}
-                  className="rounded text-teal-600 focus:ring-teal-500"
+                  className="rounded text-accent focus:ring-accent"
                 />
                 <span>Include <strong>Important Information</strong> (Standing FYIs)</span>
               </label>
 
-              <label className="flex items-center space-x-2 text-xs text-slate-700 cursor-pointer">
+              <label className="flex items-center space-x-2 text-xs text-ink-soft cursor-pointer">
                 <input
                   type="checkbox"
                   checked={config.showHandoffLines}
                   onChange={e => setConfig({ ...config, showHandoffLines: e.target.checked })}
-                  className="rounded text-teal-600 focus:ring-teal-500"
+                  className="rounded text-accent focus:ring-accent"
                 />
                 <span>Include <strong>Handoff / Supervisor Notes</strong> lines</span>
               </label>
@@ -367,10 +367,10 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
 
             {/* Handoff Lines Count */}
             {config.showHandoffLines && (
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div className="pt-3 border-t border-hairline flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-slate-900">Handoff Writing Lines</span>
-                  <p className="text-[11px] text-slate-500">Blank ruled lines at sheet bottom</p>
+                  <span className="text-xs font-bold text-ink">Handoff Writing Lines</span>
+                  <p className="text-[11px] text-muted">Blank ruled lines at sheet bottom</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input
@@ -380,9 +380,9 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                     step="1"
                     value={config.handoffLinesCount}
                     onChange={e => setConfig({ ...config, handoffLinesCount: Number(e.target.value) })}
-                    className="w-24 accent-teal-600"
+                    className="w-24 accent-[var(--color-accent)]"
                   />
-                  <span className="font-mono text-xs font-bold text-slate-800 w-6 text-right">
+                  <span className="font-mono text-xs font-bold text-ink w-6 text-right">
                     {config.handoffLinesCount}
                   </span>
                 </div>
@@ -395,7 +395,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
             <button
               type="button"
               onClick={handleSave}
-              className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5 transition-colors"
+              className="px-6 py-2.5 bg-accent hover:bg-accent-strong text-white rounded-surface text-xs font-bold flex items-center space-x-1.5 transition-colors"
             >
               <Check className="w-4 h-4" />
               <span>Save {config.name}</span>
@@ -406,19 +406,19 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
         {/* ── RIGHT: LIVE PAPER SIMULATION PREVIEW (5 COLS) ── */}
         <div className="lg:col-span-5 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center space-x-1">
+            <span className="text-xs font-black text-muted uppercase tracking-widest flex items-center space-x-1">
               <Eye className="w-3.5 h-3.5" />
               <span>Live Paper Simulation</span>
             </span>
-            <span className="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-mono bg-panel-sunken text-ink-soft px-2 py-0.5 rounded">
               {isClinical ? 'Landscape 11" x 8.5"' : 'Portrait 8.5" x 11"'}
             </span>
           </div>
 
-          <div className="bg-slate-200 p-4 rounded-xl border border-slate-300 shadow-inner flex justify-center">
+          <div className="bg-panel-sunken p-4 rounded-surface border border-hairline-strong shadow-inner flex justify-center">
             {/* Scaled paper mockup */}
             <div 
-              className="bg-white shadow-xl rounded-sm p-4 text-[10px] text-slate-800 select-none overflow-hidden"
+              className="bg-panel shadow-elevated rounded-sm p-4 text-[10px] text-ink select-none overflow-hidden"
               style={{
                 width: isClinical ? '380px' : '300px',
                 minHeight: isClinical ? '270px' : '390px',
@@ -428,18 +428,18 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
               }}
             >
               {/* Mock Header */}
-              <div className="border-b-2 border-slate-900 pb-1 mb-2 flex justify-between items-start">
+              <div className="border-b-2 border-ink pb-1 mb-2 flex justify-between items-start">
                 <div>
                   <span className="font-black text-xs block">TASKSHEET</span>
-                  <span className="text-[9px] text-slate-500 uppercase">{config.name}</span>
+                  <span className="text-[9px] text-muted uppercase">{config.name}</span>
                 </div>
-                <div className="text-right text-[8px] text-slate-400">
+                <div className="text-right text-[8px] text-faint">
                   <span>{state.facility.siteName}</span>
                 </div>
               </div>
 
               {/* Mock Shift Banner */}
-              <div className="bg-slate-100 p-1 rounded text-[9px] font-bold mb-2 flex justify-between">
+              <div className="bg-panel-sunken p-1 rounded text-[9px] font-bold mb-2 flex justify-between">
                 <span>{isClinical ? 'LP1 — LPN Day' : 'D1 — HCA Day'}</span>
                 <span>0700–1900</span>
               </div>
@@ -447,9 +447,9 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
               {/* Mock Sections */}
               {config.showStartUnitTasks && (
                 <div className="mb-2">
-                  <div className="font-black text-[9px] uppercase border-b border-slate-900 mb-1">Start of Shift</div>
-                  <div className="flex items-center space-x-1 text-[9px] text-slate-700">
-                    <span className="w-2.5 h-2.5 border border-slate-600 rounded-sm inline-block" />
+                  <div className="font-black text-[9px] uppercase border-b border-ink mb-1">Start of Shift</div>
+                  <div className="flex items-center space-x-1 text-[9px] text-ink-soft">
+                    <span className="w-2.5 h-2.5 border border-ink-soft rounded-sm inline-block" />
                     <span>0700 · Shift Handover & Narcotics Count</span>
                   </div>
                 </div>
@@ -457,11 +457,11 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
 
               {/* Mock Resident Care */}
               <div className="mb-2">
-                <div className="font-black text-[9px] uppercase border-b border-slate-900 mb-1">Resident Care</div>
+                <div className="font-black text-[9px] uppercase border-b border-ink mb-1">Resident Care</div>
                 <div className="space-y-1">
                   <div className="font-bold text-[9px]">ROOM 254 — Mary Smith</div>
                   <div className="flex items-center space-x-1 pl-1 text-[9px]">
-                    <span className="w-2.5 h-2.5 border border-slate-600 rounded-sm inline-block" />
+                    <span className="w-2.5 h-2.5 border border-ink-soft rounded-sm inline-block" />
                     <span>0800 · Morning Care & Vitals</span>
                   </div>
                 </div>
@@ -470,15 +470,15 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
               {/* Mock Quick Vitals (Clinical only) */}
               {isClinical && (
                 <div className="mb-2">
-                  <div className="font-black text-[9px] uppercase border-b border-slate-900 mb-1">Quick Vitals</div>
-                  <div className="border border-slate-400 rounded-sm overflow-hidden text-[8px]">
-                    <div className="bg-slate-100 font-bold flex divide-x divide-slate-300">
+                  <div className="font-black text-[9px] uppercase border-b border-ink mb-1">Quick Vitals</div>
+                  <div className="border border-hairline-strong rounded-sm overflow-hidden text-[8px]">
+                    <div className="bg-panel-sunken font-bold flex divide-x divide-hairline-strong">
                       <span className="p-0.5 w-8 text-center">Room</span>
                       {(config.quickVitalsColumns || []).filter(c => c.enabled).slice(0, 5).map(c => (
                         <span key={c.id} className="p-0.5 flex-1 text-center">{c.shortLabel}</span>
                       ))}
                     </div>
-                    <div className="flex divide-x divide-slate-300 border-t border-slate-300">
+                    <div className="flex divide-x divide-hairline-strong border-t border-hairline-strong">
                       <span className="p-0.5 w-8 text-center font-bold">254</span>
                       {(config.quickVitalsColumns || []).filter(c => c.enabled).slice(0, 5).map(c => (
                         <span key={c.id} className="p-0.5 flex-1" />
@@ -491,9 +491,9 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
               {/* Mock Handoff Lines */}
               {config.showHandoffLines && (
                 <div>
-                  <div className="font-black text-[9px] uppercase border-b border-slate-900 mb-1">Handoff / Notes</div>
+                  <div className="font-black text-[9px] uppercase border-b border-ink mb-1">Handoff / Notes</div>
                   {Array.from({ length: Math.min(3, config.handoffLinesCount) }).map((_, i) => (
-                    <div key={i} className="border-b border-slate-300 h-3" />
+                    <div key={i} className="border-b border-hairline-strong h-3" />
                   ))}
                 </div>
               )}

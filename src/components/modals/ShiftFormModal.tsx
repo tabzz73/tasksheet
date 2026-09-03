@@ -149,8 +149,8 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
       <form onSubmit={handleSubmit} onChangeCapture={() => setHasUnsavedChanges(true)} className="space-y-4">
         {showUnsavedWarning && <ConflictNotice result={{ status: 'WARNING', title: 'Unsaved Changes', message: 'You have shift changes that have not been saved. Keep editing to preserve them, or discard them and close.', recommendedActions: [{ id: 'keep_editing', label: 'Keep Editing', kind: 'primary' }, { id: 'discard', label: 'Discard Changes', kind: 'cancel' }] }} onAction={action => { if (action === 'discard') onClose(); else setShowUnsavedWarning(false); }} />}
         {error && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-800 flex items-start space-x-2 animate-in fade-in">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <div className="p-3 bg-danger-soft border border-danger rounded-control text-xs font-semibold text-danger flex items-start space-x-2 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
@@ -158,8 +158,8 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
 
         {/* Shift Name */}
         <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-            Shift Name <span className="text-rose-500">*</span>
+          <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-1">
+            Shift Name <span className="text-danger">*</span>
           </label>
           <input
             type="text"
@@ -167,59 +167,56 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. LPN Day, HCA Evening, Overnight Clinical"
             required
-            className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-teal-500"
+            className="w-full px-3.5 h-10 border border-hairline-strong rounded-control text-sm font-semibold text-ink focus:ring-2 focus:ring-accent focus:outline-none"
           />
         </div>
 
-        {/* Short Name / Code */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Short Name / Code <span className="text-rose-500">*</span>
-            </label>
-            <span className="text-[11px] text-slate-400 font-mono">Display shorthand</span>
+        {/* Short Name / Code + Role — the two identifiers staff scan for first */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider">
+                Short Code <span className="text-danger">*</span>
+              </label>
+            </div>
+            <input
+              type="text"
+              value={shortCode}
+              onChange={(e) => setShortCode(e.target.value.toUpperCase())}
+              placeholder="e.g. LP1, D1"
+              maxLength={8}
+              required
+              className="w-full px-3.5 h-10 border border-hairline-strong rounded-control text-sm font-mono font-black text-ink focus:ring-2 focus:ring-accent focus:outline-none tracking-wider uppercase"
+            />
           </div>
-          <input
-            type="text"
-            value={shortCode}
-            onChange={(e) => setShortCode(e.target.value.toUpperCase())}
-            placeholder="e.g. LP1, D1, E2, NLPN, RN1"
-            maxLength={8}
-            required
-            className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-mono font-black text-slate-900 focus:ring-2 focus:ring-teal-500 tracking-wider uppercase"
-          />
-          <p className="text-[11px] text-slate-500 mt-1">
-            A short label used on TaskSheets and shift lists, such as D1, LP1 or NLPN.
-          </p>
-        </div>
 
-        {/* Authoritative Role */}
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-            Assigned Role <span className="text-rose-500">*</span>
-          </label>
-          <select
-            value={roleId}
-            onChange={(e) => setRoleId(e.target.value)}
-            required
-            className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-900 focus:ring-2 focus:ring-teal-500 bg-white"
-          >
-            {roles.map(r => (
-              <option key={r.id} value={r.id}>
-                {r.name} ({r.code})
-              </option>
-            ))}
-          </select>
-          <p className="text-[11px] text-slate-400 mt-1">
-            Selecting this shift automatically sets clinical scope and default worksheet style.
-          </p>
+          <div>
+            <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-1">
+              Assigned Role <span className="text-danger">*</span>
+            </label>
+            <select
+              value={roleId}
+              onChange={(e) => setRoleId(e.target.value)}
+              required
+              className="w-full px-3.5 h-10 border border-hairline-strong rounded-control text-sm font-medium text-ink focus:ring-2 focus:ring-accent focus:outline-none bg-panel"
+            >
+              {roles.map(r => (
+                <option key={r.id} value={r.id}>
+                  {r.name} ({r.code})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+        <p className="text-[11px] text-muted -mt-2">
+          The short code appears on TaskSheets and shift lists. The role sets clinical scope and default worksheet style.
+        </p>
 
         {/* Start & End Times */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Start Time (24h) <span className="text-rose-500">*</span>
+            <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-1">
+              Start Time (24h) <span className="text-danger">*</span>
             </label>
             <input
               type="text"
@@ -228,13 +225,13 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
               placeholder="0700"
               maxLength={4}
               required
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-mono font-bold text-slate-900 text-center focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 h-10 border border-hairline-strong rounded-control text-sm font-mono font-bold text-ink text-center tabular-nums focus:ring-2 focus:ring-accent focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              End Time (24h) <span className="text-rose-500">*</span>
+            <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-1">
+              End Time (24h) <span className="text-danger">*</span>
             </label>
             <input
               type="text"
@@ -243,21 +240,21 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
               placeholder="1900"
               maxLength={4}
               required
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-mono font-bold text-slate-900 text-center focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3.5 h-10 border border-hairline-strong rounded-control text-sm font-mono font-bold text-ink text-center tabular-nums focus:ring-2 focus:ring-accent focus:outline-none"
             />
           </div>
         </div>
 
         {crossesMidnight && (
-          <div className="p-2 bg-indigo-50 border border-indigo-200 rounded text-[11px] font-medium text-indigo-900 flex items-center space-x-1.5">
-            <Clock className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
-            <span>Overnight Shift: Working hours ({startTime}–{endTime}) automatically span past midnight.</span>
+          <div className="p-2.5 bg-accent-soft border border-hairline-strong rounded-control text-[11px] font-medium text-accent-strong flex items-center space-x-1.5">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>Overnight shift: working hours ({startTime}–{endTime}) automatically span past midnight.</span>
           </div>
         )}
 
         {/* Optional Description */}
         <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-ink-soft uppercase tracking-wider mb-1">
             Operational Scope / Notes (Optional)
           </label>
           <textarea
@@ -265,23 +262,16 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Brief notes regarding unit coverage or handoff expectations..."
             rows={2}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-700 focus:ring-2 focus:ring-teal-500"
+            className="w-full px-3 py-2 border border-hairline-strong rounded-control text-xs text-ink-soft focus:ring-2 focus:ring-accent focus:outline-none"
           />
         </div>
 
         {/* Actions */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2.5">
-          <button
-            type="button"
-            onClick={requestClose}
-            className="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-colors"
-          >
+        <div className="pt-3 border-t border-hairline flex items-center justify-end space-x-2.5">
+          <button type="button" onClick={requestClose} className="btn btn-secondary">
             Cancel
           </button>
-          <button
-            type="submit"
-            className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-bold shadow transition-colors"
-          >
+          <button type="submit" className="btn btn-accent">
             {submitLabel}
           </button>
         </div>

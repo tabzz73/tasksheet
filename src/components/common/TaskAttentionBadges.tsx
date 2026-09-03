@@ -109,24 +109,24 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
               <div
                 role="tooltip"
                 style={{ left: activeTooltip.left, top: activeTooltip.top, bottom: activeTooltip.bottom }}
-                className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-[9999] pointer-events-none animate-in fade-in zoom-in-95 duration-100 border border-slate-700"
+                className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-ink text-white rounded-surface shadow-elevated text-xs z-[9999] pointer-events-none animate-in fade-in zoom-in-95 duration-100 border border-white/10"
               >
-                <div className="flex items-center space-x-1.5 mb-1 pb-1 border-b border-slate-700 font-bold">
+                <div className="flex items-center space-x-1.5 mb-1 pb-1 border-b border-white/10 font-bold">
                   {renderIcon(details.iconName, 'w-3.5 h-3.5 text-amber-400')}
-                  <span className="text-slate-100">{details.label}</span>
-                  <span className="text-[10px] text-slate-400 font-mono ml-auto">[{details.code}]</span>
+                  <span className="text-white">{details.label}</span>
+                  <span className="text-[10px] text-white/50 font-mono ml-auto">[{details.code}]</span>
                 </div>
 
-                <p className="text-[11px] text-slate-300 mb-1.5 leading-snug">
+                <p className="text-[11px] text-white/70 mb-1.5 leading-snug">
                   {details.tooltip}
                 </p>
 
                 {meta?.reason && (
-                  <div className="text-[10px] text-slate-400 bg-slate-800/80 p-1.5 rounded-lg space-y-0.5 mb-1">
-                    <span className="text-slate-300 font-medium block">Reason / Trigger:</span>
+                  <div className="text-[10px] text-white/50 bg-white/10 p-1.5 rounded-control space-y-0.5 mb-1">
+                    <span className="text-white/70 font-medium block">Reason / Trigger:</span>
                     <span>{meta.reason}</span>
                     {meta.source && (
-                      <span className="text-slate-500 block italic">
+                      <span className="text-white/40 block italic">
                         Source: {meta.source === 'catalog' ? 'Alberta Starter Catalog rule' : meta.source === 'facility_rule' ? 'Facility attention rule' : 'Smart text suggestion'}
                       </span>
                     )}
@@ -145,7 +145,7 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
                   </div>
                 )}
 
-                <div className="text-[9px] text-slate-500 pt-1 border-t border-slate-800 italic text-right">
+                <div className="text-[9px] text-white/40 pt-1 border-t border-white/10 italic text-right">
                   Confirm against facility policy
                 </div>
               </div>,
@@ -166,7 +166,7 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
           onBlur={() => setActiveTooltip(null)}
         >
           <span
-            className={`inline-flex items-center px-1.5 py-0.5 rounded border border-slate-300 bg-slate-100 text-slate-700 font-mono font-bold cursor-help select-none ${
+            className={`inline-flex items-center px-1.5 py-0.5 rounded border border-hairline-strong bg-panel-sunken text-ink-soft font-mono font-bold cursor-help select-none ${
               size === 'xs' ? 'text-[9.5px]' : 'text-[11px]'
             }`}
           >
@@ -177,17 +177,17 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
             <div
               role="tooltip"
               style={{ left: activeTooltip.left, top: activeTooltip.top, bottom: activeTooltip.bottom }}
-              className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-slate-900 text-white rounded-xl shadow-2xl text-xs z-[9999] pointer-events-none border border-slate-700"
+              className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-ink text-white rounded-surface shadow-elevated text-xs z-[9999] pointer-events-none border border-white/10"
             >
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+              <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">
                 All Attention Indicators ({indicators.length}):
               </span>
               <div className="space-y-1.5 text-[11px]">
                 {indicators.map(ind => {
                   const d = getIndicatorBadgeDetails(ind, attentionConfig.mealRelation);
                   return (
-                    <div key={ind} className="flex items-center space-x-1.5 text-slate-200">
-                      {renderIcon(d.iconName, 'w-3 h-3 text-slate-400 shrink-0')}
+                    <div key={ind} className="flex items-center space-x-1.5 text-white/80">
+                      {renderIcon(d.iconName, 'w-3 h-3 text-white/50 shrink-0')}
                       <span className="font-bold">[{d.shortAbbreviation}] {d.label}</span>
                     </div>
                   );

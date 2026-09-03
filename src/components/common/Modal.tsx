@@ -73,35 +73,35 @@ export const Modal: React.FC<ModalProps> = ({
   }[maxWidth];
 
   return (
-    <div 
-      role="dialog" 
+    <div
+      role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-ink/50 overflow-y-auto"
     >
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthClass} bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150 outline-none`}
+        className={`relative w-full ${maxWidthClass} bg-panel rounded-surface shadow-elevated border border-hairline-strong overflow-hidden my-auto outline-none`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900 leading-tight">{title}</h3>
-            {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+        <div className="flex items-start justify-between px-5 py-3.5 min-h-14 border-b border-hairline bg-panel-sunken">
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-bold text-ink leading-tight truncate">{title}</h3>
+            {subtitle && <p className="text-[11px] text-muted mt-0.5 truncate">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/60 transition-colors"
+            className="shrink-0 ml-3 text-muted hover:text-ink p-1.5 rounded-control hover:bg-panel transition-colors"
             aria-label="Close dialog"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 max-h-[80vh] overflow-y-auto">
+        <div className="p-5 max-h-[80vh] overflow-y-auto">
           {children}
         </div>
       </div>
