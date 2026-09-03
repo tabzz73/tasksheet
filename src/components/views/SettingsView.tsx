@@ -549,72 +549,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
       )}
 
       {activeTab !== null && (
-      <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-5 items-start">
-        {/* Settings control-center rail — every section always visible, no accordion */}
-        <aside className="hidden lg:block sticky top-5 max-h-[calc(100vh-6rem)] overflow-y-auto" aria-label="Settings sections">
-          <button
-            type="button"
-            onClick={() => setActiveTab(null)}
-            className="mb-3 px-2 flex items-center gap-1.5 text-[12px] font-bold text-accent-strong hover:text-accent transition-colors"
-          >
-            ← All Settings
-          </button>
-          <nav className="space-y-4" aria-label="Settings categories">
-            {SETTINGS_NAV_GROUPS.map(group => (
-              <div key={group.label}>
-                <p className="px-2 mb-1 text-[10.5px] font-bold uppercase tracking-[0.1em] text-faint">{group.label}</p>
-                <div className="space-y-0.5">
-                  {group.items.map(item => {
-                    const Icon = item.icon;
-                    const isActive = activeTab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleSelectSettingsTab(item.id)}
-                        aria-current={isActive ? 'page' : undefined}
-                        className={`relative w-full flex items-center gap-2.5 pl-2.5 pr-2 h-9 rounded-control text-left transition-colors ${
-                          isActive ? 'bg-accent-soft text-accent-strong' : 'text-ink-soft hover:bg-panel-sunken'
-                        }`}
-                      >
-                        <span
-                          className="absolute left-0 top-1 bottom-1 w-[2.5px] rounded-control"
-                          style={{ background: isActive ? 'var(--color-accent)' : 'transparent' }}
-                          aria-hidden="true"
-                        />
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="min-w-0 text-[12.5px] font-semibold truncate">
-                          {item.label}
-                          {item.id === 'catalog' && <span className="ml-1 font-normal text-faint">({state.catalogTaskTemplates.length})</span>}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-        </aside>
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={() => setActiveTab(null)}
+          className="flex items-center gap-1.5 text-[12px] font-bold text-accent-strong hover:text-accent transition-colors"
+        >
+          ← All Settings
+        </button>
 
-        <div className="min-w-0 space-y-4">
-          <div className="lg:hidden bg-panel border border-hairline-strong rounded-surface p-3">
-            <label htmlFor="settings-section-select" className="block text-[10px] font-black uppercase tracking-wider text-muted mb-1.5">
-              Settings section
-            </label>
-            <select
-              id="settings-section-select"
-              value={activeTab}
-              onChange={(event) => handleSelectSettingsTab(event.target.value as SettingsTab)}
-              className="w-full px-3 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm font-semibold text-ink focus:ring-2 focus:ring-accent"
-            >
-              {SETTINGS_NAV_GROUPS.map(group => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.items.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-
+        <div className="min-w-0">
           <main className="min-w-0">
 
       {/* 1. FACILITY PROFILE */}
