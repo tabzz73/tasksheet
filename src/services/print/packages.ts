@@ -1,6 +1,6 @@
 import { db } from '../../db';
 import { Facility } from '../../types';
-import { generateShiftSheet, ShiftGenerationException } from '../generator';
+import { generateShiftSheet, GeneratedShiftSheet, ShiftGenerationException } from '../generator';
 import { PrintService, PrintDocumentModel } from './index';
 import { 
   buildBathingScheduleModel, 
@@ -25,6 +25,10 @@ export interface PrintPackageItem {
   shiftModel?: PrintDocumentModel;
   bathingModel?: BathingScheduleModel;
   woundModel?: WoundScheduleModel;
+  /** Raw generated shift (shift_document items only) — carried so opening the
+   *  package for print/preview can record a Print History entry per shift,
+   *  the same way single-shift printing does. */
+  shiftSheet?: GeneratedShiftSheet;
 }
 
 export interface PrintPackageModel {
@@ -40,6 +44,11 @@ export interface PrintPackageModel {
   exceptions: ShiftGenerationException[];
   /** Blocking configuration warnings. Role packages never substitute another role's shift. */
   configurationWarnings: string[];
+  /** Non-blocking advisory notices — e.g. a bundled section has no content
+   *  for this date (an empty wound schedule, a shift with no scheduled
+   *  tasks). The package still prints; this just surfaces it up front
+   *  instead of the user discovering a blank sheet after the fact. */
+  contentWarnings: string[];
 }
 
 export interface HcaPackageOptions {
@@ -68,6 +77,7 @@ export function buildHcaDailyPackage(
 
   const items: PrintPackageItem[] = [];
   const exceptions: ShiftGenerationException[] = [];
+  const contentWarnings: string[] = [];
 
   // 1. All active HCA shifts
   const hcaShifts = state.shifts.filter(s => {
@@ -88,6 +98,9 @@ export function buildHcaDailyPackage(
       const sheet = generateShiftSheet(dateStr, shift.id);
       exceptions.push(...sheet.exceptions);
       const model = PrintService.createDocumentModel(sheet, 'simple_checklist');
+      if (model.summary.totalResidentTasks + model.summary.totalUnitTasks === 0) {
+        contentWarnings.push(`${shift.shortCode || shift.name} has no scheduled tasks for ${dateStr} — its sheet will print blank.`);
+      }
       items.push({
         id: `pkg_shift_${shift.id}`,
         title: `${shift.shortCode ? `${shift.shortCode} — ` : ''}${shift.name}`,
@@ -96,6 +109,7 @@ export function buildHcaDailyPackage(
         isLandscape: false,
         estimatedPages: model.summary.estimatedPages,
         shiftModel: model,
+        shiftSheet: sheet,
       });
     } catch (err) {
       console.error('[buildHcaDailyPackage] Error generating shift sheet:', err);
@@ -106,6 +120,10 @@ export function buildHcaDailyPackage(
   if (options.includeBathingGrid !== false) {
     try {
       const bathingModel = buildBathingScheduleModel(dateStr);
+      const totalScheduled = Object.values(bathingModel.dailyTotals).reduce((sum, n) => sum + n, 0);
+      if (totalScheduled === 0) {
+        contentWarnings.push('Bathing & Hygiene Schedule Grid has no scheduled bathing this week — it will print as an empty grid.');
+      }
       items.push({
         id: 'pkg_bathing_grid',
         title: 'Bathing & Hygiene Schedule Grid',
@@ -133,6 +151,7 @@ export function buildHcaDailyPackage(
     estimatedTotalPages,
     exceptions,
     configurationWarnings,
+    contentWarnings,
   };
 }
 
@@ -154,6 +173,7 @@ export function buildLpnClinicalPackage(
 
   const items: PrintPackageItem[] = [];
   const exceptions: ShiftGenerationException[] = [];
+  const contentWarnings: string[] = [];
 
   // 1. All active LPN/RN clinical shifts
   const lpnShifts = state.shifts.filter(s => {
@@ -176,6 +196,9 @@ export function buildLpnClinicalPackage(
       const sheet = generateShiftSheet(dateStr, shift.id);
       exceptions.push(...sheet.exceptions);
       const model = PrintService.createDocumentModel(sheet, 'clinical_worksheet');
+      if (model.summary.totalResidentTasks + model.summary.totalUnitTasks === 0) {
+        contentWarnings.push(`${shift.shortCode || shift.name} has no scheduled tasks for ${dateStr} — its sheet will print blank.`);
+      }
       items.push({
         id: `pkg_shift_${shift.id}`,
         title: `${shift.shortCode ? `${shift.shortCode} — ` : ''}${shift.name}`,
@@ -184,6 +207,7 @@ export function buildLpnClinicalPackage(
         isLandscape: true,
         estimatedPages: model.summary.estimatedPages,
         shiftModel: model,
+        shiftSheet: sheet,
       });
     } catch (err) {
       console.error('[buildLpnClinicalPackage] Error generating clinical sheet:', err);
@@ -194,6 +218,9 @@ export function buildLpnClinicalPackage(
   if (options.includeWoundSchedule !== false) {
     try {
       const woundModel = buildWoundScheduleModel(dateStr);
+      if (woundModel.totalActiveWounds === 0) {
+        contentWarnings.push('Wound & Dressing Treatment Schedule has no active wound protocols — it will print as an empty schedule.');
+      }
       items.push({
         id: 'pkg_wound_schedule',
         title: 'Wound & Dressing Treatment Schedule',
@@ -221,5 +248,6 @@ export function buildLpnClinicalPackage(
     estimatedTotalPages,
     exceptions,
     configurationWarnings,
+    contentWarnings,
   };
 }

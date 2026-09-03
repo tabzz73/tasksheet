@@ -6,6 +6,7 @@ import { db } from '../db';
 import { generateShiftSheet } from '../services/generator';
 import { PrintService } from '../services/print';
 import { getEntry } from '../services/printHistory';
+import { buildHcaDailyPackage } from '../services/print/packages';
 import { SHIFT_HCA_DAY_ID } from '../data/defaultData';
 
 describe('usePrintFlow', () => {
@@ -38,6 +39,22 @@ describe('usePrintFlow', () => {
     const entry = getEntry(sheet.shift.id, date);
     expect(entry).toBeDefined();
     expect(entry?.profile).toBe(model.profile);
+  });
+
+  it('openPackagePreview records a Print History entry for every bundled shift, then shows the package', () => {
+    const date = '2026-09-09';
+    const pkg = buildHcaDailyPackage(date, { includeBathingGrid: false });
+    const shiftItem = pkg.items.find(item => item.docType === 'shift_document');
+    expect(shiftItem?.shiftSheet).toBeDefined();
+    expect(getEntry(shiftItem!.shiftSheet!.shift.id, date)).toBeUndefined();
+
+    const { result } = renderHook(() => usePrintFlow());
+    act(() => result.current.openPackagePreview(pkg));
+
+    expect(result.current.packagePrintModel).toBe(pkg);
+    const entry = getEntry(shiftItem!.shiftSheet!.shift.id, date);
+    expect(entry).toBeDefined();
+    expect(entry?.profile).toBe(shiftItem!.shiftModel!.profile);
   });
 
   it('setters independently control each print-preview surface', () => {

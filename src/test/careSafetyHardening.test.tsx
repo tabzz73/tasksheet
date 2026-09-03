@@ -96,4 +96,31 @@ describe('care configuration and resident status safety', () => {
     expect(hcaPackage.configurationWarnings.join(' ')).toMatch(/No active HCA shift/i);
     expect(hcaPackage.items.filter(item => item.docType === 'shift_document')).toHaveLength(0);
   });
+
+  it('surfaces non-blocking content warnings for bundled sections that will print blank, without withholding the package', () => {
+    db.clearAllOperationalData();
+    const clinicalRoleIds = new Set(db.getState().roles
+      .filter(role => role.defaultPrintProfile === 'clinical_worksheet')
+      .map(role => role.id));
+    db.getState().shifts.filter(s => s.roleId === ROLE_HCA_ID || clinicalRoleIds.has(s.roleId)).forEach(s => db.updateShift(s.id, { isActive: false }));
+    const shift = db.addShift({
+      name: 'Empty Sheet Day', shortCode: 'ESD', roleId: ROLE_HCA_ID,
+      startTime: '0700', endTime: '1500', isActive: true,
+    });
+
+    const hcaPackage = buildHcaDailyPackage('2026-08-26', { includeBathingGrid: false });
+    expect(hcaPackage.configurationWarnings).toHaveLength(0);
+    expect(hcaPackage.items.filter(item => item.docType === 'shift_document')).toHaveLength(1);
+    expect(hcaPackage.contentWarnings.join(' ')).toMatch(new RegExp(`${shift.shortCode}.*no scheduled tasks`, 'i'));
+    // Every shift item carries its raw GeneratedShiftSheet for Print History tracking.
+    expect(hcaPackage.items[0].shiftSheet?.shift.id).toBe(shift.id);
+
+    const lpnShift = db.addShift({
+      name: 'Empty Wounds Day', shortCode: 'EWD', roleId: ROLE_LPN_ID,
+      startTime: '0700', endTime: '1900', isActive: true,
+    });
+    const lpnPackage = buildLpnClinicalPackage('2026-08-26', { includeWoundSchedule: true });
+    expect(lpnPackage.contentWarnings.join(' ')).toMatch(/Wound & Dressing Treatment Schedule has no active wound/i);
+    expect(lpnPackage.contentWarnings.join(' ')).toMatch(new RegExp(`${lpnShift.shortCode}.*no scheduled tasks`, 'i'));
+  });
 });

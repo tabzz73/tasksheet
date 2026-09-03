@@ -217,7 +217,7 @@ export function App() {
               onDateChange={nav.setCurrentDate}
               onPrintShiftSheet={printFlow.setPrintShiftSheet}
               onPrintSpecializedDoc={printFlow.setSpecializedPrintDoc}
-              onPrintPackage={printFlow.setPackagePrintModel}
+              onPrintPackage={printFlow.openPackagePreview}
               navigationResetToken={nav.navigationResetToken}
             />
           )}

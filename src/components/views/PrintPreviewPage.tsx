@@ -139,7 +139,8 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
         .map(day => ({ line, day, slot: line.days[day.dayNumber] }))
         .filter(item => item.slot.overCapacity))
     : [];
-  const hasPreviewWarnings = generationExceptions.length > 0 || bathingCapacityExceptions.length > 0;
+  const contentWarnings = packageModel?.contentWarnings || [];
+  const hasPreviewWarnings = generationExceptions.length > 0 || bathingCapacityExceptions.length > 0 || contentWarnings.length > 0;
 
   const handlePrint = () => window.print();
 
@@ -218,6 +219,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
             <div className="min-w-0">
               {generationExceptions.length > 0 && <><p className="text-xs font-black">Exceptions / Needs Review — {generationExceptions.length} timed task{generationExceptions.length === 1 ? '' : 's'} withheld</p><p className="mt-0.5 text-[11px]">{generationExceptions.map(exception => `${exception.roomNumber ? `Room ${exception.roomNumber}` : 'Unit task'} — ${exception.title} — ${exception.time} — ${exception.shiftCode} (${exception.shiftStart}–${exception.shiftEnd})`).join(' · ')}</p></>}
               {bathingCapacityExceptions.length > 0 && <><p className="text-xs font-black">Bathing Capacity / Needs Review — {bathingCapacityExceptions.length} over-capacity cell{bathingCapacityExceptions.length === 1 ? '' : 's'}</p><p className="mt-0.5 text-[11px]">{bathingCapacityExceptions.map(({ line, day, slot }) => `${line.shiftCode} ${day.label}: ${slot.scheduled} of ${slot.capacity}`).join(' · ')}</p></>}
+              {contentWarnings.length > 0 && <><p className="text-xs font-black">Empty Sections — {contentWarnings.length} bundled document{contentWarnings.length === 1 ? '' : 's'} will print with no content</p><p className="mt-0.5 text-[11px]">{contentWarnings.join(' · ')}</p></>}
             </div>
           </div>
         </div>
