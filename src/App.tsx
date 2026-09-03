@@ -103,8 +103,8 @@ export function App() {
   const { printShiftSheet } = printFlow;
 
   return (
-    <div className="h-screen overflow-hidden flex bg-[#F6F8FA] text-[#0F172A]">
-      {/* 1. PERMANENT SIDEBAR */}
+    <div className="h-screen overflow-hidden flex flex-col bg-app text-ink">
+      {/* 1. TOP NAVIGATION (desktop header + mobile bottom bar) */}
       <Sidebar
         currentTab={nav.currentTab}
         onTabChange={nav.changeTabFromSidebar}

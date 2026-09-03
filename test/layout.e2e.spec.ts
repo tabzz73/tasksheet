@@ -9,7 +9,7 @@ test('Welcome cards remain below the top application bar while scrolling', async
   await page.getByRole('button', { name: /App Information/ }).click();
   await page.getByRole('button', { name: /Open Welcome & Overview/ }).click();
 
-  const header = page.locator('header');
+  const header = page.getByTestId('app-header');
   const content = page.locator('main');
   await expect(header).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Clearer shifts. Organized tasks. Print-ready TaskSheets.' })).toBeVisible();
@@ -23,7 +23,7 @@ test('Welcome cards remain below the top application bar while scrolling', async
   });
 
   const headerOwnsTopLayer = await page.evaluate(() => {
-    const appHeader = document.querySelector('header');
+    const appHeader = document.querySelector('[data-testid="app-header"]');
     if (!appHeader) return false;
     const bounds = appHeader.getBoundingClientRect();
     const topElement = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);

@@ -26,24 +26,26 @@ All screen-UI color lives in `src/index.css` under `@theme`, generating real Tai
 
 | Token | Value | Meaning — when to use it |
 |---|---|---|
-| `--color-app` | `#f4f3ef` | Page background only — the surface the whole app shell sits on. Never used for panels or cards. |
+| `--color-app` | `#f7f7f6` | Page background only — the surface the whole app shell sits on. Never used for panels or cards. |
 | `--color-panel` | `#ffffff` | The working surface: table backgrounds, modal bodies, input backgrounds, card-equivalent bordered sections. |
 | `--color-panel-sunken` | `#faf9f6` | A slightly recessed surface *inside* a panel — table header rows, hover states, toolbar bars, the canvas behind a print-preview paper. Never used as the outermost page background. |
-| `--color-ink` | `#17191c` | Primary text, headings, and the "primary" button fill. |
+| `--color-ink` | `#1d1f20` | Primary text, headings, and the "primary" button fill. |
 | `--color-ink-soft` | `#43474d` | Secondary text — subtitles, body copy inside dense rows, form labels' descriptive text. |
-| `--color-muted` | `#6b7076` | Tertiary/metadata text — timestamps, counts, helper captions. |
-| `--color-faint` | `#9a9ea3` | Lowest-emphasis text/icons — empty-state icons, disabled-adjacent hints. |
-| `--color-hairline` | `#dcdad3` | Default border/divider weight — table row dividers, section separators. |
-| `--color-hairline-strong` | `#b9b6ac` | Structural border weight — panel/card outlines, table header underlines, segmented-control borders. |
-| `--color-accent` | `#0d6e6e` (desaturated teal) | The **one** interactive/brand accent — primary CTAs, active nav/tab state, links, focus rings. Reserved for "this is interactive or currently selected," not decoration. |
-| `--color-accent-strong` | `#084c4c` | Accent hover/pressed state, and accent-toned text needing more contrast than `--color-accent` on a light background. |
-| `--color-accent-soft` | `#e4f0ef` | Accent-tinted background — selected list rows, info callouts, `.badge-accent`. |
-| `--color-danger` | `#b3261e` | Destructive actions and true errors/blocking conditions only (delete, validation failure, wound/clinical-safety flags). Never used for "inactive" or merely historical data. |
-| `--color-danger-soft` | `#fbeae9` | Danger-tinted background for alerts/badges. |
-| `--color-warning` | `#8a5a00` | Needs-attention states: paused care, demo-mode banners, setup-required banners, stopped tasks, on-hold/out-on-pass/in-hospital resident status. |
+| `--color-muted` | `#767779` | Tertiary/metadata text — timestamps, counts, helper captions. |
+| `--color-faint` | `#a4a5a6` | Lowest-emphasis text/icons — empty-state icons, disabled-adjacent hints. |
+| `--color-hairline` | `#dbdbdb` | Default border/divider weight — table row dividers, section separators. |
+| `--color-hairline-strong` | `#c9c9ca` | Structural border weight — panel/card outlines, table header underlines, segmented-control borders. |
+| `--color-accent` | `#5980a6` (muted blue-grey) | The **one** interactive/brand accent — primary CTAs, active nav/tab state, links, focus rings. Reserved for "this is interactive or currently selected," not decoration. |
+| `--color-accent-strong` | `#2c455d` | Accent hover/pressed state, and accent-toned text needing more contrast than `--color-accent` on a light background. |
+| `--color-accent-soft` | `#eef6ff` | Accent-tinted background — selected list rows, info callouts, `.badge-accent`. |
+| `--color-danger` | `#8a3f3a` | Destructive actions and true errors/blocking conditions only (delete, validation failure, wound/clinical-safety flags). Never used for "inactive" or merely historical data. |
+| `--color-danger-soft` | `#f6ece9` | Danger-tinted background for alerts/badges. |
+| `--color-warning` | `#8a5a1e` | Needs-attention states: paused care, demo-mode banners, setup-required banners, stopped tasks, on-hold/out-on-pass/in-hospital resident status. |
 | `--color-warning-soft` | `#faf1de` | Warning-tinted background. |
 | `--color-positive` | `#1e6b45` | Confirmed-good states only: Active resident status, "binder current," successful save feedback. |
 | `--color-positive-soft` | `#e7f2ec` | Positive-tinted background. |
+
+*(Revised 2026-09-03: accent hue changed from the original desaturated teal to a muted blue-grey, and text/hairline neutrals lightened slightly, following a new Claude Design mockup. Danger/warning also re-tuned to the mockup's muted tone. Radius/shadow/spacing scale, surface rules, and the Print Separation boundary below are unchanged from the original pass.)*
 
 **Status-semantic mapping (apply consistently everywhere a status/state appears — resident status, task status, binder status, shift toggles):**
 
@@ -53,21 +55,28 @@ All screen-UI color lives in `src/index.css` under `@theme`, generating real Tai
 - Destructive action or blocking validation failure → `danger`
 - Everything else that's just "this is the current selection or an interactive control" → `accent`
 
-**One exception, documented at its source:** `src/components/layout/Sidebar.tsx` defines `RAIL_ACCENT = '#3fb8b0'`, a brighter teal than `--color-accent`, used only for active-state indicators against the sidebar's near-black background (`RAIL_BG = '#15181c'`). `--color-accent` (`#0d6e6e`) is too dark to read as an "active" indicator on that background. This is a deliberate dark-surface variant, not a second brand color — it is not used anywhere else, and it is defined once as a named constant, not repeated as a magic hex value.
+**One exception, documented at its source:** `src/components/layout/Sidebar.tsx` defines `RAIL_ACCENT = '#7fa8d4'`, a brighter blue than `--color-accent`, used only for active-state indicators against the mobile nav's near-black surfaces (`RAIL_BG = '#15181c'`). `--color-accent` (`#5980a6`) is too dark to read as an "active" indicator on that background. This is a deliberate dark-surface variant, not a second brand color — it is not used anywhere else, and it is defined once as a named constant, not repeated as a magic hex value.
 
 ## Typography Hierarchy
 
-Font: system default (`Inter, system-ui, ...` stack) with `font-variant-numeric: tabular-nums` set globally so numeral columns (times, counts, room numbers) align. Sizes are set per-element with Tailwind arbitrary values (`text-[22px]`, `text-[13px]`, …) rather than the default type scale, to hit exact hierarchy targets:
+Three fonts, each with a specific job — not a single stack used everywhere:
+
+- **Public Sans** (`--font-body`, weights 400–700, self-hosted variable font) — body text, form values, table cells, everything not called out below. Applied globally via `body { font-family: var(--font-body) }`.
+- **Archivo** (`--font-heading`, weights 500–700, self-hosted variable font) — page titles (`h1`) and section titles (`h2`), applied globally via a base-layer rule, plus every button label via `.btn`'s shared class. Used for emphasis/display, never for body copy.
+- **IBM Plex Mono** (`--font-mono`, weights 500/600, self-hosted static files) — tabular/numeric identifiers only: shift codes, times, room numbers. Applied per-element (`font-[family-name:--font-mono]` or an inline style), not globally — most text should not be monospace.
+
+`font-variant-numeric: tabular-nums` remains set globally on `body` so numeral columns still align even where Plex Mono isn't applied. Sizes are set per-element with Tailwind arbitrary values (`text-[22px]`, `text-[13px]`, …) rather than the default type scale, to hit exact hierarchy targets:
 
 | Level | Size / weight | Where |
 |---|---|---|
-| Page title | `22px`, `font-bold` | One per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page. |
-| Section title | `13px`, `font-bold`, uppercase, `tracking-wide` | "Today's Shifts," settings nav-group labels, table section headers. |
-| Body | `13px`, regular/medium | Row content, form values, descriptive text. |
+| Page title | `22px`, `font-bold`, Archivo | One per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page. |
+| Section title | `13px`, `font-bold`, uppercase, `tracking-wide`, Archivo | "Today's Shifts," settings nav-group labels, table section headers. |
+| Body | `13px`, regular/medium, Public Sans | Row content, form values, descriptive text. |
 | Metadata | `11–11.5px`, `text-muted` or `text-faint` | Counts, timestamps, secondary descriptors under a title. |
 | Table headers | `10.5–11px`, `font-bold`, uppercase, `tracking-wide`, `text-muted` | `.table-schedule thead th` and equivalent div-grid headers. |
 | Labels (forms) | `11–12px`, `font-bold`, uppercase, `tracking-wider`, `text-ink-soft` | Field labels — bold-and-small, not large-and-regular. |
 | Helper text | `11px`, `text-muted` | Under an input, explaining format or consequence. |
+| Tabular data | Plex Mono | Shift codes, time ranges, room numbers — anywhere columns of numerals need to align by digit width, not just proportionally. |
 
 Hierarchy is carried by **weight and structure more than size** — a bold 13px row title next to a regular 13px metadata line reads clearly without needing a large size jump.
 
