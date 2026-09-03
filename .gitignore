@@ -49,6 +49,7 @@ temp/
 .vscode/
 .idea/
 .claude/
+/TaskSheet UIUX design/
 *.suo
 *.ntvs*
 *.njsproj
