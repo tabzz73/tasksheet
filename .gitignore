@@ -61,3 +61,6 @@ Desktop.ini
 # Impeccable skill: session-local caches, not project design-system history
 .impeccable/hook.cache.json
 .impeccable/live/
+
+# Scratch build-output dir used to diagnose a locked release/ directory
+release2/
