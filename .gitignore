@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+dist-package/
+release/
+out/
+build/
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Electron / packaging artifacts
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.blockmap
+
+# Local backups / runtime data
+backups/
+*.backup.json
+*.local.json
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# TypeScript
+*.tsbuildinfo
