@@ -1,8 +1,12 @@
 # Dependencies and generated application artifacts
 /node_modules/
 /dist/
-/release/
 /dist-ssr/
+dist-electron/
+dist-package/
+/release/
+out/
+build/
 *.tsbuildinfo
 
 # Test and coverage output
@@ -32,18 +36,29 @@ lerna-debug.log*
 *.sqlite3
 TaskSheet_Backup_*.json
 TaskSheet_Standard_Catalog_*.json
+*.backup.json
+*.local.json
 backups/
 
 # Temporary files
 tmp/
 temp/
 .tmp/
+.cache/
 *.tmp
 *.temp
 *.bak
 *.swp
 *.swo
 *~
+
+# Electron / packaging / installer artifacts — release binaries are
+# published as GitHub Release assets, not committed to source.
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.blockmap
 
 # IDE and operating-system metadata
 .vscode/
