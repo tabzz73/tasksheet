@@ -12,7 +12,8 @@ export type ValidationCode =
   | 'SHIFT_HAS_DEPENDENCIES' | 'CAPACITY_BELOW_ASSIGNMENTS' | 'STALE_RECORD' | 'INVALID_DATE_RANGE'
   | 'DUPLICATE_WOUND' | 'WOUND_NOT_ACTIVE' | 'MISSING_WOUND_PROTOCOL' | 'DUPLICATE_FYI'
   | 'COVERAGE_EXPIRED' | 'COVERAGE_NOT_STARTED' | 'FUNDED_FREQUENCY_EXCEEDED' | 'ADDITIONAL_SERVICE_CONFIRMATION'
-  | 'COVERAGE_CHANGE_IMPACT' | 'DUPLICATE_PRIVATE_PAY_SERVICE' | 'COVERAGE_TYPE_IN_USE' | 'ROLE_REQUIREMENT_CONFLICT';
+  | 'COVERAGE_CHANGE_IMPACT' | 'DUPLICATE_PRIVATE_PAY_SERVICE' | 'COVERAGE_TYPE_IN_USE' | 'ROLE_REQUIREMENT_CONFLICT'
+  | 'MISSING_RESIDENT';
 
 export interface RecommendedAction { id: string; label: string; kind?: 'primary' | 'secondary' | 'cancel' }
 export interface ValidationAffectedRecord { id: string; type: 'resident_task' | 'unit_task' | 'wound' | 'bathing' | 'shift' | 'resident' | 'fyi'; label: string; detail?: string; time?: string }

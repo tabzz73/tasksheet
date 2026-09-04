@@ -55,8 +55,10 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: '+ Care Task' }).click();
     await expect(page.getByRole('heading', { name: 'Add Care Task' })).toBeVisible();
 
-    // Select resident
-    await page.locator('select').first().selectOption({ index: 1 });
+    // Select resident via the searchable Resident Combobox
+    await page.getByLabel(/^Resident/).click();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
     // Search MAP2
     await page.getByPlaceholder(/Search HCA catalog/i).fill('MAP2');
     await expect(page.getByRole('dialog').getByText('MAP2 — Partial Medication Assistance')).toBeVisible();
@@ -96,7 +98,9 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     // 3. Add Care Task: Search Blood Glucose
     await page.getByRole('button', { name: /^Add to LP1/ }).click();
     await page.getByRole('button', { name: '+ Care Task' }).click();
-    await page.locator('select').first().selectOption({ index: 1 });
+    await page.getByLabel(/^Resident/).click();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
     await page.getByPlaceholder(/Search LPN catalog/i).fill('Blood Glucose');
     await expect(page.getByRole('dialog').getByText('Blood Glucose Check').first()).toBeVisible();
     await page.getByRole('dialog').getByText('Blood Glucose Check').first().click();
@@ -154,6 +158,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
 
     // 2. Add an FYI to trigger update needed
     await page.getByRole('button', { name: 'Add FYI', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Unit-wide / Shared' }).click();
     await page.locator('form textarea').fill('Physician visiting today at 14:00.');
     await page.locator('form').getByRole('button', { name: 'Add FYI' }).click();
 
@@ -393,6 +398,9 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     // Add Attention from the Dashboard quick action (defaults to Resident scope).
     await page.getByRole('button', { name: 'Add Attention' }).click();
     await page.getByLabel('Title').fill('Sleep concern noted');
+    await page.getByLabel('Resident').click();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
     await page.getByRole('button', { name: 'Add Attention Item' }).click();
     await expect(page.getByText('Sleep concern noted').first()).toBeVisible();
 
@@ -413,5 +421,31 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Dashboard' }).first().click();
     await expect(page.getByText('CODE RED')).toBeVisible();
     await expect(page.getByText('Fire')).toBeVisible();
+  });
+
+  test('Journey 14 — Resident Combobox: no default selection, type-to-search by room, and explicit pick', async ({ page }) => {
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+    await page.getByRole('button', { name: 'Add Attention' }).click();
+
+    // Opens with no resident chosen — not the first resident in the roster.
+    const residentField = page.getByLabel('Resident');
+    await expect(residentField).toHaveValue('');
+
+    // Typing narrows to matching room numbers.
+    await residentField.fill('101');
+    await expect(page.getByRole('option', { name: /101A · Arthur Pendleton/ })).toBeVisible();
+
+    // Submitting without picking one is blocked with a clear message, not
+    // silently saved against whichever option happened to be on screen.
+    await page.getByLabel('Title').fill('Untitled situation');
+    await page.getByRole('button', { name: 'Add Attention Item' }).click();
+    await expect(page.getByText('Select a resident.')).toBeVisible();
+
+    // Explicitly choosing a suggestion commits it.
+    await residentField.fill('101');
+    await page.getByRole('option', { name: /101A · Arthur Pendleton/ }).click();
+    await expect(residentField).toHaveValue(/101A · Arthur Pendleton/);
+    await page.getByRole('button', { name: 'Add Attention Item' }).click();
+    await expect(page.getByText('Untitled situation').first()).toBeVisible();
   });
 });

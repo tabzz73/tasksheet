@@ -20,6 +20,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
+import { ResidentCombobox } from '../common/ResidentCombobox';
 import { db } from '../../db';
 import { 
   Resident, 
@@ -292,7 +293,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           setSelectedType(initialType || null);
         }
 
-        setResidentId(contextResidentId || (residents.length > 0 ? residents[0].id : ''));
+        setResidentId(contextResidentId || '');
         const defaultShift = contextShiftId || (shifts.length > 0 ? shifts[0].id : '');
         setShiftId(defaultShift);
         if (defaultShift) {
@@ -438,7 +439,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
   const handleSaveCareTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskTitle.trim() || !residentId || careTaskTimeError || pausedResidentNeedsAcknowledgement) return;
+    if (!taskTitle.trim() || careTaskTimeError || pausedResidentNeedsAcknowledgement) return;
+    if (!residentId) { setMutationConflict({ status: 'BLOCKED', code: 'MISSING_RESIDENT', title: 'Resident Required', message: 'Select a resident.' }); return; }
     setMutationConflict(null);
     const resolvedTaskTime = taskTimingType === 'period' ? undefined : taskTimingType === 'start_of_shift' ? currentShiftObj?.startTime : taskTimingType === 'end_of_shift' ? currentShiftObj?.endTime : taskTime;
     const resolvedNoSpecificTime = taskTimingType === 'period';
@@ -592,6 +594,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const handleAddFYI = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fyiText.trim()) return;
+    if (fyiScope === 'resident' && !residentId) { setMutationConflict({ status: 'BLOCKED', code: 'MISSING_RESIDENT', title: 'Resident Required', message: 'Select a resident.' }); return; }
 
     setMutationConflict(null);
     try { if (mode === 'edit' && initialFYI) {
@@ -628,7 +631,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
   const handleAddWound = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!woundSiteLocation.trim() || !residentId || !woundShiftId || woundShiftTimeError) return;
+    if (!woundSiteLocation.trim() || !woundShiftId || woundShiftTimeError) return;
+    if (!residentId) { setMutationConflict({ status: 'BLOCKED', code: 'MISSING_RESIDENT', title: 'Resident Required', message: 'Select a resident.' }); return; }
     if (!woundInstructions.trim() && (woundStatus === 'active' || woundStatus === 'healing')) { setMutationConflict({ status: 'BLOCKED', code: 'MISSING_WOUND_PROTOCOL', title: 'Dressing Plan Is Required', message: `${woundSiteLocation.trim()} needs treatment/dressing instructions before it can be scheduled. Enter the protocol, or save it as resolved/discontinued if no future care is required.` }); return; }
     if (mode === 'edit' && initialWound && ['active', 'healing'].includes(initialWound.status) && ['resolved', 'discontinued'].includes(woundStatus) && !woundStopConfirmed) {
       setMutationConflict({ status: 'WARNING', code: 'WOUND_NOT_ACTIVE', title: 'Future Wound Care Will Stop', message: `Marking ${woundSiteLocation.trim()} as ${woundStatus} will remove this recurring wound protocol from future operational TaskSheets. Existing historical data is preserved.`, affectedRecords: [{ id: initialWound.id, type: 'wound', label: `${initialWound.siteLocation} · ${initialWound.frequency}` }], recommendedActions: [{ id: 'confirm_stop', label: 'Confirm & Stop Future Care', kind: 'primary' }, { id: 'cancel', label: 'Keep Wound Active', kind: 'cancel' }] });
@@ -807,22 +811,17 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           {/* Resident Picker (if not in context or in edit/duplicate mode where change is supported) */}
           {(!contextResidentId || mode === 'duplicate') && (
             <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              <label htmlFor="care-task-resident" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Resident <span className="text-danger">*</span>
               </label>
-              <select
+              <ResidentCombobox
+                id="care-task-resident"
+                residents={residents}
                 value={residentId}
-                onChange={(e) => setResidentId(e.target.value)}
+                onChange={setResidentId}
+                placeholder="Search resident..."
                 required
-                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-              >
-                <option value="">Select resident or room...</option>
-                {residents.map(r => (
-                  <option key={r.id} value={r.id}>
-                    Room {r.roomNumber} — {r.lastName}, {r.firstName} ({getResidentStatusLabel(r.status)})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           )}
 
@@ -1673,21 +1672,17 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           {fyiScope === 'resident' && (
             <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              <label htmlFor="fyi-resident" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Resident <span className="text-danger">*</span>
               </label>
-              <select
+              <ResidentCombobox
+                id="fyi-resident"
+                residents={residents}
                 value={residentId}
-                onChange={(e) => setResidentId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-              >
-                <option value="">Select resident or room...</option>
-                {residents.map(r => (
-                  <option key={r.id} value={r.id}>
-                    Room {r.roomNumber} — {r.lastName}, {r.firstName}
-                  </option>
-                ))}
-              </select>
+                onChange={setResidentId}
+                placeholder="Search resident..."
+                required
+              />
             </div>
           )}
 
@@ -1793,22 +1788,17 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           {!contextResidentId && (
             <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              <label htmlFor="wound-resident" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Resident <span className="text-danger">*</span>
               </label>
-              <select
+              <ResidentCombobox
+                id="wound-resident"
+                residents={residents}
                 value={residentId}
-                onChange={(e) => setResidentId(e.target.value)}
+                onChange={setResidentId}
+                placeholder="Search resident..."
                 required
-                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-              >
-                <option value="">Select resident...</option>
-                {residents.map(r => (
-                  <option key={r.id} value={r.id}>
-                    Room {r.roomNumber} — {r.lastName}, {r.firstName}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           )}
 

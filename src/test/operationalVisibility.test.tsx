@@ -78,6 +78,8 @@ describe('Attention Dashboard/Huddle visibility', () => {
     expect(huddleCheckbox).toHaveProperty('checked', false);
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Sleep concern' } });
+    fireEvent.change(screen.getByLabelText('Resident'), { target: { value: 'Pendleton' } });
+    fireEvent.click(screen.getByRole('option', { name: /Pendleton/ }));
     fireEvent.click(dashboardCheckbox);
     fireEvent.click(huddleCheckbox);
     fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
@@ -91,6 +93,8 @@ describe('Attention Dashboard/Huddle visibility', () => {
     render(<AddResidentAttentionModal isOpen onClose={() => undefined} onSaved={() => undefined} currentDate="2026-09-03" />);
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Overnight Observation' } });
+    fireEvent.change(screen.getByLabelText('Resident'), { target: { value: 'Pendleton' } });
+    fireEvent.click(screen.getByRole('option', { name: /Pendleton/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
 
     const stored = db.getState().attentionItems.find(a => a.title === 'Overnight Observation');

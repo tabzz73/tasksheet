@@ -88,6 +88,9 @@ describe('Dashboard customization', () => {
     expect(screen.getByRole('heading', { name: 'Add Attention' })).not.toBeNull();
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Behaviour concern noted' } });
+    const residentCombobox = screen.getByLabelText('Resident');
+    fireEvent.change(residentCombobox, { target: { value: 'Pendleton' } });
+    fireEvent.click(screen.getByRole('option', { name: /Pendleton/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
 
     expect(screen.getAllByText('Behaviour concern noted').length).toBeGreaterThan(0);

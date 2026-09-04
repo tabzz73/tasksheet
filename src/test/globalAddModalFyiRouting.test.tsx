@@ -43,6 +43,7 @@ describe('GlobalAddModal — FYI scope, dates, and routing preview', () => {
     render(<GlobalAddModal isOpen initialType="fyi" onClose={() => undefined} />);
 
     fireEvent.change(screen.getByPlaceholderText(/Son visits on Saturdays/i), { target: { value: 'Huddle-relevant note' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Unit-wide / Shared' }));
 
     const dashboardCheckbox = screen.getByRole('checkbox', { name: 'Show on Dashboard' });
     const huddleCheckbox = screen.getByRole('checkbox', { name: 'Show in Huddle' });
@@ -69,6 +70,7 @@ describe('GlobalAddModal — FYI scope, dates, and routing preview', () => {
     render(<GlobalAddModal isOpen initialType="fyi" onClose={() => undefined} currentDate="2026-09-03" />);
 
     fireEvent.change(screen.getByPlaceholderText(/Son visits on Saturdays/i), { target: { value: 'Overnight handoff note' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Unit-wide / Shared' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add FYI' }));
 
     const saved = db.getState().fyis.find(f => f.text === 'Overnight handoff note');

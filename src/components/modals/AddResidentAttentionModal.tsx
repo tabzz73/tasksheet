@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from '../common/Modal';
+import { ResidentCombobox } from '../common/ResidentCombobox';
 import { db } from '../../db';
 import { getTodayLocalDateString } from '../../services/recurrence';
 import { describeAttentionRouting } from '../../services/routingPreview';
@@ -33,7 +34,7 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
   const defaultStartDate = currentDate || getTodayLocalDateString();
 
   const [scope, setScope] = useState<AttentionScope>('resident');
-  const [residentId, setResidentId] = useState(activeResidents[0]?.id || '');
+  const [residentId, setResidentId] = useState('');
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [startDate, setStartDate] = useState(defaultStartDate);
@@ -47,7 +48,7 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
 
   const reset = () => {
     setScope('resident');
-    setResidentId(activeResidents[0]?.id || '');
+    setResidentId('');
     setTitle(''); setDetails(''); setStartDate(defaultStartDate); setEndDate('');
     setPriority('normal'); setShowOnDashboard(true); setShowInHuddle(false); setError('');
   };
@@ -101,10 +102,15 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
         {scope === 'resident' && (
           <div>
             <label htmlFor="attn-resident" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Resident</label>
-            <select id="attn-resident" value={residentId} onChange={(e) => setResidentId(e.target.value)} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm bg-panel focus:ring-2 focus:ring-accent">
-              {activeResidents.length === 0 && <option value="">No active residents</option>}
-              {activeResidents.map(r => <option key={r.id} value={r.id}>{r.roomNumber} — {r.firstName} {r.lastName}</option>)}
-            </select>
+            <ResidentCombobox
+              id="attn-resident"
+              residents={activeResidents}
+              value={residentId}
+              onChange={setResidentId}
+              placeholder="Search resident..."
+              required
+              error={Boolean(error) && !residentId}
+            />
           </div>
         )}
 
