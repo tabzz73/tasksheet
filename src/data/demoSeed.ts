@@ -1,4 +1,4 @@
-import { Resident, ResidentTask, UnitTask, FYI, Wound, Completion } from '../types';
+import { AttentionItem, Resident, ResidentTask, UnitTask, FYI, Wound, Completion } from '../types';
 import { ROLE_HCA_ID, ROLE_LPN_ID, SHIFT_HCA_DAY_ID, SHIFT_LPN_DAY_ID } from './defaultData';
 import { getTodayLocalDateString } from '../services/recurrence';
 
@@ -21,18 +21,6 @@ export function generateDemoData() {
       roomNumber: '101A',
       status: 'active',
       notes: 'Independent with walker; loves reading the morning paper.',
-      attentionItems: [
-        {
-          id: 'attn-demo-1',
-          type: 'Increased Falls Observation',
-          note: 'Found on floor overnight Sep 1 — no injury. Frequent room checks in effect.',
-          startDate: todayStr,
-          endDate: addDaysToDateStr(todayStr, 6),
-          active: true,
-          createdAt: new Date().toISOString(),
-          source: 'demo',
-        },
-      ],
       source: 'demo'
     },
     {
@@ -794,12 +782,62 @@ export function generateDemoData() {
     }
   ];
 
+  // Attention: temporary situations staff need to be aware of — never
+  // tracking/monitoring (that's a ResidentTask). One example per scope so
+  // Resident, Unit, and Site all demonstrate end-to-end.
+  const attentionItems: AttentionItem[] = [
+    {
+      id: 'attn-demo-resident-1',
+      scope: 'resident',
+      residentId: 'res-101',
+      title: 'Increased Falls Observation',
+      details: 'Found on floor overnight Sep 1 — no injury. Frequent room checks in effect.',
+      startDate: todayStr,
+      endDate: addDaysToDateStr(todayStr, 6),
+      active: true,
+      priority: 'high',
+      showOnDashboard: true,
+      showInHuddle: true,
+      createdAt: new Date().toISOString(),
+      source: 'demo',
+    },
+    {
+      id: 'attn-demo-unit-1',
+      scope: 'unit',
+      title: 'Internet unavailable',
+      details: 'Scheduled ISP maintenance — expect an outage this morning.',
+      startDate: todayStr,
+      endDate: todayStr,
+      active: true,
+      priority: 'high',
+      showOnDashboard: true,
+      showInHuddle: true,
+      createdAt: new Date().toISOString(),
+      source: 'demo',
+    },
+    {
+      id: 'attn-demo-site-1',
+      scope: 'site',
+      title: 'Fire drill',
+      details: 'Building-wide fire drill — all units participate.',
+      startDate: addDaysToDateStr(todayStr, 1),
+      endDate: addDaysToDateStr(todayStr, 1),
+      active: true,
+      priority: 'high',
+      showOnDashboard: true,
+      showInHuddle: true,
+      createdAt: new Date().toISOString(),
+      source: 'demo',
+    },
+  ];
+
   return {
     residents,
     residentTasks,
     unitTasks,
     fyis,
     wounds,
+    attentionItems,
     completions
   };
 }

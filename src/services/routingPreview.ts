@@ -46,25 +46,19 @@ export function describeFyiRouting(state: AppDatabaseState, draft: FyiRoutingDra
 }
 
 export interface AttentionRoutingDraft {
-  roleId?: string;
-  shiftId?: string;
-  includeInFyiBinder?: boolean;
   showOnDashboard?: boolean;
   showInHuddle?: boolean;
 }
 
-/** Resident Attention: on the Dashboard while active unless explicitly
- *  turned off; reaches a printed TaskSheet / Shift Workspace only when
- *  explicitly scoped to a shift or role — an unscoped item stays
- *  Dashboard-only by design, so it doesn't get blasted onto every shift's
- *  paperwork. */
-export function describeAttentionRouting(state: AppDatabaseState, draft: AttentionRoutingDraft): string[] {
+/** Attention: a temporary Resident/Unit/Site situation, not a to-do item and
+ *  not routed into any printed TaskSheet or the FYI Binder. It only ever
+ *  appears on the Dashboard (Current Unit Situation / Resident Attention)
+ *  and, when flagged, the Huddle briefing. */
+export function describeAttentionRouting(_state: AppDatabaseState, draft: AttentionRoutingDraft): string[] {
   const labels: string[] = [];
   if (draft.showOnDashboard !== false) labels.push('Dashboard');
   if (draft.showInHuddle) labels.push('Huddle');
-  const scoped = shiftLabel(state, draft.shiftId) || roleLabel(state, draft.roleId);
-  if (scoped) labels.push(scoped);
-  if (draft.includeInFyiBinder) labels.push('FYI Binder');
+  if (labels.length === 0) labels.push('Not shown anywhere — enable Dashboard or Huddle above');
   return labels;
 }
 

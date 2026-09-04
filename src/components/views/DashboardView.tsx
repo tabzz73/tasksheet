@@ -9,6 +9,7 @@ import {
   Bandage,
   ChevronDown,
   Settings2,
+  Megaphone,
 } from 'lucide-react';
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
@@ -28,6 +29,7 @@ import {
 } from '../dashboard/DashboardWidgets';
 import { CustomizeDashboardModal } from '../dashboard/CustomizeDashboardModal';
 import { AddResidentAttentionModal } from '../modals/AddResidentAttentionModal';
+import { HuddleView } from '../dashboard/HuddleView';
 
 const SHIFT_ROW_GRID = '11% 1fr 13% 13% 11% 9% 9%';
 
@@ -57,6 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [quickAddOpen, setQuickAddOpen] = React.useState(false);
   const [customizeOpen, setCustomizeOpen] = React.useState(false);
   const [addAttentionOpen, setAddAttentionOpen] = React.useState(false);
+  const [huddleOpen, setHuddleOpen] = React.useState(false);
   const [, forceRerender] = React.useState(0);
   const state = db.getState();
   const layout = getValidatedDashboardLayout(state);
@@ -118,6 +121,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             >
               <Settings2 className="w-3.5 h-3.5" />
               <span>Customize</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setHuddleOpen(true)}
+              className="btn btn-accent"
+            >
+              <Megaphone className="w-3.5 h-3.5" />
+              <span>Start Shift Huddle →</span>
             </button>
             <div className="relative">
             <button
@@ -199,7 +210,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {layout.filter(w => w.visible).map(w => {
           switch (w.id) {
             case 'unit_situation':
-              return <UnitSituationCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} onNavigateToBinder={onNavigateToBinder} />;
+              return <UnitSituationCard key={w.id} state={state} today={currentDate} />;
             case 'resident_attention':
               return <ResidentAttentionCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
             case 'resident_follow_up':
@@ -235,6 +246,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         onClose={() => setAddAttentionOpen(false)}
         onSaved={() => forceRerender(n => n + 1)}
         currentDate={currentDate}
+      />
+      <HuddleView
+        isOpen={huddleOpen}
+        onClose={() => setHuddleOpen(false)}
+        state={state}
+        today={currentDate}
       />
 
       {/* Today's shifts — schedule table, not a card grid */}

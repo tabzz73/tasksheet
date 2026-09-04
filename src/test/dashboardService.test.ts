@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db';
-import { ROLE_HCA_ID, SHIFT_HCA_DAY_ID } from '../data/defaultData';
+import { SHIFT_HCA_DAY_ID } from '../data/defaultData';
 import {
   isWithinActiveWindow,
-  getActiveResidentAttentionItems,
+  getActiveAttentionItems,
   getAwayResidents,
   getDashboardFyis,
+  getHuddleBriefing,
   getResidentFollowUpTasks,
   getUnitSituationSummary,
   getValidatedDashboardLayout,
@@ -36,26 +37,26 @@ describe('isWithinActiveWindow (date-bounded operational items)', () => {
   });
 });
 
-describe('getActiveResidentAttentionItems', () => {
+describe('getActiveAttentionItems', () => {
   beforeEach(() => db.resetToDemoState());
 
   it('suppresses future-start, expired, and manually-ended items; keeps active-today ones', () => {
     const resident = db.getState().residents.find(r => r.status === 'active')!;
     const today = '2026-09-03';
-    db.addResidentAttentionItem(resident.id, { type: 'Active Today', startDate: today });
-    const future = db.addResidentAttentionItem(resident.id, { type: 'Future', startDate: '2026-09-10' });
-    const expired = db.addResidentAttentionItem(resident.id, { type: 'Expired', startDate: '2026-08-01', endDate: '2026-08-15' });
-    const endingToday = db.addResidentAttentionItem(resident.id, { type: 'Ending Today', startDate: '2026-08-25', endDate: today });
-    const manuallyEnded = db.addResidentAttentionItem(resident.id, { type: 'Manually Ended', startDate: today });
-    db.endResidentAttentionItem(resident.id, manuallyEnded.id);
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Active Today', startDate: today });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Future', startDate: '2026-09-10' });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Expired', startDate: '2026-08-01', endDate: '2026-08-15' });
+    const endingToday = db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Ending Today', startDate: '2026-08-25', endDate: today });
+    const manuallyEnded = db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Manually Ended', startDate: today });
+    db.endAttentionItem(manuallyEnded.id);
 
-    const active = getActiveResidentAttentionItems(db.getState(), today);
-    const types = active.filter(e => e.resident.id === resident.id).map(e => e.item.type);
-    expect(types).toContain('Active Today');
-    expect(types).toContain('Ending Today');
-    expect(types).not.toContain('Future');
-    expect(types).not.toContain('Expired');
-    expect(types).not.toContain('Manually Ended');
+    const active = getActiveAttentionItems(db.getState(), today);
+    const titles = active.filter(e => e.resident?.id === resident.id).map(e => e.item.title);
+    expect(titles).toContain('Active Today');
+    expect(titles).toContain('Ending Today');
+    expect(titles).not.toContain('Future');
+    expect(titles).not.toContain('Expired');
+    expect(titles).not.toContain('Manually Ended');
 
     // Ending-soon flag
     const endingEntry = active.find(e => e.item.id === endingToday.id)!;
@@ -64,42 +65,60 @@ describe('getActiveResidentAttentionItems', () => {
 
   it('manually ending an item preserves the historical record rather than deleting it', () => {
     const resident = db.getState().residents.find(r => r.status === 'active')!;
-    const item = db.addResidentAttentionItem(resident.id, { type: 'To End', startDate: '2026-09-03' });
-    db.endResidentAttentionItem(resident.id, item.id);
-    const stored = db.getState().residents.find(r => r.id === resident.id)!.attentionItems!.find(a => a.id === item.id);
+    const item = db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'To End', startDate: '2026-09-03' });
+    db.endAttentionItem(item.id);
+    const stored = db.getState().attentionItems.find(a => a.id === item.id);
     expect(stored).toBeDefined();
     expect(stored!.active).toBe(false);
     expect(stored!.updatedAt).toBeDefined();
   });
 
-  it('rejects an attention item with no type', () => {
+  it('rejects an attention item with no title', () => {
     const resident = db.getState().residents.find(r => r.status === 'active')!;
-    expect(() => db.addResidentAttentionItem(resident.id, { type: '  ', startDate: '2026-09-03' })).toThrow(/required/i);
+    expect(() => db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: '  ', startDate: '2026-09-03' })).toThrow(/required/i);
   });
 
-  it('sorts urgent/high importance items ahead of normal ones, then by room', () => {
+  it('rejects a resident-scoped item with no resident', () => {
+    expect(() => db.addAttentionItem({ scope: 'resident', title: 'No resident', startDate: '2026-09-03' })).toThrow(/resident/i);
+  });
+
+  it('sorts urgent/high priority items ahead of normal ones, then by room', () => {
     db.clearAllOperationalData();
     const today = '2026-09-03';
     const roomB = db.addResident({ firstName: 'B', lastName: 'Room', roomNumber: '110', status: 'active' });
     const roomA = db.addResident({ firstName: 'A', lastName: 'Room', roomNumber: '105', status: 'active' });
-    db.addResidentAttentionItem(roomB.id, { type: 'Normal Note', startDate: today, importance: 'normal' });
-    db.addResidentAttentionItem(roomA.id, { type: 'Urgent Note', startDate: today, importance: 'urgent' });
-    db.addResidentAttentionItem(roomA.id, { type: 'No Importance Set', startDate: today });
+    db.addAttentionItem({ scope: 'resident', residentId: roomB.id, title: 'Normal Note', startDate: today, priority: 'normal' });
+    db.addAttentionItem({ scope: 'resident', residentId: roomA.id, title: 'Urgent Note', startDate: today, priority: 'urgent' });
+    db.addAttentionItem({ scope: 'resident', residentId: roomA.id, title: 'No Priority Set', startDate: today });
 
-    const active = getActiveResidentAttentionItems(db.getState(), today);
-    expect(active.map(e => e.item.type)).toEqual(['Urgent Note', 'No Importance Set', 'Normal Note']);
+    const active = getActiveAttentionItems(db.getState(), today, 'resident');
+    expect(active.map(e => e.item.title)).toEqual(['Urgent Note', 'No Priority Set', 'Normal Note']);
   });
 
   it('excludes an item explicitly marked showOnDashboard: false, but keeps ones with the flag unset (opt-out, preserving prior behavior)', () => {
     db.clearAllOperationalData();
     const today = '2026-09-03';
     const resident = db.addResident({ firstName: 'C', lastName: 'Room', roomNumber: '120', status: 'active' });
-    db.addResidentAttentionItem(resident.id, { type: 'Hidden Item', startDate: today, showOnDashboard: false });
-    db.addResidentAttentionItem(resident.id, { type: 'Default Visible Item', startDate: today });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Hidden Item', startDate: today, showOnDashboard: false });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Default Visible Item', startDate: today });
 
-    const types = getActiveResidentAttentionItems(db.getState(), today).map(e => e.item.type);
-    expect(types).not.toContain('Hidden Item');
-    expect(types).toContain('Default Visible Item');
+    const titles = getActiveAttentionItems(db.getState(), today).map(e => e.item.title);
+    expect(titles).not.toContain('Hidden Item');
+    expect(titles).toContain('Default Visible Item');
+  });
+
+  it('filters by scope when passed, and returns all scopes when omitted', () => {
+    db.clearAllOperationalData();
+    const today = '2026-09-03';
+    const resident = db.addResident({ firstName: 'D', lastName: 'Room', roomNumber: '130', status: 'active' });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Resident Item', startDate: today });
+    db.addAttentionItem({ scope: 'unit', title: 'Unit Item', startDate: today });
+    db.addAttentionItem({ scope: 'site', title: 'Site Item', startDate: today });
+
+    expect(getActiveAttentionItems(db.getState(), today, 'resident').map(e => e.item.title)).toEqual(['Resident Item']);
+    expect(getActiveAttentionItems(db.getState(), today, 'unit').map(e => e.item.title)).toEqual(['Unit Item']);
+    expect(getActiveAttentionItems(db.getState(), today, 'site').map(e => e.item.title)).toEqual(['Site Item']);
+    expect(getActiveAttentionItems(db.getState(), today).length).toBe(3);
   });
 });
 
@@ -276,10 +295,10 @@ describe('Legacy record normalization (records persisted before Operational Visi
     // as `undefined` — exactly what JSON.parse of old persisted data would
     // produce, as opposed to a TS optional field merely being unset.
     db.addFYI({ text: 'Pre-existing standing note', category: 'general', importance: 'normal', effectiveDate: today });
-    db.addResidentAttentionItem(resident.id, { type: 'Pre-existing attention', startDate: today });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Pre-existing attention', startDate: today });
 
     expect(getDashboardFyis(db.getState(), today).some(f => f.text === 'Pre-existing standing note')).toBe(true);
-    expect(getActiveResidentAttentionItems(db.getState(), today).some(e => e.item.type === 'Pre-existing attention')).toBe(true);
+    expect(getActiveAttentionItems(db.getState(), today).some(e => e.item.title === 'Pre-existing attention')).toBe(true);
   });
 
   it('treats a ResidentTask with no showOnDashboard key at all as hidden, matching pre-feature behavior (opt-in)', () => {
@@ -293,54 +312,38 @@ describe('Legacy record normalization (records persisted before Operational Visi
   });
 });
 
-describe('getUnitSituationSummary (selective briefing, not a duplicate of the other cards)', () => {
+describe('getUnitSituationSummary (Unit + Site Attention only — not a duplicate of the other cards)', () => {
   const today = '2026-09-03';
 
-  it('caps the summary to the limit even when far more items are eligible', () => {
+  it('includes Unit- and Site-scoped Attention items', () => {
     db.resetToDemoState();
     db.clearAllOperationalData();
-    for (let i = 0; i < 10; i++) {
-      const resident = db.addResident({ firstName: 'F', lastName: `${i}`, roomNumber: `20${i}`, status: 'active' });
-      db.addResidentAttentionItem(resident.id, { type: `Attention ${i}`, startDate: today, importance: 'urgent' });
-    }
-    expect(getUnitSituationSummary(db.getState(), today, 6)).toHaveLength(6);
-  });
-
-  it('ranks urgent items ahead of routine ones across every source type', () => {
-    db.resetToDemoState();
-    db.clearAllOperationalData();
-    const r1 = db.addResident({ firstName: 'F', lastName: 'Urgent', roomNumber: '210', status: 'active' });
-    const r2 = db.addResident({ firstName: 'F', lastName: 'Normal', roomNumber: '211', status: 'active' });
-    db.addResidentAttentionItem(r2.id, { type: 'Routine Attention', startDate: today, importance: 'normal' });
-    db.addResidentTask({ residentId: r1.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urgent Follow-up', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'urgent' });
+    db.addAttentionItem({ scope: 'unit', title: 'Unit outage', startDate: today });
+    db.addAttentionItem({ scope: 'site', title: 'Fire drill', startDate: today });
 
     const labels = getUnitSituationSummary(db.getState(), today).map(e => e.label);
-    expect(labels[0]).toContain('Urgent Follow-up');
+    expect(labels).toContain('Unit outage');
+    expect(labels).toContain('Fire drill');
   });
 
-  it('never includes a normal-importance FYI (that belongs solely to Latest FYI), and truncates an urgent one rather than showing the full text', () => {
+  it('excludes Resident-scoped Attention — that belongs on the Resident Attention card', () => {
     db.resetToDemoState();
     db.clearAllOperationalData();
-    const longText = 'This is a deliberately long FYI sentence written to exceed the short summary truncation limit used by Current Unit Situation so the test can prove it never renders the full text.';
-    db.addFYI({ text: 'Routine note that must stay off the summary', category: 'general', importance: 'normal', effectiveDate: today });
-    db.addFYI({ text: longText, category: 'safety', importance: 'urgent', effectiveDate: today });
+    const resident = db.addResident({ firstName: 'F', lastName: 'Res', roomNumber: '210', status: 'active' });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Resident-only situation', startDate: today });
 
-    const entries = getUnitSituationSummary(db.getState(), today);
-    expect(entries.some(e => e.label === 'Routine note that must stay off the summary')).toBe(false);
-    const fyiEntry = entries.find(e => e.kind === 'fyi')!;
-    expect(fyiEntry).toBeDefined();
-    expect(fyiEntry.label.length).toBeLessThan(longText.length);
-    expect(fyiEntry.label).not.toBe(longText);
+    expect(getUnitSituationSummary(db.getState(), today)).toHaveLength(0);
   });
 
-  it('includes flagged Resident Follow-up tasks, not just Attention/Away/FYI', () => {
+  it('excludes FYIs, Resident Tasks, and Away/hospital status — those have their own dedicated cards', () => {
     db.resetToDemoState();
     db.clearAllOperationalData();
+    db.addFYI({ text: 'Routine note', category: 'general', importance: 'urgent', effectiveDate: today });
     const resident = db.addResident({ firstName: 'F', lastName: 'Track', roomNumber: '212', status: 'active' });
     db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'RAI Tracking', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'high' });
+    db.addResident({ firstName: 'F', lastName: 'Hosp', roomNumber: '213', status: 'in_hospital' });
 
-    const entries = getUnitSituationSummary(db.getState(), today);
-    expect(entries.some(e => e.kind === 'follow_up' && e.label.includes('RAI Tracking'))).toBe(true);
+    expect(getUnitSituationSummary(db.getState(), today)).toHaveLength(0);
   });
 
   it('is empty on a quiet shift with nothing eligible', () => {
@@ -384,6 +387,47 @@ describe('getValidatedDashboardLayout (corrupted-config crash guard)', () => {
     const wellFormed = [{ id: 'latest_fyi' as const, visible: false }];
     db.updateSettings({ dashboardLayout: wellFormed });
     expect(getValidatedDashboardLayout(db.getState())).toEqual(wellFormed);
+  });
+});
+
+describe('getHuddleBriefing (read-only briefing, not a record type — showInHuddle only)', () => {
+  const today = '2026-09-03';
+
+  it('includes Census and Away unconditionally, but every other source only when flagged showInHuddle', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    db.addResident({ firstName: 'H', lastName: 'Away', roomNumber: '500', status: 'in_hospital' });
+    const resident = db.addResident({ firstName: 'H', lastName: 'Res', roomNumber: '501', status: 'active' });
+
+    db.addAttentionItem({ scope: 'unit', title: 'Not flagged for huddle', startDate: today, showInHuddle: false });
+    db.addAttentionItem({ scope: 'unit', title: 'Flagged for huddle', startDate: today, showInHuddle: true });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Resident situation', startDate: today, showInHuddle: true });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Follow-up task', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, showInHuddle: true });
+    db.addFYI({ text: 'Huddle FYI', category: 'general', importance: 'normal', effectiveDate: today, showInHuddle: true });
+    db.addFYI({ text: 'Non-huddle FYI', category: 'general', importance: 'normal', effectiveDate: today });
+
+    const briefing = getHuddleBriefing(db.getState(), today);
+    expect(briefing.census.inHospitalCount).toBe(1);
+    expect(briefing.away).toHaveLength(1);
+    expect(briefing.unitSiteAttention.map(e => e.item.title)).toEqual(['Flagged for huddle']);
+    expect(briefing.residentAttention.map(e => e.item.title)).toEqual(['Resident situation']);
+    expect(briefing.residentFollowUp.map(e => e.task.title)).toEqual(['Follow-up task']);
+    expect(briefing.importantFyis.map(f => f.text)).toEqual(['Huddle FYI']);
+  });
+
+  it('includes Code of the Month only when enabled in settings', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    db.updateSettings({ codeOfTheMonthEnabled: false });
+    expect(getHuddleBriefing(db.getState(), today).codeOfMonth).toBeUndefined();
+  });
+
+  it('is not a persisted record — recomputes fresh from current source data each call', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    expect(getHuddleBriefing(db.getState(), today).unitSiteAttention).toHaveLength(0);
+    db.addAttentionItem({ scope: 'site', title: 'Fire drill', startDate: today, showInHuddle: true });
+    expect(getHuddleBriefing(db.getState(), today).unitSiteAttention).toHaveLength(1);
   });
 });
 

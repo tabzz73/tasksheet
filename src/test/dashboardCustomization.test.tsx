@@ -85,11 +85,11 @@ describe('Dashboard customization', () => {
   it('Add Attention creates a resident attention item that immediately appears on the Dashboard', () => {
     renderDashboard();
     fireEvent.click(screen.getByRole('button', { name: 'Add Attention' }));
-    expect(screen.getByRole('heading', { name: 'Add Resident Attention' })).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Add Attention' })).not.toBeNull();
 
-    fireEvent.change(screen.getByLabelText("What's being tracked"), { target: { value: 'Behaviour Tracking' } });
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Behaviour concern noted' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
 
-    expect(screen.getAllByText('Behaviour Tracking').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Behaviour concern noted').length).toBeGreaterThan(0);
   });
 });

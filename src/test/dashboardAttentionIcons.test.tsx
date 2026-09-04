@@ -20,7 +20,7 @@ describe('Dashboard attention icons — restrained, text-paired, not color-only'
 
   it('Resident Attention: header carries a decorative alert icon and the heading name is unchanged', () => {
     const resident = db.addResident({ firstName: 'A', lastName: 'One', roomNumber: '101', status: 'active' });
-    db.addResidentAttentionItem(resident.id, { type: 'Behaviour Tracking', startDate: '2026-09-03' });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Increased Falls Observation', startDate: '2026-09-03' });
 
     render(<ResidentAttentionCard state={db.getState()} today="2026-09-03" onOpenResident={() => undefined} />);
 
@@ -33,7 +33,7 @@ describe('Dashboard attention icons — restrained, text-paired, not color-only'
 
   it('Resident Attention: an item ending today shows a clock icon paired with visible "Ends today" text', () => {
     const resident = db.addResident({ firstName: 'B', lastName: 'Two', roomNumber: '102', status: 'active' });
-    db.addResidentAttentionItem(resident.id, { type: 'Two-Person Transfer', startDate: '2026-08-25', endDate: '2026-09-03' });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Two-Person Transfer Needed', startDate: '2026-08-25', endDate: '2026-09-03' });
 
     render(<ResidentAttentionCard state={db.getState()} today="2026-09-03" onOpenResident={() => undefined} />);
 
@@ -43,7 +43,7 @@ describe('Dashboard attention icons — restrained, text-paired, not color-only'
 
   it('Resident Attention: an item not ending soon shows no clock badge at all', () => {
     const resident = db.addResident({ firstName: 'C', lastName: 'Three', roomNumber: '103', status: 'active' });
-    db.addResidentAttentionItem(resident.id, { type: 'Sleep Tracking', startDate: '2026-08-01' });
+    db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Temporary care preference change', startDate: '2026-08-01' });
 
     render(<ResidentAttentionCard state={db.getState()} today="2026-09-03" onOpenResident={() => undefined} />);
 

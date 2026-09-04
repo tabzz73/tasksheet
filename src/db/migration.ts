@@ -1,4 +1,4 @@
-import { AppDatabaseState, FYI, Resident, ResidentTask, Wound, Role, Shift, FacilitySettings, CatalogTaskTemplate, WoundSupplyProduct, FacilityRoom, OccupancyPosition, ResidentPlacementHistory, ResidentStatus } from '../types';
+import { AppDatabaseState, AttentionItem, FYI, Resident, ResidentTask, Wound, Role, Shift, FacilitySettings, CatalogTaskTemplate, WoundSupplyProduct, FacilityRoom, OccupancyPosition, ResidentPlacementHistory, ResidentStatus } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE } from '../data/defaultData';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { WOUND_SUPPLY_CATALOG_SEED } from '../data/woundSupplyCatalog';
@@ -12,6 +12,47 @@ export const roomKey = (label: string) => label.trim().toLocaleLowerCase();
 export const isObsoleteMissingRoomPreset = (preset: { id?: string; name?: string; dataSource?: string; filters?: Array<{ field?: string; operator?: string }> }) =>
   preset.id === 'residents-without-room' || preset.name === 'Residents Without Room' ||
   (preset.dataSource === 'residents' && Boolean(preset.filters?.some(filter => filter.field === 'room' && filter.operator === 'is_empty')));
+
+/** Pre-flatten backups nested attention items under `resident.attentionItems`.
+ *  Hoists them into the top-level `AttentionItem[]` collection, scoped to
+ *  that resident. Safe to call on already-flat data (no-op: every resident
+ *  will simply have no `attentionItems` property). */
+export function extractLegacyResidentAttention(residents: any[]): AttentionItem[] {
+  const items: AttentionItem[] = [];
+  for (const resident of residents || []) {
+    for (const legacy of resident?.attentionItems || []) {
+      items.push({
+        id: legacy.id,
+        scope: 'resident',
+        residentId: resident.id,
+        title: legacy.title ?? legacy.type ?? '',
+        details: legacy.details ?? legacy.note,
+        startDate: legacy.startDate,
+        endDate: legacy.endDate,
+        active: legacy.active,
+        roleId: legacy.roleId,
+        shiftId: legacy.shiftId,
+        priority: legacy.priority ?? legacy.importance,
+        showOnDashboard: legacy.showOnDashboard,
+        showInHuddle: legacy.showInHuddle,
+        createdAt: legacy.createdAt,
+        updatedAt: legacy.updatedAt,
+        source: legacy.source,
+      });
+    }
+  }
+  return items;
+}
+
+/** Drops the old nested `attentionItems` property from resident records
+ *  after it has been hoisted into the top-level collection — residents no
+ *  longer carry this field. */
+export function stripLegacyResidentAttention(residents: Resident[]): Resident[] {
+  return (residents || []).map(resident => {
+    const { attentionItems: _attentionItems, ...rest } = resident as Resident & { attentionItems?: unknown };
+    return rest as Resident;
+  });
+}
 
 export function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -172,6 +213,7 @@ export function getInitialState(): AppDatabaseState {
     unitTasks: [],
     fyis: [],
     wounds: [],
+    attentionItems: [],
     woundSupplyCatalog: WOUND_SUPPLY_CATALOG_SEED,
     legacyCompletions: [],
     binderState: DEFAULT_BINDER_STATE,
@@ -269,6 +311,11 @@ export function migrateLoadedState(parsed: any): AppDatabaseState {
   const mergedTemplates: CatalogTaskTemplate[] = [...ALBERTA_TASK_TEMPLATES, ...customTemplates];
 
   const roomModel = migrateRoomModel(parsed.residents || [], parsed.rooms || [], parsed.occupancyPositions || [], parsed.residentPlacementHistory || []);
+  // Older backups nested attention items under each resident; hoist them into
+  // the top-level collection (a no-op for already-flat data) and strip the
+  // legacy field from the migrated resident records.
+  const migratedAttentionItems: AttentionItem[] = parsed.attentionItems || extractLegacyResidentAttention(parsed.residents || []);
+  const residentsWithoutLegacyAttention = stripLegacyResidentAttention(roomModel.residents);
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     facility: parsed.facility || DEFAULT_FACILITY,
@@ -276,6 +323,7 @@ export function migrateLoadedState(parsed: any): AppDatabaseState {
     roles: loadedRoles,
     shifts: migratedShifts,
     ...roomModel,
+    residents: residentsWithoutLegacyAttention,
     residentTasks: migratedResidentTasks,
     unitTasks: parsed.unitTasks || [],
     // `importance` is required by the FYI type but was added after some
@@ -283,6 +331,7 @@ export function migrateLoadedState(parsed: any): AppDatabaseState {
     // Dashboard sorting/priority filtering never sees `undefined`.
     fyis: (parsed.fyis || []).map((f: FYI) => ({ ...f, importance: f.importance || 'normal' })),
     wounds: migratedWounds,
+    attentionItems: migratedAttentionItems,
     woundSupplyCatalog,
     legacyCompletions: parsed.legacyCompletions || parsed.completions || [], // migrate old key
     binderState: parsed.binderState || DEFAULT_BINDER_STATE,

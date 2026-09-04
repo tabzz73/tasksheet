@@ -1,4 +1,4 @@
-import { AppDatabaseState, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition, ResidentAttentionItem } from '../types';
+import { AppDatabaseState, AttentionItem, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_SHIFTS, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
@@ -15,6 +15,8 @@ import {
   mergeWoundSupplyCatalog,
   migrateWoundStructure,
   getInitialState,
+  extractLegacyResidentAttention,
+  stripLegacyResidentAttention,
 } from './migration';
 import { StorageAdapter, AsyncStorageAdapter } from './storage/types';
 import { selectAdapter } from './storage/selectAdapter';
@@ -505,14 +507,18 @@ export class DatabaseService {
     });
   }
 
-  // Resident Attention Items — lightweight, non-clinical, date-bounded
-  // operational notes surfaced on the Dashboard (Behaviour Tracking, etc.).
-  // Stored on the resident record itself, not a parallel top-level collection.
-  public addResidentAttentionItem(residentId: string, item: Omit<ResidentAttentionItem, 'id' | 'createdAt' | 'active'>): ResidentAttentionItem {
-    const resident = this.state.residents.find(r => r.id === residentId);
-    if (!resident) throw new Error('Resident not found.');
-    if (!item.type.trim()) throw new Error('Attention type is required.');
-    const newItem: ResidentAttentionItem = {
+  // Attention Items — lightweight, non-clinical, date-bounded awareness of a
+  // temporary situation (Resident, Unit, or Site scoped). A top-level
+  // collection (not nested under Resident) since Unit/Site items have no
+  // resident to attach to. Never routes into a printed TaskSheet — that
+  // stays exclusive to Task.
+  public addAttentionItem(item: Omit<AttentionItem, 'id' | 'createdAt' | 'active'>): AttentionItem {
+    if (!item.title.trim()) throw new Error('Attention title is required.');
+    if (item.scope === 'resident') {
+      if (!item.residentId) throw new Error('A resident-scoped attention item requires a resident.');
+      if (!this.state.residents.some(r => r.id === item.residentId)) throw new Error('Resident not found.');
+    }
+    const newItem: AttentionItem = {
       ...item,
       id: generateUUID(),
       active: true,
@@ -521,22 +527,16 @@ export class DatabaseService {
     };
     this.saveToStorage({
       ...this.state,
-      residents: this.state.residents.map(r => r.id === residentId
-        ? { ...r, attentionItems: [...(r.attentionItems || []), newItem] }
-        : r
-      ),
+      attentionItems: [...this.state.attentionItems, newItem],
     });
     return newItem;
   }
 
   /** Ends an attention item early (does not delete it — historical items are kept). */
-  public endResidentAttentionItem(residentId: string, itemId: string): void {
+  public endAttentionItem(itemId: string): void {
     this.saveToStorage({
       ...this.state,
-      residents: this.state.residents.map(r => r.id === residentId
-        ? { ...r, attentionItems: (r.attentionItems || []).map(a => a.id === itemId ? { ...a, active: false, updatedAt: new Date().toISOString() } : a) }
-        : r
-      ),
+      attentionItems: this.state.attentionItems.map(a => a.id === itemId ? { ...a, active: false, updatedAt: new Date().toISOString() } : a),
     });
   }
 
@@ -589,6 +589,7 @@ export class DatabaseService {
       residentTasks: this.state.residentTasks.filter(t => t.residentId !== id),
       wounds: this.state.wounds.filter(w => w.residentId !== id),
       fyis: this.state.fyis.filter(f => f.residentId !== id),
+      attentionItems: this.state.attentionItems.filter(a => a.residentId !== id),
       residentPlacementHistory: this.state.residentPlacementHistory.filter(item => item.residentId !== id)
     });
   }
@@ -1048,6 +1049,7 @@ export class DatabaseService {
     const cleanUnitTasks = this.state.unitTasks.filter(u => u.source !== 'demo');
     const cleanFYIs = this.state.fyis.filter(f => f.source !== 'demo');
     const cleanWounds = this.state.wounds.filter(w => w.source !== 'demo');
+    const cleanAttentionItems = this.state.attentionItems.filter(a => a.source !== 'demo');
     const isBlankFacility =
       this.state.facility.siteName.trim() === '' &&
       this.state.facility.street.trim() === '' &&
@@ -1062,7 +1064,8 @@ export class DatabaseService {
       cleanResidentTasks.length === 0 &&
       cleanUnitTasks.length === 0 &&
       cleanFYIs.length === 0 &&
-      cleanWounds.length === 0;
+      cleanWounds.length === 0 &&
+      cleanAttentionItems.length === 0;
 
     const mergedResidents = [...cleanResidents, ...demo.residents];
     const manualResidentIds = new Set(cleanResidents.map(resident => resident.id));
@@ -1099,6 +1102,7 @@ export class DatabaseService {
       unitTasks: [...cleanUnitTasks, ...demo.unitTasks],
       fyis: [...cleanFYIs, ...demo.fyis],
       wounds: [...cleanWounds, ...demo.wounds],
+      attentionItems: [...cleanAttentionItems, ...demo.attentionItems],
       // ADR-001: demo completion records are not added to active state
       legacyCompletions: this.state.legacyCompletions
     });
@@ -1144,7 +1148,8 @@ export class DatabaseService {
       residentTasks: DatabaseService.reassignOffRemovedDemoShift(this.state.residentTasks, demoShiftRoleIds),
       unitTasks: DatabaseService.reassignOffRemovedDemoShift(this.state.unitTasks, demoShiftRoleIds),
       fyis: this.state.fyis.filter(f => f.source !== 'demo'),
-      wounds: this.state.wounds.filter(w => w.source !== 'demo')
+      wounds: this.state.wounds.filter(w => w.source !== 'demo'),
+      attentionItems: this.state.attentionItems.filter(a => a.source !== 'demo' && (a.scope !== 'resident' || retainedResidentIds.has(a.residentId!)))
     });
   }
 
@@ -1178,6 +1183,7 @@ export class DatabaseService {
       unitTasks: DatabaseService.reassignOffRemovedDemoShift(this.state.unitTasks, demoShiftRoleIds),
       fyis: this.state.fyis.filter(fyi => fyi.source !== 'demo'),
       wounds: this.state.wounds.filter(wound => wound.source !== 'demo'),
+      attentionItems: this.state.attentionItems.filter(a => a.source !== 'demo' && (a.scope !== 'resident' || retainedResidentIds.has(a.residentId!))),
       legacyCompletions: [],
       binderState: {
         ...this.state.binderState,
@@ -1207,7 +1213,8 @@ export class DatabaseService {
       residentTasks: [],
       unitTasks: [],
       fyis: [],
-      wounds: []
+      wounds: [],
+      attentionItems: []
     });
   }
 
@@ -1232,14 +1239,19 @@ export class DatabaseService {
       if (!parsed.facility || typeof parsed.facility !== 'object' || !Array.isArray(parsed.roles) || !Array.isArray(parsed.shifts)) {
         throw new Error('Backup data is missing core schema objects (facility, roles, shifts).');
       }
-      for (const collection of ['residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds'] as const) {
+      // Captured before normalization below coerces a missing field to `[]`,
+      // so we can tell "backup predates this collection" (hoist legacy
+      // resident-nested attention items) apart from "backup genuinely has
+      // none" (leave it empty).
+      const hadTopLevelAttentionItems = Array.isArray(parsed.attentionItems);
+      for (const collection of ['residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds', 'attentionItems'] as const) {
         if (parsed[collection] !== undefined && !Array.isArray(parsed[collection])) throw new Error(`Backup field “${collection}” must be a list.`);
         parsed[collection] = parsed[collection] || [];
       }
       if (parsed.shifts.some((shift: Shift) => !shift?.id || !shift?.roleId || validateMilitaryTime(shift.startTime).status === 'BLOCKED' || validateMilitaryTime(shift.endTime).status === 'BLOCKED')) {
         throw new Error('Backup contains a shift with missing identity/role or invalid military time. No data was restored.');
       }
-      for (const collection of ['shifts', 'residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds'] as const) {
+      for (const collection of ['shifts', 'residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds', 'attentionItems'] as const) {
         const ids = (parsed[collection] as Array<{ id?: string }>).map(item => item?.id).filter(Boolean);
         if (new Set(ids).size !== ids.length) {
           throw new Error(`Backup field “${collection}” contains duplicate record IDs. No data was restored.`);
@@ -1278,7 +1290,11 @@ export class DatabaseService {
       // `importance` is required by the FYI type but was added after some
       // backups were created; default any legacy record missing it.
       parsed.fyis = (parsed.fyis || []).map((fyi: FYI) => ({ ...fyi, importance: fyi.importance || 'normal' }));
+      // Older backups nested attention items under each resident; hoist them
+      // into the top-level collection when the backup predates it.
+      parsed.attentionItems = hadTopLevelAttentionItems ? parsed.attentionItems : extractLegacyResidentAttention(parsed.residents || []);
       Object.assign(parsed, migrateRoomModel(parsed.residents || [], parsed.rooms || [], parsed.occupancyPositions || [], parsed.residentPlacementHistory || []));
+      parsed.residents = stripLegacyResidentAttention(parsed.residents);
       this.saveToStorage(parsed);
     } catch (e: any) {
       throw new Error(`Failed to restore database: ${e.message}`);

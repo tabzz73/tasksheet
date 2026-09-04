@@ -1,8 +1,8 @@
 import React from 'react';
-import { Activity, ClockAlert, CircleAlert, Droplets, Hospital, Info, LogOut, ShieldAlert, Sparkles, TriangleAlert } from 'lucide-react';
+import { Activity, ClockAlert, CircleAlert, Droplets, Hospital, Info, ShieldAlert, Sparkles, TriangleAlert, Wrench } from 'lucide-react';
 import { AppDatabaseState, EmergencyCode } from '../../types';
 import {
-  getActiveResidentAttentionItems,
+  getActiveAttentionItems,
   getAwayResidents,
   getDashboardFyis,
   getResidentFollowUpTasks,
@@ -12,13 +12,11 @@ import {
   UnitSituationEntry,
 } from '../../services/dashboard';
 
-/** One icon per content kind, never the same warning icon for everything —
+/** One icon per scope, never the same warning icon for everything —
  *  reinforces what the item actually is, not just that it's important. */
-const UNIT_SITUATION_ICON: Record<UnitSituationEntry['kind'], React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>> = {
-  attention: TriangleAlert,
-  follow_up: Activity,
-  away: Hospital, // overridden per-entry for non-hospital away statuses
-  fyi: Info,
+const UNIT_SITUATION_ICON: Record<UnitSituationEntry['scope'], React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>> = {
+  unit: Wrench,
+  site: ShieldAlert,
 };
 
 const FYI_IMPORTANCE_BADGE: Record<string, string> = {
@@ -86,7 +84,7 @@ export const AwayFromUnitCard: React.FC<{ state: AppDatabaseState; onOpenResiden
 
 // ─── Resident Attention ─────────────────────────────────────────────────────
 export const ResidentAttentionCard: React.FC<{ state: AppDatabaseState; today: string; onOpenResident: (id: string) => void }> = ({ state, today, onOpenResident }) => {
-  const items = getActiveResidentAttentionItems(state, today);
+  const items = getActiveAttentionItems(state, today, 'resident');
   return (
     <div className="title-block rounded-surface p-4">
       <h3 className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">
@@ -97,7 +95,7 @@ export const ResidentAttentionCard: React.FC<{ state: AppDatabaseState; today: s
         <p className="text-[12px] text-muted">No active resident attention items.</p>
       ) : (
         <ul className="space-y-1.5">
-          {items.map(({ resident, item, endingSoon }) => (
+          {items.map(({ resident, item, endingSoon }) => resident && (
             <li key={item.id}>
               <button
                 type="button"
@@ -107,9 +105,9 @@ export const ResidentAttentionCard: React.FC<{ state: AppDatabaseState; today: s
                 <span className="min-w-0">
                   <span className="flex items-center gap-2">
                     <span className="font-mono text-[11px] font-bold text-ink-soft shrink-0">{resident.roomNumber}</span>
-                    <span className="text-[12.5px] font-semibold text-ink truncate">{item.type}</span>
+                    <span className="text-[12.5px] font-semibold text-ink truncate">{item.title}</span>
                   </span>
-                  {item.note && <span className="block text-[11px] text-muted mt-0.5 truncate">{item.note}</span>}
+                  {item.details && <span className="block text-[11px] text-muted mt-0.5 truncate">{item.details}</span>}
                 </span>
                 {endingSoon && (
                   <span className="badge badge-warning shrink-0 inline-flex items-center gap-1">
@@ -194,13 +192,11 @@ export const LatestFyiCard: React.FC<{ state: AppDatabaseState; today: string; o
   );
 };
 
-// ─── Current Unit Situation (flagship huddle panel) ────────────────────────
-// A SELECTIVE briefing summary — the highest-priority items across Resident
-// Attention, Resident Follow-up, Away From Unit, and urgent FYIs, capped to
-// a handful of lines. It intentionally does not re-list everything already
-// shown in full on those cards' own dedicated widgets; FYI text here is a
-// short truncated line, never the full text Latest FYI already shows.
-export const UnitSituationCard: React.FC<{ state: AppDatabaseState; today: string; onOpenResident: (id: string) => void; onNavigateToBinder: () => void }> = ({ state, today, onOpenResident, onNavigateToBinder }) => {
+// ─── Current Unit Situation ─────────────────────────────────────────────────
+// "What unusual or temporary things are happening on the unit/site right
+// now?" — sourced exclusively from active Unit + Site scoped Attention
+// items. Resident-scoped situations live on the Resident Attention card.
+export const UnitSituationCard: React.FC<{ state: AppDatabaseState; today: string }> = ({ state, today }) => {
   const entries = getUnitSituationSummary(state, today);
 
   return (
@@ -214,15 +210,12 @@ export const UnitSituationCard: React.FC<{ state: AppDatabaseState; today: strin
       ) : (
         <ul className="space-y-1.5">
           {entries.map(entry => {
-            const Icon = entry.kind === 'away' && !entry.isHospital ? LogOut : UNIT_SITUATION_ICON[entry.kind];
-            const onClick = entry.kind === 'fyi' ? onNavigateToBinder : () => entry.residentId && onOpenResident(entry.residentId);
+            const Icon = UNIT_SITUATION_ICON[entry.scope];
             return (
-              <li key={entry.id}>
-                <button type="button" onClick={onClick} className="w-full flex items-center gap-1.5 text-left px-2 py-1 -mx-2 rounded-control hover:bg-panel-sunken transition-colors text-[12.5px]">
-                  <Icon className="w-3.5 h-3.5 text-warning shrink-0" aria-hidden="true" />
-                  {entry.roomNumber && <span className="font-mono font-bold text-ink-soft mr-1.5 shrink-0">{entry.roomNumber}</span>}
-                  <span className="text-ink truncate">{entry.label}</span>
-                </button>
+              <li key={entry.id} className="flex items-center gap-1.5 px-2 py-1 -mx-2 text-[12.5px]">
+                <Icon className="w-3.5 h-3.5 text-warning shrink-0" aria-hidden="true" />
+                <span className="text-ink truncate">{entry.label}</span>
+                <span className="text-[11px] text-muted shrink-0 ml-auto">{entry.dateLabel}</span>
               </li>
             );
           })}

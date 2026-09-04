@@ -65,7 +65,7 @@ describe('Resident Task Dashboard/Huddle visibility (opt-in)', () => {
   });
 });
 
-describe('Resident Attention Dashboard/Huddle visibility', () => {
+describe('Attention Dashboard/Huddle visibility', () => {
   beforeEach(() => db.resetToDemoState());
   afterEach(() => cleanup());
 
@@ -77,12 +77,12 @@ describe('Resident Attention Dashboard/Huddle visibility', () => {
     expect(dashboardCheckbox).toHaveProperty('checked', true);
     expect(huddleCheckbox).toHaveProperty('checked', false);
 
-    fireEvent.change(screen.getByLabelText("What's being tracked"), { target: { value: 'Sleep Tracking' } });
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Sleep concern' } });
     fireEvent.click(dashboardCheckbox);
     fireEvent.click(huddleCheckbox);
     fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
 
-    const stored = db.getState().residents.flatMap(r => r.attentionItems || []).find(a => a.type === 'Sleep Tracking');
+    const stored = db.getState().attentionItems.find(a => a.title === 'Sleep concern');
     expect(stored?.showOnDashboard).toBe(false);
     expect(stored?.showInHuddle).toBe(true);
   });
@@ -90,10 +90,22 @@ describe('Resident Attention Dashboard/Huddle visibility', () => {
   it('defaults the start date to the app\'s operational currentDate, not the raw wall-clock date', () => {
     render(<AddResidentAttentionModal isOpen onClose={() => undefined} onSaved={() => undefined} currentDate="2026-09-03" />);
 
-    fireEvent.change(screen.getByLabelText("What's being tracked"), { target: { value: 'Overnight Observation' } });
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Overnight Observation' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
 
-    const stored = db.getState().residents.flatMap(r => r.attentionItems || []).find(a => a.type === 'Overnight Observation');
+    const stored = db.getState().attentionItems.find(a => a.title === 'Overnight Observation');
     expect(stored?.startDate).toBe('2026-09-03');
+  });
+
+  it('a Site-scoped item requires no resident and is saved with scope site', () => {
+    render(<AddResidentAttentionModal isOpen onClose={() => undefined} onSaved={() => undefined} currentDate="2026-09-03" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Site' }));
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Fire drill' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
+
+    const stored = db.getState().attentionItems.find(a => a.title === 'Fire drill');
+    expect(stored?.scope).toBe('site');
+    expect(stored?.residentId).toBeUndefined();
   });
 });

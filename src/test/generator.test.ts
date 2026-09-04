@@ -1607,46 +1607,23 @@ describe('Alberta Standard Starter Catalog Tests', () => {
     });
   });
 
-  describe('Resident Attention routing into the Shift Workspace / print', () => {
-    it('folds a shift-scoped attention item into that shift\'s assignment as an FYI-shaped entry', () => {
+  describe('Attention is Dashboard/Huddle awareness only — never routed into the Shift Workspace / print', () => {
+    it('never surfaces an active Attention item on a generated shift sheet, even when scoped to that shift/role', () => {
       db.clearAllOperationalData();
       const resident = db.addResident({ firstName: 'Attn', lastName: 'Scoped', roomNumber: '401', status: 'active' });
-      db.addResidentAttentionItem(resident.id, {
-        type: 'Increased Falls Observation',
-        note: 'Check q2h',
+      db.addAttentionItem({
+        scope: 'resident',
+        residentId: resident.id,
+        title: 'Increased Falls Observation',
+        details: 'Check q2h',
         startDate: '2026-08-01',
         shiftId: SHIFT_HCA_DAY_ID,
-        importance: 'high',
+        priority: 'high',
       });
 
       const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
       const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
-      expect(assignment).toBeDefined();
-      expect(assignment!.fyis.some(f => f.text.includes('Increased Falls Observation') && f.importance === 'high')).toBe(true);
-    });
-
-    it('does not surface an unscoped (no shift/role) attention item on any shift', () => {
-      db.clearAllOperationalData();
-      const resident = db.addResident({ firstName: 'Attn', lastName: 'Unscoped', roomNumber: '402', status: 'active' });
-      db.addResidentAttentionItem(resident.id, { type: 'Sleep Tracking', startDate: '2026-08-01' });
-
-      const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
-      const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
-      expect(assignment?.fyis.some(f => f.text.includes('Sleep Tracking'))).toBeFalsy();
-    });
-
-    it('excludes an attention item scoped to a different shift', () => {
-      db.clearAllOperationalData();
-      const resident = db.addResident({ firstName: 'Attn', lastName: 'OtherShift', roomNumber: '403', status: 'active' });
-      db.addResidentAttentionItem(resident.id, {
-        type: 'Two-Person Transfer',
-        startDate: '2026-08-01',
-        shiftId: SHIFT_LPN_DAY_ID,
-      });
-
-      const sheet = generateShiftSheet('2026-08-27', SHIFT_HCA_DAY_ID);
-      const assignment = sheet.residentAssignments.find(a => a.resident.id === resident.id);
-      expect(assignment?.fyis.some(f => f.text.includes('Two-Person Transfer'))).toBeFalsy();
+      expect(assignment?.fyis.some(f => f.text.includes('Increased Falls Observation'))).toBeFalsy();
     });
   });
 

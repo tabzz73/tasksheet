@@ -36,7 +36,7 @@ describe('Dashboard aggregation — no duplication, correct empty/demo states', 
     });
 
     it('never fabricates operational content in Current Unit Situation when nothing is eligible', () => {
-      render(<UnitSituationCard state={db.getState()} today="2026-09-03" onOpenResident={noop} onNavigateToBinder={noop} />);
+      render(<UnitSituationCard state={db.getState()} today="2026-09-03" />);
       expect(screen.getByText('Nothing unusual to report — a quiet shift so far.')).not.toBeNull();
     });
   });
@@ -68,7 +68,7 @@ describe('Dashboard aggregation — no duplication, correct empty/demo states', 
       db.clearAllOperationalData();
     });
 
-    it('shows an urgent FYI\'s full text only in Latest FYI, and only a short summary in Current Unit Situation', () => {
+    it('shows an urgent FYI\'s full text only in Latest FYI, never in Current Unit Situation (FYI is not an Attention source)', () => {
       const longText = 'This is a deliberately long FYI sentence written to exceed the short summary truncation limit used by Current Unit Situation so the test can prove it never renders the full text.';
       db.addFYI({ text: longText, category: 'safety', importance: 'urgent', effectiveDate: '2026-09-03' });
       const state = db.getState();
@@ -77,45 +77,55 @@ describe('Dashboard aggregation — no duplication, correct empty/demo states', 
       expect(latestContainer.textContent).toContain(longText);
       cleanup();
 
-      const { container: situationContainer } = render(<UnitSituationCard state={state} today="2026-09-03" onOpenResident={noop} onNavigateToBinder={noop} />);
+      const { container: situationContainer } = render(<UnitSituationCard state={state} today="2026-09-03" />);
       expect(situationContainer.textContent).not.toContain(longText);
-      expect(situationContainer.textContent).toContain('This is a deliberately long FYI sentence');
     });
 
-    it('does not populate Resident Follow-up from a Resident Attention item, or vice versa', () => {
+    it('does not populate Resident Follow-up from an Attention item, or vice versa', () => {
       const resident = db.addResident({ firstName: 'Cross', lastName: 'Type', roomNumber: '400', status: 'active' });
-      db.addResidentAttentionItem(resident.id, { type: 'Exit-Seeking Awareness', startDate: '2026-09-03' });
+      db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Exit-Seeking Awareness', startDate: '2026-09-03' });
       const state = db.getState();
 
       render(<ResidentFollowUpCard state={state} today="2026-09-03" onOpenResident={noop} />);
       expect(screen.queryByText('Exit-Seeking Awareness')).toBeNull();
       expect(screen.getByText('No follow-up tasks flagged for the Dashboard.')).not.toBeNull();
     });
+
+    it('does not populate Current Unit Situation from Resident-scoped Attention — only Unit/Site', () => {
+      const resident = db.addResident({ firstName: 'Res', lastName: 'Scoped', roomNumber: '405', status: 'active' });
+      db.addAttentionItem({ scope: 'resident', residentId: resident.id, title: 'Resident-only situation', startDate: '2026-09-03' });
+      db.addAttentionItem({ scope: 'unit', title: 'Unit-wide situation', startDate: '2026-09-03' });
+      const state = db.getState();
+
+      render(<UnitSituationCard state={state} today="2026-09-03" />);
+      expect(screen.queryByText('Resident-only situation')).toBeNull();
+      expect(screen.getByText('Unit-wide situation')).not.toBeNull();
+    });
+
+    it('does not populate Current Unit Situation from a Resident Task flagged showOnDashboard', () => {
+      const resident = db.addResident({ firstName: 'Task', lastName: 'Flagged', roomNumber: '406', status: 'active' });
+      db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'RAI Tracking', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'urgent' });
+      const state = db.getState();
+
+      render(<UnitSituationCard state={state} today="2026-09-03" />);
+      expect(screen.queryByText('RAI Tracking')).toBeNull();
+      expect(screen.getByText('Nothing unusual to report — a quiet shift so far.')).not.toBeNull();
+    });
   });
 
-  describe('Current Unit Situation icon per content kind', () => {
+  describe('Current Unit Situation icon per scope', () => {
     beforeEach(() => {
       db.resetToDemoState();
       db.clearAllOperationalData();
     });
 
-    it('uses a Hospital icon for an in-hospital resident and a distinct neutral icon for out-on-pass', () => {
-      db.addResident({ firstName: 'Hosp', lastName: 'Case', roomNumber: '401', status: 'in_hospital' });
-      db.addResident({ firstName: 'Pass', lastName: 'Case', roomNumber: '402', status: 'out_on_pass' });
-      const { container } = render(<UnitSituationCard state={db.getState()} today="2026-09-03" onOpenResident={noop} onNavigateToBinder={noop} />);
+    it('uses distinct icons for Unit-scoped and Site-scoped Attention', () => {
+      db.addAttentionItem({ scope: 'unit', title: 'Unit outage', startDate: '2026-09-03' });
+      db.addAttentionItem({ scope: 'site', title: 'Fire drill', startDate: '2026-09-03' });
+      const { container } = render(<UnitSituationCard state={db.getState()} today="2026-09-03" />);
 
-      expect(container.querySelector('.lucide-hospital')).not.toBeNull();
-      expect(container.querySelector('.lucide-log-out')).not.toBeNull();
-    });
-
-    it('uses a TriangleAlert icon for Resident Attention entries and an Activity icon for Resident Follow-up entries', () => {
-      const resident = db.addResident({ firstName: 'Icon', lastName: 'Case', roomNumber: '403', status: 'active' });
-      db.addResidentAttentionItem(resident.id, { type: 'Watch Closely', startDate: '2026-09-03', importance: 'urgent' });
-      db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'RAI Tracking', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'urgent' });
-
-      const { container } = render(<UnitSituationCard state={db.getState()} today="2026-09-03" onOpenResident={noop} onNavigateToBinder={noop} />);
-      expect(container.querySelector('.lucide-triangle-alert')).not.toBeNull();
-      expect(container.querySelector('.lucide-activity')).not.toBeNull();
+      expect(container.querySelector('.lucide-wrench')).not.toBeNull();
+      expect(container.querySelector('.lucide-shield-alert')).not.toBeNull();
     });
   });
 });

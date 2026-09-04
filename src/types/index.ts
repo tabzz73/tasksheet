@@ -376,39 +376,48 @@ export interface Shift {
   source?: 'manual' | 'demo';
 }
 
+/** Who/what an Attention item concerns. Resident: one resident. Unit: the
+ *  whole care unit (e.g. "internet unavailable"). Site: the whole facility
+ *  (e.g. "fire drill"). Attention is awareness of a temporary situation —
+ *  never an actionable monitoring task (tracking belongs on ResidentTask
+ *  via trackingConfig) and never routed into a printed TaskSheet. */
+export type AttentionScope = 'resident' | 'unit' | 'site';
+
 /**
- * A temporary, non-clinical operational note about a resident that staff
- * should know about during the shift — e.g. "Behaviour Tracking",
- * "Increased Falls Observation", "Temporary Two-Person Transfer". This is
- * NOT a clinical charting record: it is a Dashboard/huddle awareness item,
- * deliberately lightweight (one type, one short note, a date range) rather
- * than a growing set of bespoke tracking modules.
+ * A temporary situation staff need to be aware of — e.g. "Temporary
+ * increased exit-seeking concern" (resident), "Internet unavailable"
+ * (unit), "Fire drill" (site). This is NOT a to-do item and NOT a clinical
+ * charting record: it is Dashboard/Huddle awareness only, deliberately
+ * lightweight (a title, optional details, a date range) rather than a
+ * growing set of bespoke situation types.
  */
-export interface ResidentAttentionItem {
+export interface AttentionItem {
   id: UUID;
-  /** Short category label, e.g. "Behaviour Tracking". Facility-defined free text. */
-  type: string;
+  scope: AttentionScope;
+  /** Required when scope === 'resident'; absent for unit/site items. */
+  residentId?: UUID;
+  /** Short situation label, e.g. "Fire drill". Facility-defined free text. */
+  title: string;
   /** Optional one-line elaboration. Not a narrative clinical note. */
-  note?: string;
+  details?: string;
   startDate: string;
   /** Omitted = active indefinitely until manually ended. */
   endDate?: string;
   /** Manually ended early (independent of endDate). Historical items are kept, not deleted. */
   active: boolean;
-  /** Optional relevant role/shift — when set, the item is also surfaced on that
-   *  shift's Shift Workspace/print, the same way resident-scoped FYIs are. Unset
-   *  means "relevant to any shift caring for this resident". */
+  /** Optional relevant role/shift — narrows which shift's Dashboard/Huddle
+   *  context this item is relevant to. Unset means relevant everywhere its
+   *  scope applies. Does NOT route into any printed TaskSheet. */
   roleId?: UUID;
   shiftId?: UUID;
-  /** Drives Dashboard/huddle sort order alongside FYIs. Defaults to 'normal'. */
-  importance?: OperationalPriority;
-  /** Opt-in: also include this item in the resident's FYI Binder section. */
-  includeInFyiBinder?: boolean;
-  /** Dashboard "Resident Attention" inclusion. Unset means shown — preserves
+  /** Drives Dashboard/Huddle sort order alongside FYIs and Tasks. Defaults to 'normal'. */
+  priority?: OperationalPriority;
+  /** Dashboard "Current Unit Situation" (unit/site scope) or "Resident
+   *  Attention" (resident scope) inclusion. Unset means shown — preserves
    *  the original always-shown behavior for every item created before this
    *  flag existed. */
   showOnDashboard?: boolean;
-  /** Reserved for the future Huddle View; not yet consumed anywhere. */
+  /** Included in the Huddle briefing view when true. */
   showInHuddle?: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -429,7 +438,6 @@ export interface Resident {
   notes?: string;
   admittedAt?: string;
   returnDate?: string;
-  attentionItems?: ResidentAttentionItem[];
   source?: 'manual' | 'imported' | 'demo';
   sourceBatchId?: string;
 }
@@ -767,6 +775,10 @@ export interface AppDatabaseState {
   unitTasks: UnitTask[];
   fyis: FYI[];
   wounds: Wound[];
+  /** Temporary situations staff need to be aware of — Resident/Unit/Site
+   *  scoped. Top-level (not nested under Resident) so Unit/Site items don't
+   *  need a resident to attach to. */
+  attentionItems: AttentionItem[];
   woundSupplyCatalog: WoundSupplyProduct[];
   /**
    * @deprecated legacyCompletions — retained for safe migration only.

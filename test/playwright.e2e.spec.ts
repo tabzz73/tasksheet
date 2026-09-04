@@ -380,8 +380,8 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Dashboard' }).first().click();
     await expect(page.getByText('Current Unit Situation')).toBeVisible();
 
-    // Demo seed's active attention item shows up in both Resident Attention
-    // and Current Unit Situation without navigating away.
+    // Demo seed's active resident-scoped attention item shows up on the
+    // Resident Attention card without navigating away.
     await expect(page.getByText('Increased Falls Observation').first()).toBeVisible();
 
     // Away From Unit lists actual residents, not just a count, and drills
@@ -390,11 +390,11 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await expect(page.getByRole('heading', { name: 'Robert Chen' })).toBeVisible();
     await page.getByRole('button', { name: 'Dashboard' }).first().click();
 
-    // Add Resident Attention from the Dashboard quick action.
+    // Add Attention from the Dashboard quick action (defaults to Resident scope).
     await page.getByRole('button', { name: 'Add Attention' }).click();
-    await page.getByLabel("What's being tracked").fill('Sleep Tracking');
+    await page.getByLabel('Title').fill('Sleep concern noted');
     await page.getByRole('button', { name: 'Add Attention Item' }).click();
-    await expect(page.getByText('Sleep Tracking').first()).toBeVisible();
+    await expect(page.getByText('Sleep concern noted').first()).toBeVisible();
 
     // Customize: hide Away From Unit, save, confirm it disappears.
     await page.getByRole('button', { name: 'Customize' }).click();

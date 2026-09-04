@@ -1,4 +1,4 @@
-import { AppDatabaseState, DashboardWidgetConfig, DashboardWidgetId, FYI, OperationalPriority, Resident, ResidentAttentionItem, ResidentTask, Wound } from '../types';
+import { AppDatabaseState, AttentionItem, AttentionScope, DashboardWidgetConfig, DashboardWidgetId, EmergencyCode, FYI, OperationalPriority, Resident, ResidentTask, Wound } from '../types';
 import { getResidentStatusLabel, isResidentCurrent } from './residentStatus';
 import { sortRoomNumbers } from './generator';
 import { buildBathingScheduleModel } from './print/specializedDocs';
@@ -31,33 +31,39 @@ export function getValidatedDashboardLayout(state: AppDatabaseState): DashboardW
   return cleaned.length > 0 ? cleaned : DEFAULT_DASHBOARD_LAYOUT;
 }
 
-export interface DashboardAttentionEntry {
-  resident: Resident;
-  item: ResidentAttentionItem;
+export interface AttentionEntry {
+  item: AttentionItem;
+  /** Resolved only for scope === 'resident'. */
+  resident?: Resident;
   /** Ends today or tomorrow — worth flagging for review at huddle. */
   endingSoon: boolean;
 }
 
-/** Attention items that are active *today* — active flag set, and within
- *  their start/end date window. Items with a future start date or a past
- *  end date are excluded (they simply don't appear yet, or don't appear
- *  anymore — the record itself is preserved, never deleted). */
-export function getActiveResidentAttentionItems(state: AppDatabaseState, today: string): DashboardAttentionEntry[] {
+/** Active Attention items — active flag set, within their start/end date
+ *  window, and (for resident-scoped items) attached to a still-current
+ *  resident. Pass `scope` to restrict to one scope; omit for all three.
+ *  Attention is awareness only: it is never filtered by / routed through
+ *  print or Shift Workspace logic. */
+export function getActiveAttentionItems(state: AppDatabaseState, today: string, scope?: AttentionScope): AttentionEntry[] {
   const tomorrow = addDays(today, 1);
-  const entries: DashboardAttentionEntry[] = [];
-  for (const resident of state.residents) {
-    if (!isResidentCurrent(resident.status)) continue;
-    for (const item of resident.attentionItems || []) {
-      if (!item.active) continue;
-      if (item.showOnDashboard === false) continue;
-      if (!isWithinActiveWindow(item.startDate, item.endDate, today)) continue;
-      entries.push({ resident, item, endingSoon: item.endDate === today || item.endDate === tomorrow });
+  const entries: AttentionEntry[] = [];
+  for (const item of state.attentionItems) {
+    if (scope && item.scope !== scope) continue;
+    if (!item.active) continue;
+    if (item.showOnDashboard === false) continue;
+    if (!isWithinActiveWindow(item.startDate, item.endDate, today)) continue;
+    let resident: Resident | undefined;
+    if (item.scope === 'resident') {
+      resident = state.residents.find(r => r.id === item.residentId);
+      if (!resident || !isResidentCurrent(resident.status)) continue;
     }
+    entries.push({ item, resident, endingSoon: item.endDate === today || item.endDate === tomorrow });
   }
   return entries.sort((a, b) => {
-    const rankDiff = PRIORITY_RANK[a.item.importance || 'normal'] - PRIORITY_RANK[b.item.importance || 'normal'];
+    const rankDiff = PRIORITY_RANK[a.item.priority || 'normal'] - PRIORITY_RANK[b.item.priority || 'normal'];
     if (rankDiff !== 0) return rankDiff;
-    return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
+    if (a.resident && b.resident) return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
+    return a.item.title.localeCompare(b.item.title);
   });
 }
 
@@ -166,85 +172,35 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
   });
 }
 
-export type UnitSituationEntryKind = 'attention' | 'follow_up' | 'away' | 'fyi';
-
 export interface UnitSituationEntry {
-  kind: UnitSituationEntryKind;
   id: string;
-  roomNumber?: string;
   label: string;
-  /** Opens the resident profile when clicked; undefined for unscoped FYIs. */
-  residentId?: string;
-  /** 'away' entries only — picks Hospital vs. a neutral away icon. */
-  isHospital?: boolean;
+  dateLabel: string;
+  scope: 'unit' | 'site';
 }
 
-function truncate(text: string, max: number): string {
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max);
-  const lastSpace = cut.lastIndexOf(' ');
-  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+function formatAttentionDateLabel(item: AttentionItem, today: string): string {
+  if (!item.endDate) return item.startDate > today ? `Starts ${formatShortDate(item.startDate)}` : 'Ongoing';
+  if (item.endDate === today) return 'Through today';
+  return item.startDate > today ? `${formatShortDate(item.startDate)}–${formatShortDate(item.endDate)}` : `Through ${formatShortDate(item.endDate)}`;
 }
 
-/** The flagship huddle briefing: a SELECTIVE summary of the highest-priority
- *  items across every source (Resident Attention, Resident Follow-up, Away
- *  From Unit, urgent FYIs) — not an exhaustive re-listing of everything
- *  already shown on its own dedicated card. FYI text is truncated to a
- *  short line here specifically so this card never duplicates the full FYI
- *  text the Latest FYI card already shows. Capped to `limit` items so a
- *  quiet shift renders a short, scannable list instead of every record. */
-export function getUnitSituationSummary(state: AppDatabaseState, today: string, limit = 6): UnitSituationEntry[] {
-  const pool: (UnitSituationEntry & { rank: number })[] = [];
-
-  for (const { resident, item } of getActiveResidentAttentionItems(state, today)) {
-    pool.push({
-      kind: 'attention',
-      id: `att_${item.id}`,
-      roomNumber: resident.roomNumber,
-      label: item.type,
-      residentId: resident.id,
-      rank: PRIORITY_RANK[item.importance || 'normal'],
-    });
-  }
-
-  for (const { resident, task, dateLabel } of getResidentFollowUpTasks(state, today)) {
-    pool.push({
-      kind: 'follow_up',
-      id: `fu_${task.id}`,
-      roomNumber: resident.roomNumber,
-      label: `${task.title} — ${dateLabel}`,
-      residentId: resident.id,
-      rank: PRIORITY_RANK[task.priority || 'normal'],
-    });
-  }
-
-  for (const { resident, statusLabel } of getAwayResidents(state)) {
-    pool.push({
-      kind: 'away',
-      id: `away_${resident.id}`,
-      roomNumber: resident.roomNumber,
-      label: statusLabel,
-      residentId: resident.id,
-      isHospital: resident.status === 'in_hospital',
-      rank: 1, // "important" tier — not clinically urgent, but not routine either
-    });
-  }
-
-  // Only FYIs already important enough to warrant a mention — a normal FYI
-  // belongs solely on the Latest FYI card, never duplicated here.
-  for (const fyi of getDashboardFyis(state, today, 20).filter(f => f.importance !== 'normal')) {
-    pool.push({
-      kind: 'fyi',
-      id: `fyi_${fyi.id}`,
-      label: truncate(fyi.text, 70),
-      rank: PRIORITY_RANK[fyi.importance],
-    });
-  }
-
-  return pool
-    .sort((a, b) => a.rank - b.rank)
-    .slice(0, limit)
-    .map(({ rank: _rank, ...entry }) => entry);
+/** "What unusual or temporary things are happening on the unit/site right
+ *  now?" — sourced EXCLUSIVELY from active Unit + Site scoped Attention
+ *  items. Deliberately does not pull in FYIs, Resident Tasks, Resident
+ *  Attention, or wounds: those already have their own dedicated Dashboard
+ *  cards, and duplicating them here is exactly what made this card
+ *  confusing before. Resident-scoped situations belong on the Resident
+ *  Attention card instead. */
+export function getUnitSituationSummary(state: AppDatabaseState, today: string): UnitSituationEntry[] {
+  return getActiveAttentionItems(state, today)
+    .filter(({ item }) => item.scope === 'unit' || item.scope === 'site')
+    .map(({ item }) => ({
+      id: item.id,
+      label: item.title,
+      dateLabel: formatAttentionDateLabel(item, today),
+      scope: item.scope as 'unit' | 'site',
+    }));
 }
 
 /** Count of residents scheduled to bathe on `today`, reusing the exact same
@@ -256,4 +212,44 @@ export function getTodaysBathingCount(state: AppDatabaseState, today: string): n
   const weekStartsOn = state.settings.operationalWeekStartsOn ?? 1;
   const dayNumber = ((current.getDay() - weekStartsOn + 7) % 7) + 1; // 1=Mon..7=Sun, matches the builder
   return model.dailyTotals[dayNumber] || 0;
+}
+
+export interface HuddleBriefing {
+  today: string;
+  census: { activeCount: number; inHospitalCount: number; outOnPassCount: number; onHoldCount: number };
+  away: AwayResidentEntry[];
+  /** Unit + Site scoped Attention, showInHuddle only. */
+  unitSiteAttention: AttentionEntry[];
+  /** Resident-scoped Attention, showInHuddle only. */
+  residentAttention: AttentionEntry[];
+  /** Resident Tasks flagged showOnDashboard AND showInHuddle. */
+  residentFollowUp: ResidentFollowUpEntry[];
+  /** FYIs flagged showInHuddle. */
+  importantFyis: FYI[];
+  codeOfMonth?: EmergencyCode;
+}
+
+/** Huddle is NOT a record type — it is a read-only briefing view assembled
+ *  from existing sources, filtered to items the creator explicitly flagged
+ *  `showInHuddle`. Nothing here is stored; everything is derived fresh from
+ *  Attention / Resident Task / FYI / resident status each time it's opened. */
+export function getHuddleBriefing(state: AppDatabaseState, today: string): HuddleBriefing {
+  const allAttention = getActiveAttentionItems(state, today).filter(({ item }) => item.showInHuddle === true);
+  return {
+    today,
+    census: {
+      activeCount: state.residents.filter(r => r.status === 'active').length,
+      inHospitalCount: state.residents.filter(r => r.status === 'in_hospital').length,
+      outOnPassCount: state.residents.filter(r => r.status === 'out_on_pass').length,
+      onHoldCount: state.residents.filter(r => r.status === 'on_hold').length,
+    },
+    away: getAwayResidents(state),
+    unitSiteAttention: allAttention.filter(({ item }) => item.scope !== 'resident'),
+    residentAttention: allAttention.filter(({ item }) => item.scope === 'resident'),
+    residentFollowUp: getResidentFollowUpTasks(state, today).filter(({ task }) => task.showInHuddle === true),
+    importantFyis: getDashboardFyis(state, today, 20).filter(f => f.showInHuddle === true),
+    codeOfMonth: state.settings.codeOfTheMonthEnabled === true
+      ? (state.settings.emergencyCodes || []).find(c => c.id === state.settings.codeOfTheMonthId)
+      : undefined,
+  };
 }
