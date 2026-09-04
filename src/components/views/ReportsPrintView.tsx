@@ -128,6 +128,15 @@ interface PrintCenterProps {
   navigationResetToken?: number;
 }
 
+type PrintCenterSection = 'quick_print' | 'wound_quick_prints' | 'print_packages' | 'specialized_documents';
+
+const PRINT_CENTER_SECTIONS: { id: PrintCenterSection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'quick_print', label: 'Quick Print', icon: Printer },
+  { id: 'wound_quick_prints', label: 'Wound Quick Prints', icon: Bandage },
+  { id: 'print_packages', label: 'Print Packages', icon: Package },
+  { id: 'specialized_documents', label: 'Specialized Documents', icon: Layers },
+];
+
 // ─── Change badge ─────────────────────────────────────────────────────────────
 
 const ChangeBadge: React.FC<{ changes: PrintChangesSummary }> = ({ changes }) => {
@@ -156,6 +165,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   onPrintPackage,
   navigationResetToken = 0,
 }) => {
+  const [activeSection, setActiveSection] = useState<PrintCenterSection>('quick_print');
   const [selectedDate, setSelectedDate] = useState(currentDate);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
@@ -175,6 +185,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
     setPackageConfigurationError(null);
     setWoundWeekAnchor(currentDate);
     setBathingWeekAnchor(currentDate);
+    setActiveSection('quick_print');
   }, [navigationResetToken]);
 
   const state = db.getState();
@@ -413,7 +424,30 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
         </div>
       </div>
 
+      {/* ── SECTION TABS ── */}
+      <div className="flex overflow-x-auto border-b border-hairline-strong" aria-label="Print Center sections">
+        {PRINT_CENTER_SECTIONS.map(section => {
+          const Icon = section.icon;
+          const isActive = activeSection === section.id;
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => setActiveSection(section.id)}
+              aria-current={isActive ? 'true' : undefined}
+              className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 flex items-center gap-1.5 transition-colors ${
+                isActive ? 'border-accent-strong text-accent-strong bg-accent-soft' : 'border-transparent text-muted hover:text-ink'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {section.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ── QUICK PRINT ── */}
+      {activeSection === 'quick_print' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         {/* Section header */}
         <div className="px-5 py-3 border-b border-hairline flex items-center justify-between bg-panel-sunken">
@@ -595,8 +629,10 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* ── WOUND QUICK PRINTS ── */}
+      {activeSection === 'wound_quick_prints' && (
       <div className="bg-panel rounded-surface border border-danger overflow-hidden">
         <div className="px-5 py-3 border-b border-danger bg-danger-soft flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
@@ -623,8 +659,10 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* ── PRINT PACKAGES ── */}
+      {activeSection === 'print_packages' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
           <Package className="w-4 h-4 text-muted" />
@@ -790,6 +828,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
         )}
       </div>
+      )}
 
       <SavePrintPackageModal
         isOpen={packageModalState.isOpen}
@@ -801,6 +840,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       <ConfirmDialog request={deletePackageRequest} onClose={() => setDeletePackageRequest(null)} />
 
       {/* ── OTHER DOCUMENTS (SPECIALIZED SUITE) ── */}
+      {activeSection === 'specialized_documents' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
           <FileText className="w-4 h-4 text-muted" />
@@ -965,6 +1005,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* ── PRINT GUIDANCE NOTE ── */}
       <div className="px-4 py-3 bg-panel-sunken border border-hairline-strong rounded-surface flex items-start space-x-2.5 text-xs text-muted">

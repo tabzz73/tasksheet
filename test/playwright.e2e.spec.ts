@@ -238,6 +238,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
   test('Journey 8 — Wound Quick Prints preview weekly and supply reports', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Print Center/i }).first().click();
+    await page.getByRole('button', { name: 'Wound Quick Prints' }).click();
     await expect(page.getByRole('heading', { name: /Wound Quick Prints/i })).toBeVisible();
 
     await page.getByRole('button', { name: 'Preview' }).first().click();
@@ -247,6 +248,9 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     expect(weeklyFooterCss).toContain('Page " counter(page) " of " counter(pages)');
     await page.getByRole('button', { name: 'Back' }).click();
 
+    // "Back" remounts Print Center fresh (same as its date/week pickers
+    // already did before this section became tabbed), so re-select the tab.
+    await page.getByRole('button', { name: 'Wound Quick Prints' }).click();
     await page.getByLabel('Wound supply report scope').selectOption('all_active');
     await page.getByRole('button', { name: 'Preview' }).nth(1).click();
     await expect(page.getByRole('heading', { name: 'WOUND SUPPLIES RE-ORDER LIST' })).toBeVisible();
@@ -285,6 +289,8 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
 
     await page.getByRole('button', { name: 'Bathing', exact: true }).click();
     await expect(page.getByRole('button', { name: /Bathing Capacity.*Open Slots/i })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Specialized Documents' }).click();
     const weekPicker = page.getByLabel('Select bathing week');
     await weekPicker.fill('2026-09-02');
     await page.getByRole('button', { name: 'Previous bathing week' }).click();
@@ -302,6 +308,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.goto('/');
     await page.getByRole('button', { name: /Print Center/i }).first().click();
     await expect(page.getByRole('heading', { name: 'Print Center' })).toBeVisible();
+    await page.getByRole('button', { name: 'Print Packages' }).click();
     await expect(page.getByText('Built In')).toBeVisible();
 
     // Create a new saved package with two documents.
@@ -338,7 +345,9 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Back' }).click();
 
     // Duplicate the built-in HCA Daily Package into an editable saved package.
+    // "Back" remounts Print Center fresh, so re-select the Print Packages tab.
     await expect(page.getByRole('heading', { name: 'Print Center' })).toBeVisible();
+    await page.getByRole('button', { name: 'Print Packages' }).click();
     await page.getByRole('button', { name: 'Duplicate', exact: true }).first().click();
     await expect(page.getByRole('heading', { name: 'New Print Package' })).toBeVisible();
     await expect(page.getByLabel('Package Name')).toHaveValue('HCA Daily Package (Copy)');

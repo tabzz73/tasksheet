@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Copy, Download, FilePlus2, Filter, LayoutList, Plus, Save, Settings2, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Copy, Download, FilePlus2, Filter, LayoutList, Plus, Save, Trash2 } from 'lucide-react';
 import { db } from '../../db';
 import { ReportDataSource, ReportFilterDefinition, SavedPrintPreset } from '../../types';
 import {
@@ -12,6 +12,7 @@ import {
   SYSTEM_REPORT_PRESETS,
 } from '../../services/reports';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
+import { Modal } from '../common/Modal';
 
 const CATEGORIES = ['Residents', 'Wound Care', 'Care & Tasks', 'FYI', 'Facility / Setup', 'Bathing', 'Custom'] as const;
 
@@ -101,15 +102,15 @@ export const ReportCatalogPanel: React.FC<{ selectedDate: string; onPreview: (do
   return <section className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
     <div className="p-5 border-b border-hairline-strong bg-panel-sunken flex flex-wrap items-center justify-between gap-3">
       <div><h3 className="text-base font-black text-ink">Report Library</h3><p className="text-xs text-muted">Predefined operational reports and a guided privacy-safe custom builder.</p></div>
-      <button type="button" onClick={() => setBuilderOpen(value => !value)} className="px-3 py-2 bg-accent-strong text-white rounded-control text-xs font-bold inline-flex items-center gap-1.5"><FilePlus2 className="w-4 h-4" />{builderOpen ? 'Close Builder' : 'Custom Print Builder'}</button>
+      <button type="button" onClick={() => setBuilderOpen(true)} className="px-3 py-2 bg-accent-strong text-white rounded-control text-xs font-bold inline-flex items-center gap-1.5"><FilePlus2 className="w-4 h-4" />Custom Print Builder</button>
     </div>
 
     <div className="flex overflow-x-auto border-b border-hairline-strong" aria-label="Report categories">{CATEGORIES.map(item => <button key={item} type="button" onClick={() => setCategory(item)} className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 ${category === item ? 'border-accent-strong text-accent-strong bg-accent-soft' : 'border-transparent text-muted'}`}>{item}</button>)}</div>
 
     <div className="divide-y divide-hairline">{categoryPresets.map(item => <button key={item.id} type="button" onClick={() => preview(item)} className="w-full text-left px-5 py-3 hover:bg-panel-sunken transition-colors flex items-center justify-between gap-3"><span className="min-w-0"><strong className="block text-[13px] font-bold text-ink">{item.name}</strong><span className="block text-[11px] text-muted mt-0.5">{item.description}</span></span><span className="shrink-0 text-[10px] uppercase tracking-wider font-bold text-faint">{REPORT_SOURCE_LABELS[item.dataSource]} · {item.layout}</span></button>)}{category === 'Custom' && <div className="p-5 border-t border-hairline"><strong className="block text-sm text-ink">Custom Print Builder & Saved Presets</strong><p className="text-xs text-ink-soft mt-1">Use the guided builder above to choose a safe data source, filters, columns, grouping, sorting, layout, and density.</p></div>}</div>
 
-    {builderOpen && <div className="border-t-2 border-hairline-strong bg-panel-sunken p-5 space-y-5">
-      <div className="flex items-center gap-2"><Settings2 className="w-4 h-4 text-accent-strong" /><h4 className="text-sm font-black">Data → Filters → Columns → Grouping → Sorting → Layout → Preview</h4></div>
+    <Modal isOpen={builderOpen} onClose={() => setBuilderOpen(false)} title="Custom Print Builder" subtitle="Data → Filters → Columns → Grouping → Sorting → Layout → Preview" maxWidth="4xl">
+      <div className="space-y-5">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <label className="text-xs font-bold">Data Source<select aria-label="Report data source" value={definition.dataSource} onChange={event => changeSource(event.target.value as ReportDataSource)} className="mt-1 w-full p-2 border border-hairline-strong rounded-control bg-panel">{Object.entries(REPORT_SOURCE_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
         <label className="text-xs font-bold">Report / Preset Name<input aria-label="Report preset name" value={definition.name} onChange={event => setDefinition({ ...definition, name: event.target.value })} className="mt-1 w-full p-2 border border-hairline-strong rounded-control" /></label>
@@ -130,9 +131,13 @@ export const ReportCatalogPanel: React.FC<{ selectedDate: string; onPreview: (do
       <div className={`rounded-surface border p-3 flex flex-wrap items-center justify-between gap-3 ${model.rows.length === 0 ? 'bg-danger-soft border-danger' : model.largeReport ? 'bg-warning-soft border-warning' : 'bg-accent-soft border-hairline-strong'}`}><div><strong className="text-sm">{model.rows.length} matching records · ~{model.estimatedPages} page{model.estimatedPages === 1 ? '' : 's'}</strong><p className="text-[11px] text-ink-soft">{model.filterSummary}</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={save} className="px-3 py-2 border border-hairline-strong rounded-control text-xs font-bold bg-panel inline-flex items-center gap-1"><Save className="w-3.5 h-3.5" />Save Preset</button>{['residents','shifts','rooms','wound_supplies','care_catalog','unit_tasks'].includes(definition.dataSource) && <button type="button" disabled={model.rows.length === 0} onClick={exportCsv} className="px-3 py-2 border border-hairline-strong rounded-control text-xs font-bold bg-panel inline-flex items-center gap-1 disabled:opacity-40"><Download className="w-3.5 h-3.5" />CSV</button>}<button type="button" disabled={model.rows.length === 0 || definition.columns.length === 0} onClick={() => preview(definition)} className="px-4 py-2 bg-accent-strong text-white rounded-control text-xs font-bold disabled:opacity-40">Preview Report</button></div></div>
 
       {userPresets.length > 0 && <div className="bg-panel border rounded-surface p-4"><h5 className="text-xs font-black mb-2">My Presets</h5><div className="space-y-2">{userPresets.map(saved => <div key={saved.id} className="flex items-center gap-2 border-b last:border-0 py-2"><span className="flex-1 text-xs font-bold">{saved.name}</span><button type="button" onClick={() => preview(saved)} className="px-2 py-1 text-xs border rounded">Preview</button><button type="button" onClick={() => { setDefinition({ ...saved, category: 'Custom', description: 'Saved user report preset.', system: false }); setBuilderOpen(true); }} className="px-2 py-1 text-xs border rounded">Edit / Rename</button><button type="button" aria-label={`Duplicate ${saved.name}`} onClick={() => { saveUserPreset({ ...saved, id: undefined, name: `${saved.name} Copy` }); setPresetRevision(value=>value+1); }} className="p-1.5"><Copy className="w-3.5 h-3.5" /></button><button type="button" aria-label={`Delete ${saved.name}`} onClick={() => { deleteUserPreset(saved.id); setPresetRevision(value=>value+1); }} className="p-1.5 text-danger"><Trash2 className="w-3.5 h-3.5" /></button></div>)}</div></div>}
-    </div>}
 
-    {message && <div role="alert" className="mx-4 mb-4 p-3 rounded-control bg-danger-soft border border-danger text-xs font-bold text-danger">{message}</div>}
+      {message && <div role="alert" className="p-3 rounded-control bg-danger-soft border border-danger text-xs font-bold text-danger">{message}</div>}
+      </div>
+    </Modal>
+
+    {/* Feedback from previewing a system preset directly (builder closed) */}
+    {!builderOpen && message && <div role="alert" className="mx-4 mb-4 p-3 rounded-control bg-danger-soft border border-danger text-xs font-bold text-danger">{message}</div>}
     {largePending && <div role="dialog" aria-modal="true" className="fixed inset-0 z-[120] bg-black/60 flex items-center justify-center p-4"><div className="bg-panel rounded-surface shadow-elevated max-w-md p-5"><AlertTriangle className="w-7 h-7 text-warning" /><h4 className="font-black mt-2">Large Report Warning</h4><p className="text-sm mt-2">This report is estimated at {largePending.estimatedPages} pages. Review the selected filters before printing.</p><div className="flex justify-end gap-2 mt-5"><button type="button" onClick={() => setLargePending(null)} className="px-3 py-2 border rounded-control text-xs font-bold">Back to Filters</button><button type="button" onClick={() => { const report=largePending; setLargePending(null); onPreview({type:'custom_report',model:report}); }} className="px-3 py-2 bg-warning text-white rounded-control text-xs font-bold">Preview Anyway</button></div></div></div>}
   </section>;
 };
