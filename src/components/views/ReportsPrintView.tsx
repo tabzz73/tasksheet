@@ -59,9 +59,6 @@ function isTomorrow(dateStr: string): boolean {
 import {
   buildBathingScheduleModel,
   buildWoundScheduleModel,
-  buildWeeklyWoundOverviewModel,
-  buildWoundSupplyReorderModel,
-  getWoundWeek,
   buildShiftConfigReferenceModel,
   buildBlankTaskSheetModel,
 } from '../../services/print/specializedDocs';
@@ -128,14 +125,16 @@ interface PrintCenterProps {
   navigationResetToken?: number;
 }
 
-type PrintCenterSection = 'quick_print' | 'wound_quick_prints' | 'print_packages' | 'specialized_documents';
-
-const PRINT_CENTER_SECTIONS: { id: PrintCenterSection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'quick_print', label: 'Quick Print', icon: Printer },
-  { id: 'wound_quick_prints', label: 'Wound Quick Prints', icon: Bandage },
-  { id: 'print_packages', label: 'Print Packages', icon: Package },
-  { id: 'specialized_documents', label: 'Specialized Documents', icon: Layers },
-];
+// One unified tab bar for the whole Print Center — the Report Library's
+// existing report categories, plus Quick Print / Print Packages /
+// Specialized Documents slotted in beside Bathing. Wound quick prints
+// (weekly overview + supply re-order) live inside the Wound Care tab
+// rather than a separate tab, alongside that category's preset reports.
+const PRINT_CENTER_CATEGORIES = [
+  'Residents', 'Wound Care', 'Care & Tasks', 'FYI', 'Facility / Setup',
+  'Bathing', 'Quick Print', 'Print Packages', 'Specialized Documents', 'Custom',
+] as const;
+type PrintCenterCategory = (typeof PRINT_CENTER_CATEGORIES)[number];
 
 // ─── Change badge ─────────────────────────────────────────────────────────────
 
@@ -165,7 +164,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   onPrintPackage,
   navigationResetToken = 0,
 }) => {
-  const [activeSection, setActiveSection] = useState<PrintCenterSection>('quick_print');
+  const [category, setCategory] = useState<PrintCenterCategory>('Quick Print');
   const [selectedDate, setSelectedDate] = useState(currentDate);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
@@ -185,7 +184,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
     setPackageConfigurationError(null);
     setWoundWeekAnchor(currentDate);
     setBathingWeekAnchor(currentDate);
-    setActiveSection('quick_print');
+    setCategory('Quick Print');
   }, [navigationResetToken]);
 
   const state = db.getState();
@@ -376,8 +375,6 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
         )}
       />
 
-      <ReportCatalogPanel selectedDate={selectedDate} onPreview={onPrintSpecializedDoc} />
-
       {packageConfigurationError && (
         <div className="flex items-start space-x-2.5 rounded-surface border border-danger bg-danger-soft p-3 text-danger" role="alert">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
@@ -424,30 +421,39 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
         </div>
       </div>
 
-      {/* ── SECTION TABS ── */}
-      <div className="flex overflow-x-auto border-b border-hairline-strong" aria-label="Print Center sections">
-        {PRINT_CENTER_SECTIONS.map(section => {
-          const Icon = section.icon;
-          const isActive = activeSection === section.id;
-          return (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => setActiveSection(section.id)}
-              aria-current={isActive ? 'true' : undefined}
-              className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 flex items-center gap-1.5 transition-colors ${
-                isActive ? 'border-accent-strong text-accent-strong bg-accent-soft' : 'border-transparent text-muted hover:text-ink'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {section.label}
-            </button>
-          );
-        })}
+      {/* ── PRINT CENTER TABS (one unified bar) ── */}
+      <div className="flex overflow-x-auto border-b border-hairline-strong bg-panel rounded-t-surface" aria-label="Print Center sections">
+        {PRINT_CENTER_CATEGORIES.map(item => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => setCategory(item)}
+            aria-current={category === item ? 'true' : undefined}
+            className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${
+              category === item ? 'border-accent-strong text-accent-strong bg-accent-soft' : 'border-transparent text-muted hover:text-ink'
+            }`}
+          >
+            {item}
+          </button>
+        ))}
       </div>
 
+      {/* ── REPORT LIBRARY (the 7 report-preset categories) ── */}
+      {category !== 'Quick Print' && category !== 'Print Packages' && category !== 'Specialized Documents' && (
+        <ReportCatalogPanel
+          selectedDate={selectedDate}
+          onPreview={onPrintSpecializedDoc}
+          category={category}
+          woundWeekAnchor={woundWeekAnchor}
+          onWoundWeekAnchorChange={setWoundWeekAnchor}
+          woundSupplyScope={woundSupplyScope}
+          onWoundSupplyScopeChange={setWoundSupplyScope}
+          today={today}
+        />
+      )}
+
       {/* ── QUICK PRINT ── */}
-      {activeSection === 'quick_print' && (
+      {category === 'Quick Print' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         {/* Section header */}
         <div className="px-5 py-3 border-b border-hairline flex items-center justify-between bg-panel-sunken">
@@ -631,38 +637,8 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       </div>
       )}
 
-      {/* ── WOUND QUICK PRINTS ── */}
-      {activeSection === 'wound_quick_prints' && (
-      <div className="bg-panel rounded-surface border border-danger overflow-hidden">
-        <div className="px-5 py-3 border-b border-danger bg-danger-soft flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center space-x-2">
-            <Bandage className="w-4 h-4 text-danger" />
-            <div><h3 className="text-xs font-black text-ink uppercase tracking-widest">Wound Quick Prints</h3><p className="text-[11px] text-muted">Preview-first operational reports · no clinical results stored</p></div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button type="button" aria-label="Previous wound week" onClick={() => setWoundWeekAnchor(stepDate(woundWeekAnchor, -7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronLeft className="w-3.5 h-3.5" /></button>
-            <button type="button" onClick={() => setWoundWeekAnchor(today)} className="px-2.5 py-1.5 border border-hairline-strong rounded-control text-[11px] font-bold hover:bg-panel">Current Week</button>
-            <button type="button" aria-label="Next wound week" onClick={() => setWoundWeekAnchor(stepDate(woundWeekAnchor, 7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronRight className="w-3.5 h-3.5" /></button>
-            <span className="ml-2 text-xs font-bold text-ink-soft">{getWoundWeek(woundWeekAnchor).weekRange}</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-hairline">
-          <div className="p-4 flex items-start justify-between gap-4">
-            <div><p className="text-sm font-bold text-ink">Weekly Wound Care Overview</p><p className="text-xs text-muted mt-1">Mon–Sun schedule · all active clinical shifts · Full/Partial assessment markers</p></div>
-            <button type="button" onClick={() => onPrintSpecializedDoc({ type: 'wound_weekly', model: buildWeeklyWoundOverviewModel(woundWeekAnchor) })} className="px-3 py-2 bg-danger hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
-          </div>
-          <div className="p-4 flex items-start justify-between gap-4">
-            <div className="min-w-0"><p className="text-sm font-bold text-ink">Wound Supplies Re-Order List</p><p className="text-xs text-muted mt-1">Exact supply names · scheduled-use counts · resident/wound traceability</p>
-              <select aria-label="Wound supply report scope" value={woundSupplyScope} onChange={event => setWoundSupplyScope(event.target.value as 'current_week' | 'all_active')} className="mt-2 px-2.5 py-1.5 border border-hairline-strong rounded-control text-xs bg-panel"><option value="current_week">Current Week</option><option value="all_active">All Active Wounds</option></select>
-            </div>
-            <button type="button" onClick={() => onPrintSpecializedDoc({ type: 'wound_supplies', model: buildWoundSupplyReorderModel(woundWeekAnchor, woundSupplyScope) })} className="px-3 py-2 bg-ink hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
-          </div>
-        </div>
-      </div>
-      )}
-
       {/* ── PRINT PACKAGES ── */}
-      {activeSection === 'print_packages' && (
+      {category === 'Print Packages' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
           <Package className="w-4 h-4 text-muted" />
@@ -840,7 +816,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       <ConfirmDialog request={deletePackageRequest} onClose={() => setDeletePackageRequest(null)} />
 
       {/* ── OTHER DOCUMENTS (SPECIALIZED SUITE) ── */}
-      {activeSection === 'specialized_documents' && (
+      {category === 'Specialized Documents' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
           <FileText className="w-4 h-4 text-muted" />

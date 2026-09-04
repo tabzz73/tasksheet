@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Copy, Download, FilePlus2, Filter, LayoutList, Plus, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, Bandage, ChevronLeft, ChevronRight, Copy, Download, FilePlus2, Filter, LayoutList, Plus, Save, Trash2 } from 'lucide-react';
 import { db } from '../../db';
 import { ReportDataSource, ReportFilterDefinition, SavedPrintPreset } from '../../types';
 import {
@@ -11,10 +11,20 @@ import {
   saveUserPreset,
   SYSTEM_REPORT_PRESETS,
 } from '../../services/reports';
+import {
+  buildWeeklyWoundOverviewModel,
+  buildWoundSupplyReorderModel,
+  getWoundWeek,
+} from '../../services/print/specializedDocs';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
 import { Modal } from '../common/Modal';
 
-const CATEGORIES = ['Residents', 'Wound Care', 'Care & Tasks', 'FYI', 'Facility / Setup', 'Bathing', 'Custom'] as const;
+function stepDate(dateStr: string, delta: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + delta);
+  return date.toISOString().split('T')[0];
+}
 
 const newDefinition = (source: ReportDataSource, date: string): ReportDefinition => ({
   id: `custom-${Date.now()}`,
@@ -32,8 +42,30 @@ const newDefinition = (source: ReportDataSource, date: string): ReportDefinition
   dateRange: { start: date, end: date },
 });
 
-export const ReportCatalogPanel: React.FC<{ selectedDate: string; onPreview: (doc: SpecializedPrintDoc) => void }> = ({ selectedDate, onPreview }) => {
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('Residents');
+interface ReportCatalogPanelProps {
+  selectedDate: string;
+  onPreview: (doc: SpecializedPrintDoc) => void;
+  /** Controlled from the parent's unified Print Center tab bar. */
+  category: string;
+  /** Wound Care tab only — the two wound quick prints live here alongside
+   *  that category's preset reports, rather than a separate tab. */
+  woundWeekAnchor: string;
+  onWoundWeekAnchorChange: (date: string) => void;
+  woundSupplyScope: 'current_week' | 'all_active';
+  onWoundSupplyScopeChange: (scope: 'current_week' | 'all_active') => void;
+  today: string;
+}
+
+export const ReportCatalogPanel: React.FC<ReportCatalogPanelProps> = ({
+  selectedDate,
+  onPreview,
+  category,
+  woundWeekAnchor,
+  onWoundWeekAnchorChange,
+  woundSupplyScope,
+  onWoundSupplyScopeChange,
+  today,
+}) => {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [definition, setDefinition] = useState<ReportDefinition>(() => newDefinition('residents', selectedDate));
   const [filterDraft, setFilterDraft] = useState<ReportFilterDefinition>({ field: 'status', operator: 'equals', value: 'Active' });
@@ -101,13 +133,41 @@ export const ReportCatalogPanel: React.FC<{ selectedDate: string; onPreview: (do
 
   return <section className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
     <div className="p-5 border-b border-hairline-strong bg-panel-sunken flex flex-wrap items-center justify-between gap-3">
-      <div><h3 className="text-base font-black text-ink">Report Library</h3><p className="text-xs text-muted">Predefined operational reports and a guided privacy-safe custom builder.</p></div>
+      <p className="text-xs text-muted">Predefined operational reports and a guided privacy-safe custom builder.</p>
       <button type="button" onClick={() => setBuilderOpen(true)} className="px-3 py-2 bg-accent-strong text-white rounded-control text-xs font-bold inline-flex items-center gap-1.5"><FilePlus2 className="w-4 h-4" />Custom Print Builder</button>
     </div>
 
-    <div className="flex overflow-x-auto border-b border-hairline-strong" aria-label="Report categories">{CATEGORIES.map(item => <button key={item} type="button" onClick={() => setCategory(item)} className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 ${category === item ? 'border-accent-strong text-accent-strong bg-accent-soft' : 'border-transparent text-muted'}`}>{item}</button>)}</div>
+    {category === 'Wound Care' && (
+      <div className="border-b border-danger">
+        <div className="px-5 py-3 bg-danger-soft flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-2">
+            <Bandage className="w-4 h-4 text-danger" />
+            <div><strong className="block text-[13px] font-bold text-ink">Wound Quick Prints</strong><span className="block text-[11px] text-muted">Preview-first operational reports · no clinical results stored</span></div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button type="button" aria-label="Previous wound week" onClick={() => onWoundWeekAnchorChange(stepDate(woundWeekAnchor, -7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronLeft className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => onWoundWeekAnchorChange(today)} className="px-2.5 py-1.5 border border-hairline-strong rounded-control text-[11px] font-bold hover:bg-panel">Current Week</button>
+            <button type="button" aria-label="Next wound week" onClick={() => onWoundWeekAnchorChange(stepDate(woundWeekAnchor, 7))} className="p-1.5 border border-hairline-strong rounded-control hover:bg-panel"><ChevronRight className="w-3.5 h-3.5" /></button>
+            <span className="ml-2 text-xs font-bold text-ink-soft">{getWoundWeek(woundWeekAnchor).weekRange}</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-hairline">
+          <div className="p-4 flex items-start justify-between gap-4">
+            <div><p className="text-sm font-bold text-ink">Weekly Wound Care Overview</p><p className="text-xs text-muted mt-1">Mon–Sun schedule · all active clinical shifts · Full/Partial assessment markers</p></div>
+            <button type="button" onClick={() => onPreview({ type: 'wound_weekly', model: buildWeeklyWoundOverviewModel(woundWeekAnchor) })} className="px-3 py-2 bg-danger hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
+          </div>
+          <div className="p-4 flex items-start justify-between gap-4">
+            <div className="min-w-0"><p className="text-sm font-bold text-ink">Wound Supplies Re-Order List</p><p className="text-xs text-muted mt-1">Exact supply names · scheduled-use counts · resident/wound traceability</p>
+              <select aria-label="Wound supply report scope" value={woundSupplyScope} onChange={event => onWoundSupplyScopeChange(event.target.value as 'current_week' | 'all_active')} className="mt-2 px-2.5 py-1.5 border border-hairline-strong rounded-control text-xs bg-panel"><option value="current_week">Current Week</option><option value="all_active">All Active Wounds</option></select>
+            </div>
+            <button type="button" onClick={() => onPreview({ type: 'wound_supplies', model: buildWoundSupplyReorderModel(woundWeekAnchor, woundSupplyScope) })} className="px-3 py-2 bg-ink hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
+          </div>
+        </div>
+      </div>
+    )}
 
-    <div className="divide-y divide-hairline">{categoryPresets.map(item => <button key={item.id} type="button" onClick={() => preview(item)} className="w-full text-left px-5 py-3 hover:bg-panel-sunken transition-colors flex items-center justify-between gap-3"><span className="min-w-0"><strong className="block text-[13px] font-bold text-ink">{item.name}</strong><span className="block text-[11px] text-muted mt-0.5">{item.description}</span></span><span className="shrink-0 text-[10px] uppercase tracking-wider font-bold text-faint">{REPORT_SOURCE_LABELS[item.dataSource]} · {item.layout}</span></button>)}{category === 'Custom' && <div className="p-5 border-t border-hairline"><strong className="block text-sm text-ink">Custom Print Builder & Saved Presets</strong><p className="text-xs text-ink-soft mt-1">Use the guided builder above to choose a safe data source, filters, columns, grouping, sorting, layout, and density.</p></div>}</div>
+    <div className="px-5 pt-3 text-[10px] font-black text-faint uppercase tracking-widest">{category} Reports</div>
+    <div className="divide-y divide-hairline">{categoryPresets.map(item => <button key={item.id} type="button" onClick={() => preview(item)} className="w-full text-left px-5 py-3 hover:bg-panel-sunken transition-colors flex items-center justify-between gap-3"><span className="min-w-0"><strong className="block text-[13px] font-bold text-ink">{item.name}</strong><span className="block text-[11px] text-muted mt-0.5">{item.description}</span></span><span className="shrink-0 text-[10px] uppercase tracking-wider font-bold text-faint">{REPORT_SOURCE_LABELS[item.dataSource]} · {item.layout}</span></button>)}{categoryPresets.length === 0 && category !== 'Wound Care' && <p className="px-5 py-4 text-xs text-faint">No predefined reports in this category yet.</p>}{category === 'Custom' && <div className="p-5 border-t border-hairline"><strong className="block text-sm text-ink">Custom Print Builder & Saved Presets</strong><p className="text-xs text-ink-soft mt-1">Use the guided builder above to choose a safe data source, filters, columns, grouping, sorting, layout, and density.</p></div>}</div>
 
     <Modal isOpen={builderOpen} onClose={() => setBuilderOpen(false)} title="Custom Print Builder" subtitle="Data → Filters → Columns → Grouping → Sorting → Layout → Preview" maxWidth="4xl">
       <div className="space-y-5">
