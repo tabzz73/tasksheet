@@ -214,7 +214,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             case 'resident_attention':
               return <ResidentAttentionCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
             case 'resident_follow_up':
-              return <ResidentFollowUpCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
+              return <ResidentFollowUpCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} onChanged={() => forceRerender(n => n + 1)} />;
             case 'latest_fyi':
               return <LatestFyiCard key={w.id} state={state} today={currentDate} onNavigateToBinder={onNavigateToBinder} />;
             case 'away_from_unit':

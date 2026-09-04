@@ -623,6 +623,45 @@ describe('TaskSheet Production Hardening & Release Acceptance Test Suite', () =>
         prompt: legacyPrompt,
       });
     });
+
+    it('Resident Follow-up continuity fields (status, due date, carry-forward count) survive a backup/restore round-trip', () => {
+      const resident = db.addResident({ firstName: 'Follow', lastName: 'Up', roomNumber: '779', status: 'active' });
+      const task = db.addResidentTask({
+        residentId: resident.id, shiftId: SHIFT_LPN_DAY_ID, title: 'Collect urine sample',
+        category: 'Health Monitoring', frequency: 'once', time: '0900',
+        showOnDashboard: true, followUpDueDate: '2026-09-01',
+      });
+      db.setResidentTaskFollowUpStatus(task.id, 'carry_forward');
+      db.setResidentTaskFollowUpStatus(task.id, 'carry_forward');
+
+      const backupJson = db.backupDatabase();
+      db.clearAllOperationalData();
+      db.restoreDatabase(backupJson);
+
+      const restored = db.getState().residentTasks.find(t => t.id === task.id);
+      expect(restored?.followUpStatus).toBe('carry_forward');
+      expect(restored?.followUpDueDate).toBe('2026-09-01');
+      expect(restored?.followUpCarryForwardCount).toBe(2);
+    });
+
+    it('a legacy ResidentTask backup with no follow-up fields at all loads safely and behaves as the default "due" status', () => {
+      const resident = db.addResident({ firstName: 'Legacy', lastName: 'FollowUp', roomNumber: '780', status: 'active' });
+      db.addResidentTask({
+        residentId: resident.id, shiftId: SHIFT_LPN_DAY_ID, title: 'Pre-existing task',
+        category: 'Health Monitoring', frequency: 'daily', time: '0900', showOnDashboard: true,
+      });
+      const backup = JSON.parse(db.backupDatabase());
+      // Simulate a backup from before these fields existed: strip them
+      // entirely, as opposed to a TS optional field merely being unset.
+      backup.residentTasks = backup.residentTasks.map((t: any) => {
+        const { followUpStatus: _s, followUpDueDate: _d, followUpCarryForwardCount: _c, followUpUpdatedAt: _u, ...rest } = t;
+        return rest;
+      });
+
+      expect(() => db.restoreDatabase(JSON.stringify(backup))).not.toThrow();
+      const restored = db.getState().residentTasks.find(t => t.title === 'Pre-existing task');
+      expect(restored?.followUpStatus).toBeUndefined();
+    });
   });
 
   // ════════════════════════════════════════════════════════════════════════════

@@ -30,6 +30,7 @@ import {
   UnitTaskTemplate, 
   RecurrenceFrequency, 
   ResidentTask,
+  ResidentTaskFollowUpStatus,
   UnitTask,
   Wound,
   FYI,
@@ -138,6 +139,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskPriority, setTaskPriority] = useState<TaskPriority>('normal');
   const [taskShowOnDashboard, setTaskShowOnDashboard] = useState(false);
   const [taskShowInHuddle, setTaskShowInHuddle] = useState(false);
+  const [taskFollowUpDueDate, setTaskFollowUpDueDate] = useState('');
+  const [taskFollowUpStatus, setTaskFollowUpStatus] = useState<ResidentTaskFollowUpStatus>('due');
   const [coverageType, setCoverageType] = useState('FUNDED');
   const [coverageStartDate, setCoverageStartDate] = useState('');
   const [coverageEndDate, setCoverageEndDate] = useState('');
@@ -242,6 +245,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskPriority(initialResidentTask.priority || 'normal');
         setTaskShowOnDashboard(initialResidentTask.showOnDashboard === true);
         setTaskShowInHuddle(initialResidentTask.showInHuddle === true);
+        setTaskFollowUpDueDate(initialResidentTask.followUpDueDate || '');
+        setTaskFollowUpStatus(initialResidentTask.followUpStatus || 'due');
         const coverage = normalizeCoverage(initialResidentTask.serviceCoverage);
         setCoverageType(coverage.type); setCoverageStartDate(coverage.startDate || ''); setCoverageEndDate(coverage.endDate || ''); setCoverageAdditional(Boolean(coverage.isAdditionalService)); setCoverageNote(coverage.note || '');
       } else if (initialUnitTask) {
@@ -316,6 +321,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskPriority('normal');
         setTaskShowOnDashboard(false);
         setTaskShowInHuddle(false);
+        setTaskFollowUpDueDate('');
+        setTaskFollowUpStatus('due');
         setCoverageType('FUNDED'); setCoverageStartDate(''); setCoverageEndDate(''); setCoverageAdditional(false); setCoverageNote('');
         setUnitTitle('');
         setUnitInstructions('');
@@ -468,7 +475,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         instructions: taskInstructions.trim() || undefined,
         priority: taskPriority,
         showOnDashboard: taskShowOnDashboard,
-        showInHuddle: taskShowInHuddle
+        showInHuddle: taskShowInHuddle,
+        followUpDueDate: taskFollowUpDueDate || undefined,
+        followUpStatus: taskFollowUpStatus
         ,serviceCoverage
       }, { expectedRevision: state.revision });
     } else {
@@ -499,7 +508,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority,
           showOnDashboard: taskShowOnDashboard,
-          showInHuddle: taskShowInHuddle
+          showInHuddle: taskShowInHuddle,
+          followUpDueDate: taskFollowUpDueDate || undefined,
+          followUpStatus: taskFollowUpStatus
           ,serviceCoverage
         }, { expectedRevision: state.revision });
       } else {
@@ -520,7 +531,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority,
           showOnDashboard: taskShowOnDashboard,
-          showInHuddle: taskShowInHuddle
+          showInHuddle: taskShowInHuddle,
+          followUpDueDate: taskFollowUpDueDate || undefined,
+          followUpStatus: taskFollowUpStatus
           ,serviceCoverage
         }, { expectedRevision: state.revision });
       }
@@ -1274,6 +1287,34 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                     <span>Show in Huddle</span>
                   </label>
                 </div>
+
+                {/* Follow-up continuity — only meaningful once a task is
+                    Dashboard-visible, and only for discrete due-date tasks;
+                    bounded tracking progress reads the recurrence dates
+                    above instead. */}
+                {taskShowOnDashboard && !taskTrackingConfig && (
+                  <div className="pt-2 border-t border-hairline-strong space-y-1.5">
+                    <span className="font-bold text-ink-soft block">Operational Follow-up:</span>
+                    <label className="block">
+                      <span className="text-[11px] text-ink-soft">Due Date (optional)</span>
+                      <input
+                        type="date"
+                        value={taskFollowUpDueDate}
+                        onChange={(e) => setTaskFollowUpDueDate(e.target.value)}
+                        className="mt-0.5 w-full px-2.5 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs"
+                      />
+                      <span className="block text-[10px] text-faint mt-0.5">Used to calculate overdue age. Never changes once set — carrying the task forward keeps the original due date.</span>
+                    </label>
+                    {mode === 'edit' && initialResidentTask && (
+                      <p className="text-[11px] text-ink-soft">
+                        <span className="font-semibold">Follow-up status:</span>{' '}
+                        {taskFollowUpStatus.replace(/_/g, ' ')}
+                        {(initialResidentTask.followUpCarryForwardCount || 0) > 0 ? ` · Carried forward ${initialResidentTask.followUpCarryForwardCount}×` : ''}
+                        <span className="block text-[10px] text-faint mt-0.5">Change this from the Resident Follow-up card on the Dashboard.</span>
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Manual Attention Indicators Selector */}
                 <div className="pt-2 border-t border-hairline-strong space-y-2">

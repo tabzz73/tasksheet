@@ -2,12 +2,17 @@ import { AppDatabaseState, AttentionItem, AttentionScope, DashboardWidgetConfig,
 import { getResidentStatusLabel, isResidentCurrent } from './residentStatus';
 import { sortRoomNumbers } from './generator';
 import { buildBathingScheduleModel } from './print/specializedDocs';
-import { isWithinActiveWindow } from './recurrence';
+import { getDaysDifference, isWithinActiveWindow, localDateFromTimestamp } from './recurrence';
 import { DEFAULT_DASHBOARD_LAYOUT } from '../data/defaultData';
 
 export { isWithinActiveWindow };
 
 const PRIORITY_RANK: Record<OperationalPriority, number> = { urgent: 0, high: 1, normal: 2 };
+
+/** Conservative default — a task carried forward this many times escalates
+ *  to Needs Review in Resident Follow-up if the facility hasn't set its own
+ *  threshold in Settings. */
+export const DEFAULT_FOLLOW_UP_ESCALATION_THRESHOLD = 3;
 
 const KNOWN_WIDGET_IDS: readonly DashboardWidgetId[] = [
   'unit_situation', 'away_from_unit', 'resident_attention', 'resident_follow_up',
@@ -131,41 +136,133 @@ export function getWoundAttentionItems(state: AppDatabaseState, today: string, r
   return entries.sort((a, b) => sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber));
 }
 
-export interface ResidentFollowUpEntry {
-  resident: Resident;
-  task: ResidentTask;
-  /** "Active" (no end date), "Ends today", or "Through <date>" — derived
-   *  from the task's own recurrence end date, never a stored duplicate. */
-  dateLabel: string;
-  endingSoon: boolean;
-}
-
 function formatShortDate(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
 }
 
+/** "Due today" / "N day(s) overdue" — computed from the ORIGINAL due date,
+ *  never from a later carry-forward date, so a repeatedly-delayed task
+ *  doesn't look artificially new. `dueDate` must be `<= today`. */
+export function formatOverdueLabel(dueDate: string, today: string): string {
+  const days = getDaysDifference(dueDate, today);
+  if (days <= 0) return 'Due today';
+  return `${days} day${days === 1 ? '' : 's'} overdue`;
+}
+
+/** "Day X/Y" (bounded) or "Active · Day X" (open-ended) tracking progress,
+ *  inclusive of both the start and end date. A one-day period (start ===
+ *  end) reads "Day 1/1 · Ends today", never "Day 0/1". `startDate` must be
+ *  `<= today` and, if set, `endDate` must be `>= today` (expired periods
+ *  are handled by the caller, not this formatter). */
+export function formatTrackingProgressLabel(startDate: string, endDate: string | undefined, today: string): string {
+  const day = Math.max(1, getDaysDifference(startDate, today) + 1);
+  if (!endDate) return `Active · Day ${day}`;
+  const totalDays = Math.max(1, getDaysDifference(startDate, endDate) + 1);
+  const clampedDay = Math.min(day, totalDays);
+  return `Day ${clampedDay}/${totalDays}${today === endDate ? ' · Ends today' : ''}`;
+}
+
+export type ResidentFollowUpBucket =
+  | 'needs_review' | 'overdue' | 'due_today' | 'carry_forward'
+  | 'tracking_active' | 'tracking_open_ended';
+
+export interface ResidentFollowUpEntry {
+  resident: Resident;
+  task: ResidentTask;
+  bucket: ResidentFollowUpBucket;
+  /** Ready-to-render status/progress text, e.g. "2 days overdue · Carried
+   *  forward", "Day 4/5", "Active · Day 4", "Needs Review · 3 days overdue". */
+  statusLabel: string;
+  isTracking: boolean;
+  overdueDays?: number;
+  carryForwardCount: number;
+  /** True when this entry is severe enough (explicit Needs Review, or
+   *  escalated via the carry-forward threshold) to warrant surfacing even
+   *  without an explicit `showInHuddle` flag. */
+  needsReview: boolean;
+}
+
 /** Resident Tasks the creator explicitly flagged with `showOnDashboard` —
- *  time-limited or exception follow-up (RAI tracking, weight monitoring,
- *  temporary behaviour tracking...) that the LPN shouldn't miss at huddle,
- *  without turning every routine task into Dashboard noise. Reuses the
- *  task's own `recurrenceRule` start/end dates rather than a second set of
- *  date fields, and the task stays a Task — this only changes where staff
- *  are reminded about it. */
+ *  the place unfinished follow-up (a missed one-off task, or an active
+ *  tracking period) stays visible until it's resolved or no longer
+ *  relevant. Sourced exclusively from ResidentTask; never FYI or
+ *  Attention. Entirely a Dashboard/Huddle concern — never read by the
+ *  generator or print output. */
 export function getResidentFollowUpTasks(state: AppDatabaseState, today: string): ResidentFollowUpEntry[] {
-  const tomorrow = addDays(today, 1);
+  const threshold = state.settings.residentFollowUpEscalationThreshold ?? DEFAULT_FOLLOW_UP_ESCALATION_THRESHOLD;
   const entries: ResidentFollowUpEntry[] = [];
+
   for (const task of state.residentTasks) {
     if (!task.isActive || task.showOnDashboard !== true) continue;
-    const start = task.recurrenceRule?.startDate;
-    const end = task.recurrenceRule?.endDate;
-    if (!isWithinActiveWindow(start, end, today)) continue;
     const resident = state.residents.find(r => r.id === task.residentId);
     if (!resident || !isResidentCurrent(resident.status)) continue;
-    const dateLabel = !end ? 'Active' : end === today ? 'Ends today' : `Through ${formatShortDate(end)}`;
-    entries.push({ resident, task, dateLabel, endingSoon: end === today || end === tomorrow });
+
+    const status = task.followUpStatus || 'due';
+    if (status === 'done' || status === 'no_longer_needed') continue;
+    const carryForwardCount = task.followUpCarryForwardCount || 0;
+
+    if (task.trackingConfig) {
+      const start = task.recurrenceRule?.startDate;
+      const end = task.recurrenceRule?.endDate;
+      if (!start) continue;
+      const expired = Boolean(end) && today > end!;
+
+      if (expired) {
+        // Past its bounded end date: stop showing as active tracking. If it
+        // was explicitly flagged Needs Review, surface it overdue-style
+        // instead of silently dropping it; otherwise suppress it.
+        if (status !== 'needs_review') continue;
+        entries.push({
+          resident, task, bucket: 'needs_review',
+          statusLabel: `Needs Review · ${formatOverdueLabel(end!, today)}`,
+          isTracking: true, overdueDays: getDaysDifference(end!, today), carryForwardCount, needsReview: true,
+        });
+        continue;
+      }
+
+      if (!isWithinActiveWindow(start, end, today)) continue; // not yet started
+      const label = formatTrackingProgressLabel(start, end, today);
+      const escalated = status === 'needs_review';
+      entries.push({
+        resident, task,
+        bucket: escalated ? 'needs_review' : (end ? 'tracking_active' : 'tracking_open_ended'),
+        statusLabel: escalated ? `Needs Review · ${label}` : label,
+        isTracking: true, carryForwardCount, needsReview: escalated,
+      });
+      continue;
+    }
+
+    // Discrete due-date follow-up task (e.g. a one-off sample collection).
+    const dueDate = task.followUpDueDate || task.recurrenceRule?.startDate || localDateFromTimestamp(task.createdAt);
+    if (dueDate > today) continue; // not due yet
+
+    const overdueDays = getDaysDifference(dueDate, today);
+    const escalated = status === 'carry_forward' && carryForwardCount >= threshold;
+    const needsReview = status === 'needs_review' || escalated;
+
+    let bucket: ResidentFollowUpBucket;
+    if (needsReview) bucket = 'needs_review';
+    else if (status === 'carry_forward') bucket = 'carry_forward';
+    else if (overdueDays > 0) bucket = 'overdue';
+    else bucket = 'due_today';
+
+    const parts = [overdueDays > 0 ? formatOverdueLabel(dueDate, today) : 'Due today'];
+    if (carryForwardCount > 0) parts.push(`Carried forward${carryForwardCount > 1 ? ` ${carryForwardCount}×` : ''}`);
+    let statusLabel = parts.join(' · ');
+    if (needsReview) statusLabel = `Needs Review · ${statusLabel}`;
+
+    entries.push({ resident, task, bucket, statusLabel, isTracking: false, overdueDays, carryForwardCount, needsReview });
   }
+
+  const BUCKET_RANK: Record<ResidentFollowUpBucket, number> = {
+    needs_review: 0, overdue: 1, due_today: 2, carry_forward: 3, tracking_active: 4, tracking_open_ended: 5,
+  };
   return entries.sort((a, b) => {
+    const bucketDiff = BUCKET_RANK[a.bucket] - BUCKET_RANK[b.bucket];
+    if (bucketDiff !== 0) return bucketDiff;
+    const overdueDiff = (b.overdueDays || 0) - (a.overdueDays || 0);
+    if (overdueDiff !== 0) return overdueDiff;
     const rankDiff = PRIORITY_RANK[a.task.priority || 'normal'] - PRIORITY_RANK[b.task.priority || 'normal'];
     if (rankDiff !== 0) return rankDiff;
     return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
@@ -222,7 +319,9 @@ export interface HuddleBriefing {
   unitSiteAttention: AttentionEntry[];
   /** Resident-scoped Attention, showInHuddle only. */
   residentAttention: AttentionEntry[];
-  /** Resident Tasks flagged showOnDashboard AND showInHuddle. */
+  /** Resident Tasks flagged showOnDashboard AND (showInHuddle OR severe
+   *  enough to warrant surfacing on its own — Needs Review, explicit or
+   *  escalated via the carry-forward threshold). */
   residentFollowUp: ResidentFollowUpEntry[];
   /** FYIs flagged showInHuddle. */
   importantFyis: FYI[];
@@ -246,7 +345,7 @@ export function getHuddleBriefing(state: AppDatabaseState, today: string): Huddl
     away: getAwayResidents(state),
     unitSiteAttention: allAttention.filter(({ item }) => item.scope !== 'resident'),
     residentAttention: allAttention.filter(({ item }) => item.scope === 'resident'),
-    residentFollowUp: getResidentFollowUpTasks(state, today).filter(({ task }) => task.showInHuddle === true),
+    residentFollowUp: getResidentFollowUpTasks(state, today).filter(e => e.task.showInHuddle === true || e.needsReview),
     importantFyis: getDashboardFyis(state, today, 20).filter(f => f.showInHuddle === true),
     codeOfMonth: state.settings.codeOfTheMonthEnabled === true
       ? (state.settings.emergencyCodes || []).find(c => c.id === state.settings.codeOfTheMonthId)

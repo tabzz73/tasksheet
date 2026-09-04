@@ -482,6 +482,74 @@ export function generateDemoData() {
       isActive: true,
       createdAt: todayStr,
       source: 'demo'
+    },
+
+    // Evelyn Sinclair (201) — demonstrates a discrete, overdue Resident
+    // Follow-up task that has NOT yet been reviewed (still shows "N days
+    // overdue" using the original due date — no carry-forward action taken).
+    {
+      id: 'task-es-followup-01',
+      residentId: 'res-201',
+      shiftId: SHIFT_HCA_DAY_ID,
+      roleId: ROLE_HCA_ID,
+      title: 'Collect urine sample',
+      category: 'Health Monitoring',
+      time: '0900',
+      frequency: 'once',
+      priority: 'high',
+      showOnDashboard: true,
+      showInHuddle: true,
+      followUpDueDate: addDaysToDateStr(todayStr, -2),
+      isActive: true,
+      createdAt: addDaysToDateStr(todayStr, -2),
+      source: 'demo'
+    },
+
+    // Franklin Greyson (202) — demonstrates a task explicitly marked Carry
+    // Forward: still unresolved, original due date preserved, carry-forward
+    // count visible alongside the overdue age.
+    {
+      id: 'task-fg-followup-01',
+      residentId: 'res-202',
+      shiftId: SHIFT_HCA_DAY_ID,
+      roleId: ROLE_HCA_ID,
+      title: 'Weekly weight recheck',
+      category: 'Health Monitoring',
+      time: '0900',
+      frequency: 'once',
+      priority: 'normal',
+      showOnDashboard: true,
+      showInHuddle: false,
+      followUpDueDate: addDaysToDateStr(todayStr, -1),
+      followUpStatus: 'carry_forward',
+      followUpCarryForwardCount: 1,
+      followUpUpdatedAt: new Date().toISOString(),
+      isActive: true,
+      createdAt: addDaysToDateStr(todayStr, -1),
+      source: 'demo'
+    },
+
+    // Harold Kensington (310) — demonstrates open-ended tracking (a start
+    // date with no defined end date): "Active · Day X", never "Day X/?".
+    {
+      id: 'task-hk-followup-01',
+      residentId: 'res-310',
+      shiftId: SHIFT_HCA_DAY_ID,
+      roleId: ROLE_HCA_ID,
+      templateSlug: 'hca.tracking.fluid',
+      title: 'Fluid Monitoring',
+      category: 'Health Monitoring',
+      time: '1200',
+      frequency: 'daily',
+      recurrenceRule: { startDate: addDaysToDateStr(todayStr, -3) },
+      trackingConfig: { kind: 'fluid' },
+      instructions: 'Record intake/output totals each shift on the authorized fluid balance record.',
+      priority: 'normal',
+      showOnDashboard: true,
+      showInHuddle: false,
+      isActive: true,
+      createdAt: addDaysToDateStr(todayStr, -3),
+      source: 'demo'
     }
   ];
 

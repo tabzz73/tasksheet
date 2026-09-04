@@ -96,11 +96,12 @@ export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, 
           <div>
             <SectionHeading>Resident Follow-up</SectionHeading>
             <ul className="space-y-1">
-              {briefing.residentFollowUp.map(({ task, resident, dateLabel }) => (
+              {briefing.residentFollowUp.map(({ task, resident, statusLabel, needsReview }) => (
                 <li key={task.id} className="flex items-center gap-2 text-[12.5px]">
+                  {needsReview && <ShieldAlert className="w-3.5 h-3.5 text-danger shrink-0" aria-hidden="true" />}
                   <span className="font-mono font-bold text-ink-soft">{resident.roomNumber}</span>
-                  <span className="text-ink">{task.title}</span>
-                  <span className="text-muted">— {dateLabel}</span>
+                  <span className="text-ink">— {task.title}</span>
+                  <span className="text-muted">— {statusLabel}</span>
                 </li>
               ))}
             </ul>

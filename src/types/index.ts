@@ -337,6 +337,9 @@ export interface FacilitySettings {
   codeOfTheMonthId?: string;
   codeOfTheMonthEnabled?: boolean;
   dashboardLayout?: DashboardWidgetConfig[];
+  /** Conservative default: a Carry Forward task escalates to Needs Review
+   *  in Resident Follow-up once carried forward this many times. */
+  residentFollowUpEscalationThreshold?: number;
   welcomeHero?: WelcomeHeroSettings;
   careTimingPresets?: FacilityCareTimingSettings;
   /** User-defined report configurations only; generated resident content is never stored. */
@@ -517,6 +520,20 @@ export interface RecurrenceRule {
   reviewOnReturn?: boolean;
 }
 
+/**
+ * Resident Follow-up continuity — Dashboard/Huddle operational visibility
+ * only. Deliberately NOT part of GeneratedShiftSheet, the generator, or any
+ * print output: it never records whether care was clinically performed
+ * (that stays out of scope per ADR-001). It only tracks whether *this
+ * task's own follow-up reminder* has been resolved, so an unfinished
+ * important task doesn't silently vanish from the Dashboard across shifts.
+ * - 'due' (default/unset): visible while due today or, once flagged, until resolved.
+ * - 'carry_forward': explicitly kept alive after being reviewed and found still outstanding.
+ * - 'needs_review': flagged for Team Lead attention; sorts to the top.
+ * - 'done' / 'no_longer_needed': resolved — no longer shown as active follow-up.
+ */
+export type ResidentTaskFollowUpStatus = 'due' | 'done' | 'carry_forward' | 'no_longer_needed' | 'needs_review';
+
 export interface ResidentTask {
   id: UUID;
   residentId: UUID;
@@ -538,11 +555,27 @@ export interface ResidentTask {
   /** Opt-in — surfaces this task on the Dashboard's "Resident Follow-up" card
    *  (e.g. RAI tracking, weight monitoring, temporary behaviour tracking).
    *  Unlike FYI/Resident Attention, most tasks are routine, so this defaults
-   *  to NOT shown unless explicitly flagged. The active window is read from
-   *  `recurrenceRule.startDate`/`endDate` — no separate date fields needed. */
+   *  to NOT shown unless explicitly flagged. Bounded tracking tasks (with
+   *  `trackingConfig`) read their progress window from
+   *  `recurrenceRule.startDate`/`endDate`; discrete follow-up tasks use
+   *  `followUpDueDate` below instead. */
   showOnDashboard?: boolean;
-  /** Reserved for the future Huddle View; not yet consumed anywhere. */
+  /** Also included in the Shift Huddle briefing (in addition to any item
+   *  the Huddle surfaces automatically, e.g. Needs Review). */
   showInHuddle?: boolean;
+  /** Current follow-up continuity status. Only meaningful for
+   *  `showOnDashboard` tasks; ignored otherwise. */
+  followUpStatus?: ResidentTaskFollowUpStatus;
+  /** The date this follow-up was originally due — set once (at creation or
+   *  first flagged) and never reset by a later carry-forward, so overdue
+   *  age is always measured from the true original due date. Only used for
+   *  non-tracking follow-up tasks; tracking tasks use recurrenceRule
+   *  start/end instead. Falls back to `recurrenceRule.startDate`, then
+   *  `createdAt`, when unset. */
+  followUpDueDate?: string; // YYYY-MM-DD
+  /** How many times this task has been explicitly marked Carry Forward. */
+  followUpCarryForwardCount?: number;
+  followUpUpdatedAt?: string;
   isActive: boolean;
   stoppedAt?: string;
   createdAt: string;

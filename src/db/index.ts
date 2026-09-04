@@ -1,4 +1,4 @@
-import { AppDatabaseState, AttentionItem, Resident, ResidentTask, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition } from '../types';
+import { AppDatabaseState, AttentionItem, Resident, ResidentTask, ResidentTaskFollowUpStatus, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_SHIFTS, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
@@ -640,6 +640,28 @@ export class DatabaseService {
       ...this.state,
       residentTasks: this.state.residentTasks.map(t => t.id === id ? { ...next, updatedAt: new Date().toISOString() } : t)
     });
+  }
+
+  /** Resident Follow-up continuity status transition. `followUpDueDate` is
+   *  intentionally never touched here — the original due date must survive
+   *  every carry-forward so overdue age stays measured from when the task
+   *  was actually first due, not from the latest review. */
+  public setResidentTaskFollowUpStatus(id: string, status: ResidentTaskFollowUpStatus): ResidentTask {
+    const current = this.state.residentTasks.find(task => task.id === id);
+    if (!current) throw new Error('Resident task not found.');
+    const now = new Date().toISOString();
+    const updated: ResidentTask = {
+      ...current,
+      followUpStatus: status,
+      followUpCarryForwardCount: status === 'carry_forward' ? (current.followUpCarryForwardCount || 0) + 1 : (current.followUpCarryForwardCount || 0),
+      followUpUpdatedAt: now,
+      updatedAt: now,
+    };
+    this.saveToStorage({
+      ...this.state,
+      residentTasks: this.state.residentTasks.map(t => t.id === id ? updated : t)
+    });
+    return updated;
   }
 
   public stopResidentTask(id: string): void {

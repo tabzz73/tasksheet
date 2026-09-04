@@ -448,4 +448,23 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Add Attention Item' }).click();
     await expect(page.getByText('Untitled situation').first()).toBeVisible();
   });
+
+  test('Journey 15 — Resident Follow-up: overdue age, carry-forward, tracking progress, and resolving a task', async ({ page }) => {
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+
+    // Demo seed's overdue, carry-forward, bounded-tracking, and open-ended
+    // tracking follow-up tasks all show a concrete, readable status label.
+    await expect(page.getByText('2 days overdue')).toBeVisible();
+    await expect(page.getByText(/Carried forward/)).toBeVisible();
+    await expect(page.getByText(/^Day \d\/\d/)).toBeVisible();
+    await expect(page.getByText(/^Active · Day \d/)).toBeVisible();
+
+    // Resolving the overdue task from its status menu removes it from the
+    // active Resident Follow-up list without leaving the row broken.
+    const row = page.locator('li', { has: page.getByText('Collect urine sample') });
+    await row.getByRole('button', { name: /Update follow-up status for Collect urine sample/ }).click();
+    await page.getByRole('menuitem', { name: 'Mark Done' }).click();
+    await expect(page.getByText('Collect urine sample')).toHaveCount(0);
+    await expect(page.getByText('2 days overdue')).toHaveCount(0);
+  });
 });

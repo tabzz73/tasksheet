@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, ClockAlert, CircleAlert, Droplets, Hospital, Info, ShieldAlert, Sparkles, TriangleAlert, Wrench } from 'lucide-react';
-import { AppDatabaseState, EmergencyCode } from '../../types';
+import { AppDatabaseState, EmergencyCode, ResidentTaskFollowUpStatus } from '../../types';
+import { db } from '../../db';
 import {
   getActiveAttentionItems,
   getAwayResidents,
@@ -9,8 +10,10 @@ import {
   getTodaysBathingCount,
   getUnitSituationSummary,
   getWoundAttentionItems,
+  ResidentFollowUpBucket,
   UnitSituationEntry,
 } from '../../services/dashboard';
+import { FollowUpStatusMenu } from '../common/FollowUpStatusMenu';
 
 /** One icon per scope, never the same warning icon for everything —
  *  reinforces what the item actually is, not just that it's important. */
@@ -125,8 +128,23 @@ export const ResidentAttentionCard: React.FC<{ state: AppDatabaseState; today: s
 };
 
 // ─── Resident Follow-up (tasks explicitly flagged for the Dashboard) ───────
-export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: string; onOpenResident: (id: string) => void }> = ({ state, today, onOpenResident }) => {
+const FOLLOW_UP_BADGE_CLASS: Record<ResidentFollowUpBucket, string> = {
+  needs_review: 'badge-danger',
+  overdue: 'badge-warning',
+  due_today: 'badge-warning',
+  carry_forward: 'badge-warning',
+  tracking_active: 'badge-neutral',
+  tracking_open_ended: 'badge-neutral',
+};
+
+export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: string; onOpenResident: (id: string) => void; onChanged?: () => void }> = ({ state, today, onOpenResident, onChanged }) => {
   const items = getResidentFollowUpTasks(state, today);
+
+  const handleSetStatus = (taskId: string, status: ResidentTaskFollowUpStatus) => {
+    db.setResidentTaskFollowUpStatus(taskId, status);
+    onChanged?.();
+  };
+
   return (
     <div className="title-block rounded-surface p-4">
       <h3 className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">
@@ -137,22 +155,24 @@ export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: st
         <p className="text-[12px] text-muted">No follow-up tasks flagged for the Dashboard.</p>
       ) : (
         <ul className="space-y-1.5">
-          {items.map(({ resident, task, dateLabel, endingSoon }) => (
-            <li key={task.id}>
+          {items.map(({ resident, task, bucket, statusLabel, needsReview }) => (
+            <li key={task.id} className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => onOpenResident(resident.id)}
-                className="w-full flex items-center justify-between gap-2 px-2 py-1.5 -mx-2 rounded-control hover:bg-panel-sunken transition-colors text-left"
+                className="min-w-0 flex-1 flex items-center justify-between gap-2 px-2 py-1.5 -mx-2 rounded-control hover:bg-panel-sunken transition-colors text-left"
               >
                 <span className="min-w-0 flex items-center gap-2">
                   <span className="font-mono text-[11px] font-bold text-ink-soft shrink-0">{resident.roomNumber}</span>
                   <span className="text-[12.5px] font-semibold text-ink truncate">{task.title}</span>
                 </span>
-                <span className={`badge ${endingSoon ? 'badge-warning' : 'badge-neutral'} shrink-0 inline-flex items-center gap-1`}>
-                  {endingSoon && <ClockAlert className="w-3 h-3" aria-hidden="true" />}
-                  {dateLabel}
+                <span className={`badge ${FOLLOW_UP_BADGE_CLASS[bucket]} shrink-0 inline-flex items-center gap-1`}>
+                  {needsReview && <ShieldAlert className="w-3 h-3" aria-hidden="true" />}
+                  {(bucket === 'overdue' || bucket === 'carry_forward') && !needsReview && <ClockAlert className="w-3 h-3" aria-hidden="true" />}
+                  {statusLabel}
                 </span>
               </button>
+              <FollowUpStatusMenu ariaLabel={`Update follow-up status for ${task.title}`} onSetStatus={(status) => handleSetStatus(task.id, status)} />
             </li>
           ))}
         </ul>
