@@ -357,6 +357,7 @@ export interface WoundSupplyReorderRow {
 export interface WoundSupplyReorderModel {
   facility: Facility;
   title: string;
+  subtitle: string;
   scope: 'current_week' | 'all_active';
   scopeLabel: string;
   weekRange: string;
@@ -488,7 +489,8 @@ export function buildWoundSupplyReorderModel(anchorDate: string, scope: 'current
 
   return {
     facility: state.facility,
-    title: 'WOUND SUPPLIES RE-ORDER LIST',
+    title: 'WOUND SUPPLY RE-ORDER WORKSHEET',
+    subtitle: 'Derived from scheduled wound-care usage — enter On Hand and Order Qty by hand.',
     scope,
     scopeLabel: scope === 'current_week' ? `Current week · ${weekRange}` : 'All active wounds',
     weekRange,

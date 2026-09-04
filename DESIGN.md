@@ -5,24 +5,24 @@ colors:
   app: "#faf7f0"
   panel: "#ffffff"
   panel-sunken: "#f5f2e9"
-  ink: "#141414"
+  ink: "#12141A"
   ink-soft: "#5b5f52"
   muted: "#6b6f76"
   faint: "#6a6d64"
   hairline: "#ece8dc"
-  rail-demo-accent: "#e8a23a"
+  signature: "#e8a23a"
   rail-facility-text: "#7c869a"
-  accent: "#1f6b4c"
-  accent-strong: "#1a5c40"
+  accent: "#0F5132"
+  accent-strong: "#0B3D26"
   accent-soft: "#e8f2ec"
   danger: "#b3261e"
   danger-soft: "#fde2e1"
   warning: "#8a6a1e"
   warning-soft: "#fdf3d8"
-  positive: "#1f6b4c"
+  positive: "#0F5132"
   positive-soft: "#e5f1ea"
-  rail-bg: "#0d1f38"
-  rail-text-muted: "#9aa4b5"
+  rail-bg: "#12141A"
+  rail-text-muted: "#A8A296"
 typography:
   heading:
     fontFamily: "Archivo, Public Sans, sans-serif"
@@ -79,9 +79,9 @@ components:
 
 **Creative North Star: "The Shift Binder"**
 
-TaskSheet's screen UI plays a supporting role to the artifact staff actually carry away from it: a printed paper worksheet. The system reads like the working documents of a well-run nursing unit — a dark navy rail as fixed structural chrome (the binder's spine), a warm cream working surface (the paper itself), flat hairline-bordered panels (never an elevated card), one confident forest-green accent for anything interactive, and numeral-led identifiers (room, shift code, time) set apart in a mono face so they scan instantly down a column. Nothing competes for attention with the task at hand; the interface is built to disappear into the workflow, not to be evaluated on its own.
+TaskSheet's screen UI plays a supporting role to the artifact staff actually carry away from it: a printed paper worksheet. The system reads like the working documents of a well-run nursing unit — a near-black rail as fixed structural chrome (the binder's spine), a warm cream working surface (the paper itself), flat hairline-bordered panels (never an elevated card), one confident, deepened forest-green accent for anything interactive, and numeral-led identifiers (room, shift code, time) set apart in a bold mono face so they scan instantly down a column. Nothing competes for attention with the task at hand; the interface is built to disappear into the workflow, not to be evaluated on its own.
 
-This is at least the third named visual direction this codebase has shipped — an earlier teal "Field Blueprint+" pass was superseded by a deliberate revert back toward TaskSheet's original navy-and-green identity. This document describes the system as it is actually built today, in `src/index.css`'s own words: **"navy rail / forest accent."** A prior DESIGN.md described Field Blueprint+'s teal/Barlow/heavier-hairline system in detail; none of those specific values are current and this file replaces it rather than merging stale numbers forward.
+This is at least the fourth named visual direction this codebase has shipped — an earlier teal "Field Blueprint+" pass was superseded by a deliberate revert back toward TaskSheet's original navy-and-green identity, which this pass ("Shift Board") in turn deepens rather than replaces: same warm paper, same unified accent, but a near-black ink and rail plus a bolder mono/title weight give the board more structural confidence — earned through ink weight and one disciplined accent, not a wider palette. This document describes the system as it is actually built today, in `src/index.css`'s own words: **"Shift Board."** A prior DESIGN.md described Field Blueprint+'s teal/Barlow/heavier-hairline system in detail; none of those specific values are current and this file replaces it rather than merging stale numbers forward.
 
 **Key Characteristics:**
 - Flat, hairline-bordered panels — never a floating card
@@ -95,15 +95,16 @@ This is at least the third named visual direction this codebase has shipped — 
 The palette pairs a warm, paper-like working surface with one confident forest-green accent — closer to a ledger or clinical schedule than a SaaS dashboard.
 
 ### Primary
-- **Forest Accent** (`#1f6b4c`): the one interactive/brand color in the system — primary CTAs, active nav state, links, focus rings. Also the positive/confirmed-good status color (see Named Rules); this system does not carry a separate positive hue.
-- **Forest Accent Strong** (`#1a5c40`): accent hover/pressed state.
+- **Forest Accent** (`#0F5132`): the one interactive/brand color in the system — primary CTAs, active nav state, links, focus rings. Also the positive/confirmed-good status color (see Named Rules); this system does not carry a separate positive hue. Deepened from the earlier `#1f6b4c` as part of the Shift Board pass.
+- **Forest Accent Strong** (`#0B3D26`): accent hover/pressed state.
 - **Forest Accent Soft** (`#e8f2ec`): accent-tinted backgrounds — selected rows, `.badge-accent`.
+- **Signature Amber** (`#e8a23a`): a bounded, decorative-only identity accent — the sidebar brand-mark background and the demo-mode indicator, and nowhere else. Never a status color, never used on interactive/clickable elements; see Named Rules.
 
 ### Neutral
 - **Warm Cream** (`#faf7f0`): the outermost page background only — never a panel or card surface.
 - **Panel White** (`#ffffff`): every working surface — panels, modals, inputs, table backgrounds.
 - **Panel Sunken** (`#f5f2e9`): a recessed surface *inside* a panel — table header rows, hover states, the print-preview canvas.
-- **Ink** (`#141414`): primary text, headings, `.btn-primary`'s fill.
+- **Ink** (`#12141A`): primary text, headings, `.btn-primary`'s fill. Deepened from `#141414` as part of the Shift Board pass; the rail now shares this exact value (see the documented Sidebar exception below).
 - **Ink Soft** (`#5b5f52`): secondary text — subtitles, dense-row body copy, form-label descriptions.
 - **Muted** (`#6b6f76`): tertiary/metadata text — timestamps, counts, captions.
 - **Faint** (`#6a6d64`): lowest-emphasis text/icons — empty-state hints, disabled-adjacent content. Sits close to Muted by necessity (see the AA-Over-Distinction Rule); reserve it for content that's genuinely decorative or disabled, not a lighter-weight version of real informational text.
@@ -112,14 +113,16 @@ The palette pairs a warm, paper-like working surface with one confident forest-g
 ### Status
 - **Danger** (`#b3261e` / soft `#fde2e1`): destructive actions and true blocking errors only — never used for "inactive" or merely historical data.
 - **Warning** (`#8a6a1e` / soft `#fdf3d8`): needs-attention states — paused care, demo-mode banners, on-hold/out-on-pass/in-hospital resident status.
-- **Positive** (`#1f6b4c` / soft `#e5f1ea`): confirmed-good states — Active resident status, "binder current." Shares its hex with Accent (see Named Rules).
+- **Positive** (`#0F5132` / soft `#e5f1ea`): confirmed-good states — Active resident status, "binder current." Shares its hex with Accent (see Named Rules).
 
-**One documented exception:** `src/components/layout/Sidebar.tsx` defines its own small dark-navy palette for the persistent left rail and mobile bottom bar — deliberately separate from the screen tokens above, since nothing in the inherited style chain provides legible text against a navy background this dark. `#0d1f38` background, `#9aa4b5` muted nav text, a `rgba(255,255,255,…)` hover/active tint, plus two one-off text colors: `#e8a23a` (demo-mode indicator) and `#7c869a` (facility name and the "SoftVibeSolutions" publisher line).
+**One documented exception:** `src/components/layout/Sidebar.tsx` defines its own small near-black palette for the persistent left rail and mobile bottom bar — deliberately separate token literals from the screen tokens above (for legibility reasons, not a different color), though as of the Shift Board pass the rail background is the *same value* as `--color-ink`. `#12141A` background, `#A8A296` warm-gray muted nav text, a `rgba(255,255,255,…)` hover/active tint, plus two one-off text colors: `var(--color-signature)` (brand mark and demo-mode indicator) and `#7c869a` (facility name and the "SoftVibeSolutions" publisher line, left unchanged — still clears 5.03:1 against the new rail background).
 
 ### Named Rules
 **The One Border Rule.** `hairline` and `hairline-strong` resolve to the identical `#ece8dc` — this system uses exactly one border weight everywhere (row dividers, panel outlines, table header underlines). There is no heavier "structural" weight layered on top; don't introduce one without updating this token first.
 
-**The Unified Accent Rule.** `--color-accent` and `--color-positive` share the same forest-green hex (`#1f6b4c`). This system does not carry a separate "confirmed good" hue distinct from its brand color — a resident marked Active and a button inviting a click read as the same color family on purpose.
+**The Unified Accent Rule.** `--color-accent` and `--color-positive` share the same forest-green hex (`#0F5132`). This system does not carry a separate "confirmed good" hue distinct from its brand color — a resident marked Active and a button inviting a click read as the same color family on purpose.
+
+**The Signature Amber Rule.** `--color-signature` (`#e8a23a`) has exactly two sanctioned uses — the sidebar brand-mark background and the demo-mode indicator — and no others. It reads as decorative identity, not status: it is never used for interactive elements, badges, or anything a screen-reader/keyboard user would expect to be actionable. If a genuine "shift in progress" or similar live-state indicator is ever built, it needs its own review of whether amber is still the right choice for a *status* meaning — don't assume this token's decorative use extends automatically to a new status use.
 
 **The AA-Over-Distinction Rule.** `--color-faint` and `--color-muted` sit close together (`#6a6d64` vs. `#6b6f76`). On a light panel, a text color that's meaningfully lighter than Muted and still clears 4.5:1 WCAG AA doesn't exist in this hue — correctness won over preserving a wider visual gap between the two "de-emphasized" tokens. Don't lighten Faint back toward its old `#9a9d8f` value without re-verifying contrast against both `--color-panel` and `--color-app`.
 
@@ -132,7 +135,8 @@ The palette pairs a warm, paper-like working surface with one confident forest-g
 **Character:** A grotesque-sans pairing — Archivo's heavier weights carry titles and every button label; Public Sans stays quiet everywhere else. IBM Plex Mono is reserved for numerals that must align by digit width down a column (room numbers, shift codes, times), never used as a general UI face. All three ship self-hosted (static per-weight `.woff2` files) so the UI renders correctly with no internet access, consistent with TaskSheet's local-first positioning.
 
 ### Hierarchy
-- **Page title** (700, 22px, Archivo): one per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page.
+- **Page title** (800, 22px, Archivo): one per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page. Weight bumped 700→800 in the Shift Board pass (size intentionally unchanged — see the Weight-Over-Size Rule).
+- **Shift-code chip** (`font-black`/900, IBM Plex Mono, `bg-ink`/`text-white`): the board's core identifier element — room/shift codes rendered as a filled mono chip. Unified to `font-black` everywhere in the Shift Board pass (previously an inconsistent mix of `font-bold`/`font-black`).
 - **Section title** (700, 13px, uppercase, `tracking-wide`, Archivo): "Today's Shifts," settings nav-group labels.
 - **Body** (400–500, 13px, Public Sans): row content, form values, descriptive text.
 - **Metadata** (400, 11–11.5px, `muted`/`faint`): counts, timestamps, secondary descriptors.
@@ -208,7 +212,7 @@ Popovers/dropdown menus and tooltips enter with a trigger-anchored scale-and-fad
 Section-based, not card-per-field — group related fields (Short Code + Role side by side) to show their relationship and increase density. Labels: bold, small, uppercase, `ink-soft`, with a `danger`-colored `*` for required fields. Inputs: hairline border, `rounded-control`, height matches `.btn`, `focus:ring-2 focus:ring-accent`. Helper/consequence text uses an inline `accent-soft`/`warning-soft` callout directly under the fields it explains — never a modal, never a tooltip. Footer actions: secondary action(s) left, accent/primary submit action last.
 
 ### Navigation
-A persistent left rail (`w-56`, deliberately separate dark-navy palette — see Colors), not a top bar and not floating pills. The brand mark is a solid accent-green square carrying a white "T," next to the "TaskSheet" wordmark and a small-caps "SoftVibeSolutions" line. Active nav state is white text over a subtle `rgba(255,255,255,0.1)` background tint. Settings is a normal item in the same flat vertical list (Dashboard/Shifts/Residents/FYI Binder/Print Center/Settings), not split into its own utility section. Mobile collapses to a bottom tab bar (same four primary items) plus a "More" sheet, sharing the rail's dark identity and requiring an explicit muted-on-dark text color since nothing in the inherited chain supplies one.
+A persistent left rail (`w-56`, deliberately separate near-black palette — see Colors), not a top bar and not floating pills. The brand mark is a solid signature-amber square carrying an ink-colored "T" (previously a white "T" on accent-green, changed in the Shift Board pass), next to the "TaskSheet" wordmark and a small-caps "SoftVibeSolutions" line. Active nav state is white text over a subtle `rgba(255,255,255,0.1)` background tint. Settings is a normal item in the same flat vertical list (Dashboard/Shifts/Residents/FYI Binder/Print Center/Settings), not split into its own utility section. Mobile collapses to a bottom tab bar (same four primary items) plus a "More" sheet, sharing the rail's near-black identity and requiring an explicit muted-on-dark text color since nothing in the inherited chain supplies one.
 
 ## Do's and Don'ts
 

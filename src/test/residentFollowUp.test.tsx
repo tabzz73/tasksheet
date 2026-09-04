@@ -6,6 +6,7 @@ import { db } from '../db';
 import { SHIFT_HCA_DAY_ID } from '../data/defaultData';
 import { ResidentFollowUpCard } from '../components/dashboard/DashboardWidgets';
 import { GlobalAddModal } from '../components/modals/GlobalAddModal';
+import { ResidentProfileView } from '../components/views/ResidentProfileView';
 
 describe('Resident Follow-up Dashboard card', () => {
   const today = '2026-09-06';
@@ -71,16 +72,13 @@ describe('GlobalAddModal — Follow-up due date field', () => {
   beforeEach(() => db.resetToDemoState());
   afterEach(() => cleanup());
 
-  it('is hidden until Show on Dashboard is checked, then saves the chosen due date', () => {
+  it('is hidden until Must not be missed is checked, then saves the chosen due date', () => {
     const resident = db.getState().residents.find(r => r.status === 'active')!;
     render(<GlobalAddModal isOpen initialType="care_task" contextResidentId={resident.id} contextShiftId={SHIFT_HCA_DAY_ID} onClose={() => undefined} />);
 
     expect(screen.queryByText('Due Date (optional)')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Show Advanced Options/i }));
-    expect(screen.queryByText('Due Date (optional)')).toBeNull(); // still hidden — Dashboard visibility not yet on
-
-    fireEvent.click(screen.getByRole('checkbox', { name: /Show on Dashboard \(Resident Follow-up\)/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Must not be missed' }));
     expect(screen.getByText('Due Date (optional)')).not.toBeNull();
 
     fireEvent.change(screen.getByPlaceholderText(/Search .* catalog/i), { target: { value: 'Collect urine sample' } });
@@ -105,7 +103,6 @@ describe('GlobalAddModal — Follow-up due date field', () => {
     });
 
     render(<GlobalAddModal isOpen mode="edit" initialResidentTask={trackingTask} onClose={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: /Show Advanced Options/i }));
     expect(screen.queryByText('Due Date (optional)')).toBeNull();
   });
 
@@ -119,8 +116,27 @@ describe('GlobalAddModal — Follow-up due date field', () => {
     const updated = db.getState().residentTasks.find(t => t.id === task.id)!;
 
     render(<GlobalAddModal isOpen mode="edit" initialResidentTask={updated} onClose={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: /Show Advanced Options/i }));
     expect(screen.getByText(/Follow-up status:/)).not.toBeNull();
     expect(screen.getByText(/Carried forward 1×/)).not.toBeNull();
+  });
+});
+
+describe('ResidentProfileView — follow-up state beside the associated task', () => {
+  beforeEach(() => { db.resetToDemoState(); db.clearAllOperationalData(); });
+  afterEach(() => cleanup());
+
+  const noop = () => undefined;
+
+  it('shows a follow-up badge on a Dashboard-visible task, opens the shared Follow-up Actions panel, and hides Open Resident (already on that page)', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Profile', roomNumber: '260', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urine Sample Collection', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: '2026-09-01' });
+
+    render(<ResidentProfileView residentId={resident.id} onBack={noop} onOpenAddCareTask={noop} onOpenAddFYI={noop} onOpenAddWound={noop} onOpenQuickCareSetup={noop} />);
+    fireEvent.click(screen.getByRole('button', { name: /Care Tasks/i }));
+
+    const badge = screen.getByRole('button', { name: /overdue/ });
+    fireEvent.click(badge);
+    expect(screen.getByText('Follow-up Actions')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open Resident / Task' })).toBeNull();
   });
 });

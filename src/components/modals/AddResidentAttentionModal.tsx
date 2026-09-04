@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Modal } from '../common/Modal';
 import { ResidentCombobox } from '../common/ResidentCombobox';
+import { FormSection } from '../common/FormSection';
+import { RoutingSummary } from '../common/RoutingSummary';
 import { db } from '../../db';
 import { getTodayLocalDateString } from '../../services/recurrence';
 import { describeAttentionRouting } from '../../services/routingPreview';
@@ -79,11 +81,17 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
 
   const appearsIn = describeAttentionRouting(state, { showOnDashboard, showInHuddle });
 
+  const footer = (
+    <>
+      <button type="button" onClick={() => { reset(); onClose(); }} className="btn btn-secondary">Cancel</button>
+      <button type="button" onClick={handleSave} className="btn btn-accent">Add Attention Item</button>
+    </>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={() => { reset(); onClose(); }} title="Add Attention" subtitle="A temporary situation staff need to be aware of — not a to-do item." maxWidth="md">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Scope</label>
+    <Modal isOpen={isOpen} onClose={() => { reset(); onClose(); }} title="Add Attention" subtitle="A temporary situation staff need to be aware of — not a to-do item." maxWidth="md" footer={footer}>
+      <div className="space-y-5">
+        <FormSection title="Scope">
           <div className="grid grid-cols-3 gap-2">
             {(['resident', 'unit', 'site'] as AttentionScope[]).map(s => (
               <button
@@ -96,75 +104,72 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
               </button>
             ))}
           </div>
-          <p className="mt-1 text-[11px] text-muted">{SCOPE_HINTS[scope]}</p>
-        </div>
+          <p className="text-[11px] text-muted">{SCOPE_HINTS[scope]}</p>
 
-        {scope === 'resident' && (
+          {scope === 'resident' && (
+            <div>
+              <label htmlFor="attn-resident" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Resident</label>
+              <ResidentCombobox
+                id="attn-resident"
+                residents={activeResidents}
+                value={residentId}
+                onChange={setResidentId}
+                placeholder="Search resident..."
+                required
+                error={Boolean(error) && !residentId}
+              />
+            </div>
+          )}
+        </FormSection>
+
+        <FormSection title="Situation">
           <div>
-            <label htmlFor="attn-resident" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Resident</label>
-            <ResidentCombobox
-              id="attn-resident"
-              residents={activeResidents}
-              value={residentId}
-              onChange={setResidentId}
-              placeholder="Search resident..."
-              required
-              error={Boolean(error) && !residentId}
-            />
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="attn-title" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Title</label>
-          <input id="attn-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={scope === 'resident' ? 'e.g. Temporary increased exit-seeking concern' : scope === 'unit' ? 'e.g. Unit internet unavailable' : 'e.g. Fire drill'} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
-        </div>
-
-        <div>
-          <label htmlFor="attn-details" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Details (optional)</label>
-          <input id="attn-details" type="text" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="One short line of context" className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="attn-start" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Starts</label>
-            <input id="attn-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
+            <label htmlFor="attn-title" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Title</label>
+            <input id="attn-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={scope === 'resident' ? 'e.g. Temporary increased exit-seeking concern' : scope === 'unit' ? 'e.g. Unit internet unavailable' : 'e.g. Fire drill'} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
           </div>
           <div>
-            <label htmlFor="attn-end" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Ends (optional)</label>
-            <input id="attn-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
+            <label htmlFor="attn-details" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Details (optional)</label>
+            <input id="attn-details" type="text" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="One short line of context" className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
           </div>
-        </div>
+        </FormSection>
 
-        <div>
-          <label htmlFor="attn-priority" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Priority</label>
-          <select id="attn-priority" value={priority} onChange={(e) => setPriority(e.target.value as 'normal' | 'high' | 'urgent')} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm bg-panel focus:ring-2 focus:ring-accent">
+        <FormSection title="When">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="attn-start" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Starts</label>
+              <input id="attn-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
+            </div>
+            <div>
+              <label htmlFor="attn-end" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Ends (optional)</label>
+              <input id="attn-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
+            </div>
+          </div>
+        </FormSection>
+
+        <FormSection title="Visibility">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ink-soft">
+              <input type="checkbox" checked={showOnDashboard} onChange={(e) => setShowOnDashboard(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
+              Show on Dashboard
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ink-soft">
+              <input type="checkbox" checked={showInHuddle} onChange={(e) => setShowInHuddle(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
+              Show in Huddle
+            </label>
+          </div>
+        </FormSection>
+
+        <FormSection title="Priority">
+          <select id="attn-priority" aria-label="Priority" value={priority} onChange={(e) => setPriority(e.target.value as 'normal' | 'high' | 'urgent')} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm bg-panel focus:ring-2 focus:ring-accent">
             <option value="normal">Normal</option>
             <option value="high">High (Highlighted)</option>
             <option value="urgent">Urgent Banner</option>
           </select>
-        </div>
+        </FormSection>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-          <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ink-soft">
-            <input type="checkbox" checked={showOnDashboard} onChange={(e) => setShowOnDashboard(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
-            Show on Dashboard
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-ink-soft">
-            <input type="checkbox" checked={showInHuddle} onChange={(e) => setShowInHuddle(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
-            Show in Huddle
-          </label>
-        </div>
-
-        <p className="text-[11px] text-muted">
-          <span className="font-bold text-ink-soft">Appears in: </span>{appearsIn.join(' · ')}
-        </p>
+        <RoutingSummary labels={appearsIn} />
 
         {error && <p className="text-xs font-semibold text-danger">{error}</p>}
-
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-hairline">
-          <button type="button" onClick={() => { reset(); onClose(); }} className="btn btn-secondary">Cancel</button>
-          <button type="button" onClick={handleSave} className="btn btn-accent">Add Attention Item</button>
-        </div>
       </div>
     </Modal>
   );

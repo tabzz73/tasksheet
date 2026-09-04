@@ -504,6 +504,17 @@ export const UniversalTableDocument: React.FC<UniversalTableDocumentProps> = ({ 
               {endRows.map((r, i) => renderRow(r, i))}
             </>
           )}
+
+          {/* No scheduled work at all — show a clear message instead of a
+              silent header-only table (spec: warn before printing an empty
+              shift, matching WoundScheduleDocument's own established pattern). */}
+          {startRows.length === 0 && residentRows.length === 0 && untimedRows.length === 0 && endRows.length === 0 && (
+            <tr>
+              <td colSpan={colSpanCount} style={{ padding: '24pt 0', textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>
+                No scheduled tasks for this shift on this date.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 

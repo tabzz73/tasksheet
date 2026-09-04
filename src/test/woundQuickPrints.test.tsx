@@ -99,6 +99,15 @@ describe('dedicated wound print workflows', () => {
     expect(buildWoundSupplyReorderModel('2026-08-31', 'all_active').rows.map(row => row.supplyName)).toEqual(['Future dressing']);
   });
 
+  it('titles the supply worksheet honestly — a worksheet derived from usage, not an automated inventory list', () => {
+    const model = buildWoundSupplyReorderModel('2026-08-31', 'current_week');
+    expect(model.title).toBe('WOUND SUPPLY RE-ORDER WORKSHEET');
+    expect(model.subtitle).toMatch(/scheduled wound-care usage/i);
+    const rendered = renderToStaticMarkup(<WoundSupplyReorderDocument model={model} />);
+    expect(rendered).toContain('WOUND SUPPLY RE-ORDER WORKSHEET');
+    expect(rendered).toContain(model.subtitle);
+  });
+
   it('leaves HCA output unchanged while retaining regular LPN tasks', () => {
     const resident = db.addResident({ firstName: 'Role', lastName: 'Boundary', roomNumber: '701', status: 'active' });
     db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_LPN_DAY_ID, title: 'Vital Signs', category: 'Monitoring', time: '0900', frequency: 'daily' });

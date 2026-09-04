@@ -6,9 +6,9 @@ const cell: React.CSSProperties = { border: '0.5pt solid #94a3b8', padding: '4pt
 
 export const WoundSupplyReorderDocument: React.FC<{ model: WoundSupplyReorderModel }> = ({ model }) => (
   <article className="tasksheet-print-document print-document" style={{ ...printPageStyle('wound-supply-reorder'), fontFamily: 'Arial, Helvetica, sans-serif', color: '#0f172a', fontSize: '8pt' }}>
-    <RepeatingPrintFooter pageName="wound-supply-reorder" orientation="landscape" facilityName={model.facility.siteName} documentLabel="Wound Supplies Re-Order" dateLabel={`Generated ${formatPrintDate(model.generatedAt || new Date().toISOString())}`} secondaryLabel={model.scopeLabel} generatedAt={model.generatedAt} />
+    <RepeatingPrintFooter pageName="wound-supply-reorder" orientation="landscape" facilityName={model.facility.siteName} documentLabel="Wound Supply Re-Order Worksheet" dateLabel={`Generated ${formatPrintDate(model.generatedAt || new Date().toISOString())}`} secondaryLabel={model.scopeLabel} generatedAt={model.generatedAt} />
     <header style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1.5pt solid #0f172a', paddingBottom: '5pt', marginBottom: '6pt' }}>
-      <div><h1 style={{ margin: 0, fontSize: '16pt' }}>{model.title}</h1><div style={{ marginTop: '2pt', fontWeight: 700 }}>{model.scopeLabel}</div></div>
+      <div><h1 style={{ margin: 0, fontSize: '16pt' }}>{model.title}</h1><div style={{ marginTop: '2pt', fontWeight: 700 }}>{model.scopeLabel}</div><div style={{ marginTop: '1.5pt', fontSize: '7.5pt', fontWeight: 400, color: '#475569' }}>{model.subtitle}</div></div>
       <div style={{ textAlign: 'right' }}><strong>{model.facility.siteName}</strong><br />Generated {model.generatedDate}<br />{model.activeResidentCount} residents · {model.activeWoundCount} wound protocols</div>
     </header>
     <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>

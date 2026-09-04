@@ -250,7 +250,7 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                     roundedClassName="rounded-none"
                   />
                   <div className="relative z-20 pointer-events-none">
-                    <span className="inline-flex items-center justify-center px-2 h-6 bg-ink text-white rounded-control font-mono font-bold text-[11px] tracking-wide">
+                    <span className="inline-flex items-center justify-center px-2 h-6 bg-ink text-white rounded-control font-mono font-black text-[11px] tracking-wide">
                       {shift.shortCode || '—'}
                     </span>
                   </div>
@@ -303,7 +303,7 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                 />
                 <div className="relative z-20 pointer-events-none">
                   <div className="flex items-start justify-between mb-2.5">
-                    <span className="inline-flex items-center justify-center px-2.5 h-7 bg-ink text-white rounded-control font-mono font-bold text-[12px] tracking-wide">
+                    <span className="inline-flex items-center justify-center px-2.5 h-7 bg-ink text-white rounded-control font-mono font-black text-[12px] tracking-wide">
                       {shift.shortCode || '—'}
                     </span>
                     <span className="font-mono text-[11px] font-semibold text-ink-soft tabular-nums pt-1.5">{shift.startTime}–{shift.endTime}</span>

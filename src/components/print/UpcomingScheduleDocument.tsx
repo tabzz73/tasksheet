@@ -43,7 +43,7 @@ export const UpcomingScheduleDocument: React.FC<UpcomingScheduleDocumentProps> =
       <div className="border-b-2 border-slate-900 pb-2 flex items-start justify-between">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="bg-slate-900 text-white font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+            <span className="bg-slate-100 text-slate-900 border border-slate-300 font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
               LOOKAHEAD SCHEDULE
             </span>
             <h1 className="text-lg font-black text-slate-900 tracking-tight uppercase">
@@ -69,13 +69,13 @@ export const UpcomingScheduleDocument: React.FC<UpcomingScheduleDocumentProps> =
       {/* ── 7-DAY GRID TABLE ── */}
       <table className="w-full border-collapse border border-slate-300 text-left">
         <thead>
-          <tr className="bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider">
-            <th className="p-2 border border-slate-700 w-16 text-center">Room</th>
-            <th className="p-2 border border-slate-700 w-36">Resident</th>
+          <tr className="text-slate-900 text-[11px] font-black uppercase tracking-wider" style={{ backgroundColor: 'var(--print-header-fill)' }}>
+            <th className="p-2 border border-slate-400 w-16 text-center">Room</th>
+            <th className="p-2 border border-slate-400 w-36">Resident</th>
             {days.map(d => (
-              <th key={d.dateStr} className="p-2 border border-slate-700 text-center w-24">
+              <th key={d.dateStr} className="p-2 border border-slate-400 text-center w-24">
                 <div className="text-xs">{d.dayLabel}</div>
-                <div className="text-[9px] font-normal text-slate-300">{d.shortDate}</div>
+                <div className="text-[9px] font-normal text-slate-500">{d.shortDate}</div>
               </th>
             ))}
           </tr>

@@ -216,18 +216,27 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
     } catch (error) { showToast((error as Error).message); }
   };
 
-  // Group rooms for the "Rooms" view
+  // Group rooms for the "Rooms" view. Prefers the real, facility-entered wing
+  // from Room Setup when a resident is linked to a structured room; falls back
+  // to a room-number-digit guess otherwise, since most residents aren't linked
+  // to a structured room (roomNumber is a free-typed string most of the time).
+  const roomByPositionId = new Map(state.occupancyPositions.map(position => [position.id, state.rooms.find(room => room.id === position.roomId)]));
   const groupResidentsByWing = () => {
     const wingsMap: Record<string, Resident[]> = {};
     filteredResidents.forEach(res => {
-      const roomNum = res.roomNumber.trim();
-      let wingLabel = 'Wing A · 100s';
-      const firstDigit = roomNum.charAt(0);
-      if (firstDigit === '1') wingLabel = 'Wing A · 100s';
-      else if (firstDigit === '2') wingLabel = 'Wing B · 200s';
-      else if (firstDigit === '3') wingLabel = 'Wing C · 300s';
-      else if (firstDigit === '4') wingLabel = 'Wing D · 400s';
-      else wingLabel = 'Other Rooms';
+      const linkedRoom = res.occupancyPositionId ? roomByPositionId.get(res.occupancyPositionId) : undefined;
+      let wingLabel: string;
+      if (linkedRoom?.wing) {
+        wingLabel = linkedRoom.floor ? `${linkedRoom.wing} · Floor ${linkedRoom.floor}` : linkedRoom.wing;
+      } else {
+        const roomNum = res.roomNumber.trim();
+        const firstDigit = roomNum.charAt(0);
+        if (firstDigit === '1') wingLabel = 'Wing A · 100s';
+        else if (firstDigit === '2') wingLabel = 'Wing B · 200s';
+        else if (firstDigit === '3') wingLabel = 'Wing C · 300s';
+        else if (firstDigit === '4') wingLabel = 'Wing D · 400s';
+        else wingLabel = 'Other Rooms';
+      }
 
       if (!wingsMap[wingLabel]) wingsMap[wingLabel] = [];
       wingsMap[wingLabel].push(res);
@@ -410,7 +419,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                     roundedClassName="rounded-none"
                   />
                   <div className="relative z-20 pointer-events-none">
-                    <span className="inline-flex items-center justify-center px-2 h-6 bg-ink text-white rounded-control font-mono font-bold text-[11px] tabular-nums">
+                    <span className="inline-flex items-center justify-center px-2 h-6 bg-ink text-white rounded-control font-mono font-black text-[11px] tabular-nums">
                       {res.roomNumber}
                     </span>
                   </div>
@@ -655,7 +664,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                       className="w-full flex items-center px-5 py-3 hover:bg-panel-sunken cursor-pointer transition-colors group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
                       <div className="w-16 shrink-0">
-                        <span className="inline-block px-2.5 py-1 bg-ink text-white rounded font-mono font-bold text-xs tabular-nums group-hover:bg-accent-strong transition-colors">
+                        <span className="inline-block px-2.5 py-1 bg-ink text-white rounded font-mono font-black text-xs tabular-nums group-hover:bg-accent-strong transition-colors">
                           {res.roomNumber}
                         </span>
                       </div>
@@ -691,10 +700,11 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
         {moveRoomResident && (
           <form onSubmit={handleMoveRoomSubmit} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">
+              <label htmlFor="move-room-select" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">
                 New Room / Occupancy Location
               </label>
               <select
+                id="move-room-select"
                 required
                 value={newRoomInput}
                 onChange={(e) => setNewRoomInput(e.target.value)}

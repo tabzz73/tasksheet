@@ -18,7 +18,16 @@ describe('resident census and room occupancy model', () => {
     const two = db.addResident({ firstName: 'John', lastName: 'Two', roomNumber: '101B', status: 'active' });
     expect(one.occupancyPositionId).not.toBe(two.occupancyPositionId);
     expect(db.getState().rooms).toHaveLength(1);
+    expect(db.getState().rooms[0].wing).toBe('West');
     expect(db.getState().occupancyPositions.map(position => position.displayLabel)).toEqual(['101A', '101B']);
+  });
+
+  it('persists wing and floor through addRoom and addMultiOccupancyRoom', () => {
+    db.addRoom('L101', { wing: 'East', floor: '2' });
+    db.addMultiOccupancyRoom('205', ['A', 'B'], 'West', '3');
+    const rooms = db.getState().rooms;
+    expect(rooms.find(room => room.physicalRoomLabel === 'L101')).toMatchObject({ wing: 'East', floor: '2' });
+    expect(rooms.find(room => room.physicalRoomLabel === '205')).toMatchObject({ wing: 'West', floor: '3' });
   });
 
   it('rejects a second current resident in the same occupancy position', () => {
@@ -61,6 +70,18 @@ describe('resident census and room occupancy model', () => {
     expect(state.residents[0].roomNumber).toBe('101LF');
     expect(state.rooms[0].physicalRoomLabel).toBe('101LF');
     expect(state.occupancyPositions[0].displayLabel).toBe('101LF');
+  });
+
+  it('migrates a legacy room "area" field into "wing"', () => {
+    const backup = JSON.parse(db.backupDatabase());
+    backup.residents = [{ id: 'legacy', firstName: 'Legacy', lastName: 'Resident', roomNumber: '101LF', status: 'active', source: 'imported' }];
+    backup.rooms = [{ id: 'legacy-room', physicalRoomLabel: '101LF', area: 'West Wing', active: true, mode: 'simple', createdAt: new Date().toISOString(), source: 'imported' }];
+    backup.occupancyPositions = [{ id: 'legacy-position', roomId: 'legacy-room', displayLabel: '101LF', active: true, createdAt: new Date().toISOString(), source: 'imported' }];
+    delete backup.residentPlacementHistory;
+    db.restoreDatabase(JSON.stringify(backup));
+    const room = db.getState().rooms.find(item => item.physicalRoomLabel === '101LF');
+    expect(room?.wing).toBe('West Wing');
+    expect(room).not.toHaveProperty('area');
   });
 
   it('flags an imported current resident with no room instead of inventing one', () => {

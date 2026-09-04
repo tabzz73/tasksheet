@@ -163,6 +163,15 @@ export function recordPrint(params: {
 }
 
 /**
+ * List every recorded print history entry, newest first. Used by the
+ * read-only History panel — never returns rendered page content, only the
+ * same lightweight generation metadata already stored per entry.
+ */
+export function listEntries(): PrintHistoryEntry[] {
+  return [...loadState().entries].sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+}
+
+/**
  * Get the most recent print history entry for a given shift+date.
  */
 export function getEntry(shiftId: string, date: string): PrintHistoryEntry | undefined {

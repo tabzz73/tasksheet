@@ -1,8 +1,11 @@
-import React from 'react';
-import { Hospital, ShieldAlert, TriangleAlert, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { CalendarClock, ClockAlert, Hospital, RotateCcw, ShieldAlert, TriangleAlert, Users } from 'lucide-react';
 import { Modal } from '../common/Modal';
+import { CardNavigationButton } from '../common/CardNavigationButton';
+import { FollowUpActionsModal, FollowUpActionsEntry, toFollowUpActionsEntry } from './FollowUpActionsModal';
+import { FOLLOW_UP_BADGE_CLASS } from './DashboardWidgets';
 import { AppDatabaseState } from '../../types';
-import { getHuddleBriefing } from '../../services/dashboard';
+import { getHuddleBriefing, getMustNotMissFollowUp, ResidentFollowUpEntry } from '../../services/dashboard';
 
 interface HuddleViewProps {
   isOpen: boolean;
@@ -13,7 +16,27 @@ interface HuddleViewProps {
    *  passed in rather than reformatted here so the two views can never drift
    *  onto different date conventions for what is the same operational day. */
   formattedToday: string;
+  /** Closes the Huddle and navigates when "Open Resident / Task" is chosen
+   *  from a Must-Not-Miss row's Follow-up Actions panel. */
+  onOpenResident?: (residentId: string) => void;
+  /** Called after a Follow-up Actions mutation so the parent (Dashboard)
+   *  re-renders with fresh state — Huddle's `state` prop is a snapshot, not
+   *  a live subscription, matching the pattern every other dashboard widget
+   *  already uses. */
+  onChanged?: () => void;
 }
+
+/** Icon per Must-Not-Miss row state — never color alone. Needs Review gets
+ *  the strongest attention icon; carry-forward gets a distinct history/arrow
+ *  icon (not the same warning icon as overdue) per the restrained-attention
+ *  visual language: not every row reads as equally urgent. */
+const followUpRowIcon = (entry: ResidentFollowUpEntry) => {
+  if (entry.needsReview) return ShieldAlert;
+  if (entry.bucket === 'carry_forward') return RotateCcw;
+  if (entry.bucket === 'overdue') return ClockAlert;
+  if (entry.isTracking) return CalendarClock;
+  return ClockAlert; // due today
+};
 
 const SectionHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h4 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-1.5">{children}</h4>
@@ -23,17 +46,21 @@ const SectionHeading: React.FC<{ children: React.ReactNode }> = ({ children }) =
  *  showInHuddle Attention (Unit/Site and Resident), showInHuddle Resident
  *  Tasks, showInHuddle FYIs, and Code of the Month. Not a record type: there
  *  is nothing here to create, edit, or persist. */
-export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, today, formattedToday }) => {
+export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, today, formattedToday, onOpenResident, onChanged }) => {
+  const [actionsEntry, setActionsEntry] = useState<FollowUpActionsEntry | null>(null);
   if (!isOpen) return null;
   const briefing = getHuddleBriefing(state, today);
+  const mustNotMiss = getMustNotMissFollowUp(state, today);
   const nothingToShow =
     briefing.away.length === 0 &&
     briefing.unitSiteAttention.length === 0 &&
     briefing.residentAttention.length === 0 &&
     briefing.residentFollowUp.length === 0 &&
-    briefing.importantFyis.length === 0;
+    briefing.importantFyis.length === 0 &&
+    mustNotMiss.length === 0;
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title="Shift Huddle" subtitle={`Briefing for ${formattedToday}`} maxWidth="3xl">
       <div className="space-y-5">
         <div>
@@ -96,6 +123,32 @@ export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, 
           </div>
         )}
 
+        {mustNotMiss.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <SectionHeading>Must-Not-Miss Follow-up</SectionHeading>
+              <span className="badge badge-danger shrink-0">{mustNotMiss.length} need{mustNotMiss.length === 1 ? 's' : ''} attention</span>
+            </div>
+            <ul className="space-y-1">
+              {mustNotMiss.map(entry => {
+                const Icon = followUpRowIcon(entry);
+                return (
+                  <li key={entry.task.id} className="relative flex items-center gap-2 px-2 py-1.5 -mx-2 text-[12.5px] rounded-control hover:bg-panel-sunken transition-colors">
+                    <CardNavigationButton
+                      label={`Follow-up actions for ${entry.task.title}, ${entry.resident.roomNumber}`}
+                      onActivate={() => setActionsEntry(toFollowUpActionsEntry(entry))}
+                    />
+                    <Icon className={`w-3.5 h-3.5 shrink-0 relative z-20 pointer-events-none ${entry.needsReview ? 'text-danger' : entry.bucket === 'due_today' ? 'text-ink-soft' : 'text-warning'}`} aria-hidden="true" />
+                    <span className="relative z-20 pointer-events-none font-mono font-bold text-ink-soft shrink-0">{entry.resident.roomNumber}</span>
+                    <span className="relative z-20 pointer-events-none text-ink truncate">{entry.task.title}</span>
+                    <span className={`relative z-20 pointer-events-none ml-auto shrink-0 badge ${FOLLOW_UP_BADGE_CLASS[entry.bucket]}`}>{entry.statusLabel}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {briefing.residentFollowUp.length > 0 && (
           <div>
             <SectionHeading>Resident Follow-up</SectionHeading>
@@ -140,5 +193,13 @@ export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, 
         </div>
       </div>
     </Modal>
+    <FollowUpActionsModal
+      entry={actionsEntry}
+      today={today}
+      onClose={() => setActionsEntry(null)}
+      onOpenResident={onOpenResident ? (residentId) => { onClose(); onOpenResident(residentId); } : undefined}
+      onChanged={onChanged}
+    />
+    </>
   );
 };

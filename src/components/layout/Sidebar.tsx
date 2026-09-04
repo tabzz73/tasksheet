@@ -33,9 +33,9 @@ interface SidebarProps {
 // mobile bottom bar/drawer — deliberately separate from the screen
 // tokens (documented in DESIGN.md), since nothing else in the inherited
 // style chain provides a legible color against this background.
-const RAIL_BG = '#0d1f38';
+const RAIL_BG = '#12141A';
 const RAIL_LINE = 'rgba(255,255,255,0.08)';
-const RAIL_TEXT_MUTED = '#9aa4b5';
+const RAIL_TEXT_MUTED = '#A8A296';
 const RAIL_HOVER_TINT = 'rgba(255,255,255,0.06)';
 const RAIL_ACTIVE_TINT = 'rgba(255,255,255,0.1)';
 
@@ -78,8 +78,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Brand mark */}
         <div className="h-16 px-4 flex items-center gap-2.5 shrink-0">
           <div
-            className="w-8 h-8 rounded-control flex items-center justify-center shrink-0 text-white font-heading font-extrabold text-[15px]"
-            style={{ background: 'var(--color-accent)' }}
+            className="w-8 h-8 rounded-control flex items-center justify-center shrink-0 font-heading font-extrabold text-[15px]"
+            style={{ background: 'var(--color-signature)', color: 'var(--color-ink)' }}
           >
             T
           </div>
@@ -119,11 +119,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="px-4 py-3.5 flex items-center gap-[7px] shrink-0">
           <span
             className="w-[7px] h-[7px] rounded-full shrink-0"
-            style={{ background: isDemoMode ? '#e8a23a' : 'var(--color-accent)' }}
+            style={{ background: isDemoMode ? 'var(--color-signature)' : 'var(--color-accent)' }}
           />
           <div className="min-w-0">
             {isDemoMode ? (
-              <div className="text-[10.5px] font-bold uppercase tracking-[0.05em]" style={{ color: '#e8a23a' }}>DEMO MODE</div>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.05em]" style={{ color: 'var(--color-signature)' }}>DEMO MODE</div>
             ) : (
               <div className="text-[10.5px] font-bold uppercase tracking-[0.05em]" style={{ color: RAIL_TEXT_MUTED }}>{TASKSHEET_TAGLINE}</div>
             )}

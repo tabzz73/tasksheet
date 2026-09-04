@@ -74,6 +74,16 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
     onClose();
   };
 
+  const footer = (
+    <>
+      <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+      <button type="submit" form="unit-task-result-form" className="px-5 py-2 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold shadow-elevated transition-colors flex items-center space-x-1.5">
+        <Check className="w-4 h-4" />
+        <span>Complete Routine</span>
+      </button>
+    </>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -81,8 +91,9 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
       title={task.title}
       subtitle={`Unit Routine · Time: ${task.time || '—'}`}
       maxWidth="md"
+      footer={footer}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="unit-task-result-form" onSubmit={handleSubmit} className="space-y-4">
         {task.instructions && (
           <p className="text-xs text-muted bg-panel-sunken p-2.5 rounded-control border border-hairline-strong">
             {task.instructions}
@@ -204,23 +215,6 @@ export const UnitTaskResultModal: React.FC<UnitTaskResultModalProps> = ({
           />
         </div>
 
-        {/* Submit */}
-        <div className="pt-2 flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-5 py-2 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold shadow-elevated transition-colors flex items-center space-x-1.5"
-          >
-            <Check className="w-4 h-4" />
-            <span>Complete Routine</span>
-          </button>
-        </div>
       </form>
     </Modal>
   );

@@ -94,7 +94,7 @@
   --color-panel-sunken: #f5f2e9;
 
   /* Ink */
-  --color-ink: #141414;
+  --color-ink: #12141A;
   --color-ink-soft: #5b5f52;
   --color-muted: #6b6f76;
   /* Darkened from #9a9d8f (2.77:1 on panel — failed WCAG AA text contrast,
@@ -113,16 +113,20 @@
   --color-hairline-strong: #ece8dc;
 
   /* One accent, forest green — the one interactive color in the system. */
-  --color-accent: #1f6b4c;
-  --color-accent-strong: #1a5c40;
+  --color-accent: #0F5132;
+  --color-accent-strong: #0B3D26;
   --color-accent-soft: #e8f2ec;
+
+  /* Signature amber — bounded identity accent. Brand-mark background and the
+     demo-mode indicator only; never a status color, never interactive. */
+  --color-signature: #e8a23a;
 
   /* Semantic — reserved for meaning, never decoration */
   --color-danger: #b3261e;
   --color-danger-soft: #fde2e1;
   --color-warning: #8a6a1e;
   --color-warning-soft: #fdf3d8;
-  --color-positive: #1f6b4c;
+  --color-positive: #0F5132;
   --color-positive-soft: #e5f1ea;
 
   /* Radius: 12px cards, 8px controls, per the design spec */
@@ -168,6 +172,13 @@
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 1px;
+  }
+
+  /* Tailwind's preflight resets button cursor to `default` — every clickable
+     button should read as clickable without needing a per-instance
+     `cursor-pointer` utility. */
+  button:not(:disabled) {
+    cursor: pointer;
   }
 }
 
@@ -356,6 +367,12 @@
   --print-secondary-size: 8pt;
   --print-footer-size: 7.5pt;
   --print-line-height: 1.1;
+
+  /* Light, toner-safe header fill — the one compliant pattern already used
+     in UniversalTableDocument/CustomReportDocument's <thead>. Reused instead
+     of re-copying the hex literal into every specialized document. */
+  --print-header-fill: #f1f5f9;
+  --print-header-rule: #94a3b8;
 }
 
 /* One typography contract for TaskSheets, Binder pages, and specialized output. */

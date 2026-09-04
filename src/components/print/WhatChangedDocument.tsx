@@ -29,7 +29,7 @@ export const WhatChangedDocument: React.FC<WhatChangedDocumentProps> = ({ model 
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="bg-amber-600 text-white font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+            <span className="bg-amber-100 text-amber-900 border border-amber-300 font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
               WHAT CHANGED? · DELTA UPDATE
             </span>
             <span className="bg-slate-900 text-white font-mono font-black px-2 py-0.5 rounded text-xs">
@@ -74,7 +74,7 @@ export const WhatChangedDocument: React.FC<WhatChangedDocumentProps> = ({ model 
       {/* ── 1. ADDED CARE TASKS (➕ NEW) ── */}
       {added.length > 0 && (
         <div className="space-y-2">
-          <div className="bg-emerald-800 text-white px-3 py-1.5 rounded font-black text-xs uppercase tracking-wider flex items-center justify-between">
+          <div className="bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded font-black text-xs uppercase tracking-wider flex items-center justify-between">
             <span>➕ Added Tasks (Perform during shift)</span>
             <span>{added.length} new item{added.length !== 1 ? 's' : ''}</span>
           </div>
@@ -120,7 +120,7 @@ export const WhatChangedDocument: React.FC<WhatChangedDocumentProps> = ({ model 
       {/* ── 2. MODIFIED TASKS (✏️ UPDATED) ── */}
       {modified.length > 0 && (
         <div className="space-y-2">
-          <div className="bg-amber-700 text-white px-3 py-1.5 rounded font-black text-xs uppercase tracking-wider flex items-center justify-between">
+          <div className="bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded font-black text-xs uppercase tracking-wider flex items-center justify-between">
             <span>✏️ Modified Instructions / Timing</span>
             <span>{modified.length} modified item{modified.length !== 1 ? 's' : ''}</span>
           </div>
@@ -177,7 +177,7 @@ export const WhatChangedDocument: React.FC<WhatChangedDocumentProps> = ({ model 
       {/* ── 3. REMOVED / CANCELLED TASKS (❌ DO NOT PERFORM) ── */}
       {removed.length > 0 && (
         <div className="space-y-2">
-          <div className="bg-rose-800 text-white px-3 py-1.5 rounded font-black text-xs uppercase tracking-wider flex items-center justify-between">
+          <div className="bg-rose-100 text-rose-900 border border-rose-300 px-3 py-1.5 rounded font-black text-xs uppercase tracking-wider flex items-center justify-between">
             <span>❌ Cancelled / Discontinued (Do NOT perform)</span>
             <span>{removed.length} cancelled item{removed.length !== 1 ? 's' : ''}</span>
           </div>

@@ -72,7 +72,13 @@ export function migrateRoomModel(
   rawHistory: ResidentPlacementHistory[] = [],
 ): Pick<AppDatabaseState, 'residents' | 'rooms' | 'occupancyPositions' | 'residentPlacementHistory'> {
   const now = new Date().toISOString();
-  const rooms = rawRooms.map(room => ({ ...room }));
+  // `area` was the old free-text field name; `wing` replaces it. Backfill only
+  // when `wing` isn't already set, so this stays a safe no-op on already-migrated data.
+  const rooms: FacilityRoom[] = rawRooms.map(room => {
+    const raw = room as FacilityRoom & { area?: string };
+    const { area, ...rest } = raw;
+    return { ...rest, wing: rest.wing ?? (area?.trim() || undefined) };
+  });
   const positions = rawPositions.map(position => ({ ...position }));
   const history = rawHistory.map(item => ({ ...item }));
   const currentOccupants = new Map<string, string>();

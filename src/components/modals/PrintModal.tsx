@@ -58,6 +58,20 @@ export const PrintModal: React.FC<PrintModalProps> = ({
     }
   })();
 
+  const footer = (
+    <>
+      <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+      <button
+        type="button"
+        onClick={handlePrint}
+        className="px-6 py-2.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold shadow flex items-center space-x-2 transition-colors"
+      >
+        <Printer className="w-4 h-4" />
+        <span>Print TaskSheet</span>
+      </button>
+    </>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -65,6 +79,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
       title={`Print — ${header.shiftName}`}
       subtitle={`${shortDate} · ${header.shiftTime}`}
       maxWidth="lg"
+      footer={footer}
     >
       <div className="space-y-5">
 
@@ -182,24 +197,6 @@ export const PrintModal: React.FC<PrintModalProps> = ({
           <span>Open Full Preview</span>
         </button>
 
-        {/* ── ACTIONS ── */}
-        <div className="pt-1 border-t border-hairline-strong flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-medium transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="px-6 py-2.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold shadow flex items-center space-x-2 transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print TaskSheet</span>
-          </button>
-        </div>
       </div>
     </Modal>
   );

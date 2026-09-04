@@ -88,7 +88,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       subheaderText = `${specializedDoc.model.weekRange} · ${specializedDoc.model.totalScheduledTreatments} scheduled treatments`;
     } else if (specializedDoc.type === 'wound_supplies') {
       isLandscape = true;
-      docTitle = 'Wound Supplies Re-Order List';
+      docTitle = 'Wound Supply Re-Order Worksheet';
       profileLabel = 'Letter Landscape · Supply Planning';
       subheaderText = specializedDoc.model.scopeLabel;
     } else if (specializedDoc.type === 'resident_care') {

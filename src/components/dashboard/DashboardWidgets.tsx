@@ -14,6 +14,7 @@ import {
   UnitSituationEntry,
 } from '../../services/dashboard';
 import { FollowUpStatusMenu } from '../common/FollowUpStatusMenu';
+import { followUpActions } from '../../services/followUpActions';
 
 /** One icon per scope, never the same warning icon for everything —
  *  reinforces what the item actually is, not just that it's important. */
@@ -128,7 +129,7 @@ export const ResidentAttentionCard: React.FC<{ state: AppDatabaseState; today: s
 };
 
 // ─── Resident Follow-up (tasks explicitly flagged for the Dashboard) ───────
-const FOLLOW_UP_BADGE_CLASS: Record<ResidentFollowUpBucket, string> = {
+export const FOLLOW_UP_BADGE_CLASS: Record<ResidentFollowUpBucket, string> = {
   needs_review: 'badge-danger',
   overdue: 'badge-warning',
   due_today: 'badge-warning',
@@ -141,7 +142,16 @@ export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: st
   const items = getResidentFollowUpTasks(state, today);
 
   const handleSetStatus = (taskId: string, status: ResidentTaskFollowUpStatus) => {
-    db.setResidentTaskFollowUpStatus(taskId, status);
+    // Routed through the shared follow-up-actions helper (see
+    // src/services/followUpActions.ts) — the same functions Huddle and
+    // Resident Profile call, so all three surfaces stay on one mutation path.
+    switch (status) {
+      case 'done': followUpActions.markDone(taskId); break;
+      case 'carry_forward': followUpActions.carryForward(taskId); break;
+      case 'needs_review': followUpActions.needsReview(taskId); break;
+      case 'no_longer_needed': followUpActions.noLongerNeeded(taskId); break;
+      default: db.setResidentTaskFollowUpStatus(taskId, status);
+    }
     onChanged?.();
   };
 

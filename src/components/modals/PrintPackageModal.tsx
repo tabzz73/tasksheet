@@ -41,6 +41,26 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
     ? 'Bundles all daytime/evening HCA TaskSheets, the weekly Bathing Schedule Grid, and active floor FYIs.'
     : 'Bundles all LPN/RN Clinical Worksheets with Quick Vitals, the Wound Treatment Schedule, and clinical alerts.';
 
+  const footer = (
+    <div className="w-full flex items-center justify-between">
+      <div className="text-xs text-muted">
+        Estimated Total: <strong className="text-ink font-black text-sm">~{model.estimatedTotalPages} pages</strong>
+      </div>
+      <div className="flex items-center space-x-2">
+        <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={model.configurationWarnings.length > 0}
+          className="px-5 py-2 bg-ink hover:bg-accent-strong disabled:bg-hairline-strong disabled:cursor-not-allowed text-white rounded-control text-xs font-bold shadow flex items-center space-x-1.5 transition-colors"
+        >
+          <Printer className="w-3.5 h-3.5" />
+          <span>Preview & Print Package</span>
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -48,6 +68,7 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
       title={packageTitle}
       subtitle={`${model.formattedDate} · Complete Shift Bundle`}
       maxWidth="lg"
+      footer={footer}
     >
       <div className="space-y-5">
         <div className="p-3 bg-panel-sunken border border-hairline-strong rounded-surface text-xs text-ink-soft flex items-start space-x-2.5">
@@ -148,31 +169,6 @@ export const PrintPackageModal: React.FC<PrintPackageModalProps> = ({
           </p>
         </div>
 
-        {/* ── FOOTER ESTIMATE & CTA ── */}
-        <div className="pt-3 border-t border-hairline-strong flex items-center justify-between">
-          <div className="text-xs text-muted">
-            Estimated Total: <strong className="text-ink font-black text-sm">~{model.estimatedTotalPages} pages</strong>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-xs font-semibold transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={model.configurationWarnings.length > 0}
-              className="px-5 py-2 bg-ink hover:bg-accent-strong disabled:bg-hairline-strong disabled:cursor-not-allowed text-white rounded-control text-xs font-bold shadow flex items-center space-x-1.5 transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Preview & Print Package</span>
-            </button>
-          </div>
-        </div>
       </div>
     </Modal>
   );

@@ -152,7 +152,7 @@ export const TaskDetailsDrawer: React.FC<TaskDetailsDrawerProps> = ({
               <span className="text-faint font-medium block">Operational Shift:</span>
               <div className="font-semibold text-ink-soft mt-0.5 flex items-center space-x-1.5">
                 {shift.shortCode && (
-                  <span className="px-1.5 py-0.2 bg-ink text-white rounded font-mono font-bold text-[10px]">
+                  <span className="px-1.5 py-0.2 bg-ink text-white rounded font-mono font-black text-[10px]">
                     {shift.shortCode}
                   </span>
                 )}

@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "arial",
+        "createdAt": "2026-09-04T15:57:40.898Z",
+        "reason": "DESIGN.md:220 — print typography contract, deliberately not the screen font, pre-existing"
+      }
+    ]
+  }
+}

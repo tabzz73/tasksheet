@@ -31,6 +31,9 @@ import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule, getTodayLocalDateString } from '../../services/recurrence';
+import { getResidentFollowUpTasks } from '../../services/dashboard';
+import { FOLLOW_UP_BADGE_CLASS } from '../dashboard/DashboardWidgets';
+import { FollowUpActionsModal, FollowUpActionsEntry } from '../dashboard/FollowUpActionsModal';
 
 interface ResidentProfileViewProps {
   residentId: string;
@@ -94,6 +97,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
     onConfirm: () => {}
   });
   const [confirmRequest, setConfirmRequest] = useState<ConfirmDialogRequest | null>(null);
+  const [followUpEntry, setFollowUpEntry] = useState<FollowUpActionsEntry | null>(null);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -119,6 +123,9 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
     t.isActive !== false && isRecurrenceScheduleEnded(t.recurrenceRule, t.frequency, todayDateStr, t.createdAt)
   );
   const endedTaskIds = new Set(endedTasks.map(t => t.id));
+  // Follow-up state/label — same selector Dashboard and Huddle use, so this
+  // page never disagrees with either about overdue/progress/carry-forward.
+  const followUpByTaskId = new Map(getResidentFollowUpTasks(state, todayDateStr).map(entry => [entry.task.id, entry]));
   const activeTasks = allResidentTasks.filter(t => t.isActive !== false && !endedTaskIds.has(t.id));
   const stoppedTasks = allResidentTasks.filter(t => t.isActive === false);
   const displayedTasks = careTaskFilter === 'active' 
@@ -705,6 +712,18 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                           {formatRecurrenceHuman(t.recurrenceRule, t.frequency)}
                         </span>
                         <TaskAttentionBadges attentionConfig={t.attentionConfig} />
+                        {t.showOnDashboard === true && followUpByTaskId.has(t.id) && (() => {
+                          const entry = followUpByTaskId.get(t.id)!;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => setFollowUpEntry({ task: t, resident })}
+                              className={`hit-target-44 badge ${FOLLOW_UP_BADGE_CLASS[entry.bucket]} hover:opacity-80 transition-opacity`}
+                            >
+                              {entry.statusLabel}
+                            </button>
+                          );
+                        })()}
                         {isStopped && (
                           <span className="badge badge-warning flex items-center space-x-0.5">
                             <PauseCircle className="w-3 h-3" />
@@ -940,6 +959,12 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
       )}
 
       <ConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      <FollowUpActionsModal
+        entry={followUpEntry}
+        today={todayDateStr}
+        onClose={() => setFollowUpEntry(null)}
+        onChanged={() => { setToastMessage('Follow-up updated.'); setTimeout(() => setToastMessage(null), 4000); }}
+      />
     </div>
   );
 };

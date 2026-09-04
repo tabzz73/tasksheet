@@ -163,6 +163,14 @@ export function formatTrackingProgressLabel(startDate: string, endDate: string |
   return `Day ${clampedDay}/${totalDays}${today === endDate ? ' · Ends today' : ''}`;
 }
 
+/** "X/Y" occurrence-mode tracking progress (e.g. "1/3"), "X/Y · Complete"
+ *  once the target is reached. An operational reminder counter only — see
+ *  `ResidentTrackingConfig.requiredOccurrences`. */
+export function formatOccurrenceProgressLabel(completed: number, required: number): string {
+  const clamped = Math.min(Math.max(completed, 0), required);
+  return `${clamped}/${required}${clamped >= required ? ' · Complete' : ''}`;
+}
+
 export type ResidentFollowUpBucket =
   | 'needs_review' | 'overdue' | 'due_today' | 'carry_forward'
   | 'tracking_active' | 'tracking_open_ended';
@@ -181,6 +189,19 @@ export interface ResidentFollowUpEntry {
    *  escalated via the carry-forward threshold) to warrant surfacing even
    *  without an explicit `showInHuddle` flag. */
   needsReview: boolean;
+  /** Passthrough of `task.mustNotMiss` — this follow-up requires continuity
+   *  until done, formally ended, or reviewed. */
+  mustNotMiss: boolean;
+  /** Set only for occurrence-mode tracking tasks (`trackingConfig.requiredOccurrences`),
+   *  e.g. "1/3", "3/3 · Complete". Mutually exclusive with the Day-X/Y label
+   *  in `statusLabel` — occurrence mode replaces it, not supplements it. */
+  occurrenceLabel?: string;
+  /** True when this entry genuinely needs huddle attention right now —
+   *  overdue, carried forward, Needs Review, or (only for Must-Not-Miss
+   *  tasks) due today / tracking ending today. Routine mid-period tracking
+   *  never qualifies, even when `mustNotMiss` is set, so the huddle
+   *  attention count can't be inflated by tasks with nothing to act on. */
+  qualifiesForHuddleAttention: boolean;
 }
 
 /** Resident Tasks the creator explicitly flagged with `showOnDashboard` —
@@ -201,8 +222,32 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
     const status = task.followUpStatus || 'due';
     if (status === 'done' || status === 'no_longer_needed') continue;
     const carryForwardCount = task.followUpCarryForwardCount || 0;
+    const mustNotMiss = task.mustNotMiss === true;
+    const qualifies = (bucket: ResidentFollowUpBucket, isTracking: boolean, endDate?: string): boolean =>
+      bucket === 'needs_review' || bucket === 'overdue' || bucket === 'carry_forward'
+      || (mustNotMiss && bucket === 'due_today')
+      || (mustNotMiss && isTracking && Boolean(endDate) && endDate === today);
 
     if (task.trackingConfig) {
+      if (task.trackingConfig.requiredOccurrences) {
+        // Occurrence-mode tracking: progress is a count, not a date window —
+        // no recurrenceRule/start-end dates required (mutually exclusive
+        // with Day-X/Y display).
+        const required = task.trackingConfig.requiredOccurrences;
+        const completedOcc = task.trackingConfig.completedOccurrences || 0;
+        const label = formatOccurrenceProgressLabel(completedOcc, required);
+        const escalated = status === 'needs_review';
+        const bucket: ResidentFollowUpBucket = escalated ? 'needs_review' : 'tracking_active';
+        entries.push({
+          resident, task, bucket,
+          statusLabel: escalated ? `Needs Review · ${label}` : label,
+          isTracking: true, carryForwardCount, needsReview: escalated,
+          mustNotMiss, occurrenceLabel: label,
+          qualifiesForHuddleAttention: qualifies(bucket, true, undefined),
+        });
+        continue;
+      }
+
       const start = task.recurrenceRule?.startDate;
       const end = task.recurrenceRule?.endDate;
       if (!start) continue;
@@ -217,6 +262,7 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
           resident, task, bucket: 'needs_review',
           statusLabel: `Needs Review · ${formatOverdueLabel(end!, today)}`,
           isTracking: true, overdueDays: getDaysDifference(end!, today), carryForwardCount, needsReview: true,
+          mustNotMiss, qualifiesForHuddleAttention: true,
         });
         continue;
       }
@@ -224,11 +270,12 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
       if (!isWithinActiveWindow(start, end, today)) continue; // not yet started
       const label = formatTrackingProgressLabel(start, end, today);
       const escalated = status === 'needs_review';
+      const bucket: ResidentFollowUpBucket = escalated ? 'needs_review' : (end ? 'tracking_active' : 'tracking_open_ended');
       entries.push({
-        resident, task,
-        bucket: escalated ? 'needs_review' : (end ? 'tracking_active' : 'tracking_open_ended'),
+        resident, task, bucket,
         statusLabel: escalated ? `Needs Review · ${label}` : label,
         isTracking: true, carryForwardCount, needsReview: escalated,
+        mustNotMiss, qualifiesForHuddleAttention: qualifies(bucket, true, end),
       });
       continue;
     }
@@ -252,7 +299,10 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
     let statusLabel = parts.join(' · ');
     if (needsReview) statusLabel = `Needs Review · ${statusLabel}`;
 
-    entries.push({ resident, task, bucket, statusLabel, isTracking: false, overdueDays, carryForwardCount, needsReview });
+    entries.push({
+      resident, task, bucket, statusLabel, isTracking: false, overdueDays, carryForwardCount, needsReview,
+      mustNotMiss, qualifiesForHuddleAttention: qualifies(bucket, false, undefined),
+    });
   }
 
   const BUCKET_RANK: Record<ResidentFollowUpBucket, number> = {
@@ -265,6 +315,33 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
     if (overdueDiff !== 0) return overdueDiff;
     const rankDiff = PRIORITY_RANK[a.task.priority || 'normal'] - PRIORITY_RANK[b.task.priority || 'normal'];
     if (rankDiff !== 0) return rankDiff;
+    return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
+  });
+}
+
+/** Huddle's "Must-Not-Miss Follow-up" section — the subset of
+ *  `getResidentFollowUpTasks` that genuinely needs attention right now
+ *  (`qualifiesForHuddleAttention`), in its own priority order: Needs Review,
+ *  then most overdue, carried forward, due today, tracking ending today,
+ *  then any remaining Must-Not-Miss active tracking. This is a different
+ *  order than the Dashboard card's bucket-first sort, so it's a distinct
+ *  function reusing the same computed entries — not a second overdue/
+ *  progress calculator, and not a parameter on the existing sort. */
+export function getMustNotMissFollowUp(state: AppDatabaseState, today: string): ResidentFollowUpEntry[] {
+  const entries = getResidentFollowUpTasks(state, today).filter(entry => entry.qualifiesForHuddleAttention);
+  const rank = (entry: ResidentFollowUpEntry): number => {
+    if (entry.bucket === 'needs_review') return 0;
+    if (entry.bucket === 'overdue') return 1;
+    if (entry.bucket === 'carry_forward') return 2;
+    if (entry.bucket === 'due_today') return 3;
+    if (entry.isTracking && entry.task.recurrenceRule?.endDate === today) return 4;
+    return 5; // Must-Not-Miss active tracking with nothing else more urgent
+  };
+  return [...entries].sort((a, b) => {
+    const rankDiff = rank(a) - rank(b);
+    if (rankDiff !== 0) return rankDiff;
+    const overdueDiff = (b.overdueDays || 0) - (a.overdueDays || 0);
+    if (overdueDiff !== 0) return overdueDiff;
     return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
   });
 }

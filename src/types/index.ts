@@ -189,6 +189,13 @@ export type ResidentTrackingKind =
 export interface ResidentTrackingConfig {
   kind: ResidentTrackingKind;
   prompt?: string;
+  /** When set, this tracking task is in "occurrence mode": progress reads as
+   *  `completedOccurrences/requiredOccurrences` instead of a date-bounded
+   *  Day X/Y window, and `recurrenceRule` start/end dates are not required.
+   *  An operational reminder counter only — not a record of clinical
+   *  collection/assessment completion. */
+  requiredOccurrences?: number;
+  completedOccurrences?: number;
 }
 
 export interface FacilityAttentionRule {
@@ -448,7 +455,8 @@ export interface Resident {
 export interface FacilityRoom {
   id: UUID;
   physicalRoomLabel: string;
-  area?: string;
+  wing?: string;
+  floor?: string;
   active: boolean;
   mode: 'simple' | 'structured';
   createdAt: string;
@@ -576,6 +584,12 @@ export interface ResidentTask {
   /** How many times this task has been explicitly marked Carry Forward. */
   followUpCarryForwardCount?: number;
   followUpUpdatedAt?: string;
+  /** This follow-up requires continuity until it is completed, formally
+   *  ended, or reviewed — surfaces prominently in Huddle's Must-Not-Miss
+   *  section and defaults Dashboard/Huddle visibility on at creation.
+   *  A semantic flag, not a priority system; only meaningful alongside
+   *  `showOnDashboard`. Never read by the generator or print output. */
+  mustNotMiss?: boolean;
   isActive: boolean;
   stoppedAt?: string;
   createdAt: string;

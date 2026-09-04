@@ -479,6 +479,7 @@ export function generateDemoData() {
       priority: 'high',
       showOnDashboard: true,
       showInHuddle: true,
+      mustNotMiss: true,
       isActive: true,
       createdAt: todayStr,
       source: 'demo'
@@ -499,6 +500,7 @@ export function generateDemoData() {
       priority: 'high',
       showOnDashboard: true,
       showInHuddle: true,
+      mustNotMiss: true,
       followUpDueDate: addDaysToDateStr(todayStr, -2),
       isActive: true,
       createdAt: addDaysToDateStr(todayStr, -2),

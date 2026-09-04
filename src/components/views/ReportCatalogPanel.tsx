@@ -98,6 +98,12 @@ export const ReportCatalogPanel: React.FC<ReportCatalogPanelProps> = ({
     onPreview({ type: 'custom_report', model: report });
   };
 
+  const customizeCopy = (item: ReportDefinition) => {
+    setDefinition({ ...item, id: `custom-${Date.now()}`, name: `${item.name} (Custom)`, category: 'Custom', description: 'User-configured safe TaskSheet report.', system: false });
+    setBuilderOpen(true);
+    setMessage(`Starting from "${item.name}" — adjust and Save Preset to keep your own copy.`);
+  };
+
   const changeSource = (source: ReportDataSource) => {
     setDefinition(newDefinition(source, selectedDate));
     setFilterDraft({ field: REPORT_FIELDS[source][0].id, operator: 'equals', value: '' });
@@ -157,7 +163,7 @@ export const ReportCatalogPanel: React.FC<ReportCatalogPanelProps> = ({
             <button type="button" onClick={() => onPreview({ type: 'wound_weekly', model: buildWeeklyWoundOverviewModel(woundWeekAnchor) })} className="px-3 py-2 bg-danger hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
           </div>
           <div className="p-4 flex items-start justify-between gap-4">
-            <div className="min-w-0"><p className="text-sm font-bold text-ink">Wound Supplies Re-Order List</p><p className="text-xs text-muted mt-1">Exact supply names · scheduled-use counts · resident/wound traceability</p>
+            <div className="min-w-0"><p className="text-sm font-bold text-ink">Wound Supply Re-Order Worksheet</p><p className="text-xs text-muted mt-1">Exact supply names · scheduled-use counts · resident/wound traceability</p>
               <select aria-label="Wound supply report scope" value={woundSupplyScope} onChange={event => onWoundSupplyScopeChange(event.target.value as 'current_week' | 'all_active')} className="mt-2 px-2.5 py-1.5 border border-hairline-strong rounded-control text-xs bg-panel"><option value="current_week">Current Week</option><option value="all_active">All Active Wounds</option></select>
             </div>
             <button type="button" onClick={() => onPreview({ type: 'wound_supplies', model: buildWoundSupplyReorderModel(woundWeekAnchor, woundSupplyScope) })} className="px-3 py-2 bg-ink hover:bg-danger text-white rounded-control text-xs font-bold shrink-0">Preview</button>
@@ -167,7 +173,7 @@ export const ReportCatalogPanel: React.FC<ReportCatalogPanelProps> = ({
     )}
 
     <div className="px-5 pt-3 text-[10px] font-black text-faint uppercase tracking-widest">{category} Reports</div>
-    <div className="divide-y divide-hairline">{categoryPresets.map(item => <button key={item.id} type="button" onClick={() => preview(item)} className="w-full text-left px-5 py-3 hover:bg-panel-sunken transition-colors flex items-center justify-between gap-3"><span className="min-w-0"><strong className="block text-[13px] font-bold text-ink">{item.name}</strong><span className="block text-[11px] text-muted mt-0.5">{item.description}</span></span><span className="shrink-0 text-[10px] uppercase tracking-wider font-bold text-faint">{REPORT_SOURCE_LABELS[item.dataSource]} · {item.layout}</span></button>)}{categoryPresets.length === 0 && category !== 'Wound Care' && <p className="px-5 py-4 text-xs text-faint">No predefined reports in this category yet.</p>}{category === 'Custom' && <div className="p-5 border-t border-hairline"><strong className="block text-sm text-ink">Custom Print Builder & Saved Presets</strong><p className="text-xs text-ink-soft mt-1">Use the guided builder above to choose a safe data source, filters, columns, grouping, sorting, layout, and density.</p></div>}</div>
+    <div className="divide-y divide-hairline">{categoryPresets.map(item => <div key={item.id} className="w-full px-5 py-3 hover:bg-panel-sunken transition-colors flex items-center justify-between gap-3"><button type="button" onClick={() => preview(item)} className="flex-1 min-w-0 text-left flex items-center justify-between gap-3"><span className="min-w-0"><strong className="block text-[13px] font-bold text-ink">{item.name}</strong><span className="block text-[11px] text-muted mt-0.5">{item.description}</span></span><span className="shrink-0 text-[10px] uppercase tracking-wider font-bold text-faint">{REPORT_SOURCE_LABELS[item.dataSource]} · {item.layout}</span></button><button type="button" onClick={() => customizeCopy(item)} aria-label={`Customize a copy of ${item.name}`} title="Customize a Copy" className="shrink-0 p-1.5 text-ink-soft hover:text-accent-strong hover:bg-panel rounded-control transition-colors"><Copy className="w-3.5 h-3.5" /></button></div>)}{categoryPresets.length === 0 && category !== 'Wound Care' && <p className="px-5 py-4 text-xs text-faint">No predefined reports in this category yet.</p>}{category === 'Custom' && <div className="p-5 border-t border-hairline"><strong className="block text-sm text-ink">Custom Print Builder & Saved Presets</strong><p className="text-xs text-ink-soft mt-1">Use the guided builder above to choose a safe data source, filters, columns, grouping, sorting, layout, and density.</p></div>}</div>
 
     <Modal isOpen={builderOpen} onClose={() => setBuilderOpen(false)} title="Custom Print Builder" subtitle="Data → Filters → Columns → Grouping → Sorting → Layout → Preview" maxWidth="4xl">
       <div className="space-y-5">

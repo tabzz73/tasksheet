@@ -7,14 +7,19 @@
       "accent": {
         "role": "primary",
         "displayName": "Forest Accent",
-        "canonical": "#1f6b4c",
-        "tonalRamp": ["#0d2e21", "#123f2d", "#17513a", "#1c6346", "#1f6b4c", "#2f8a67", "#5aa987", "#a9d2c0"]
+        "canonical": "#0F5132",
+        "tonalRamp": ["#081f14", "#0b301e", "#0B3D26", "#0F5132", "#1c6b45", "#2f8a67", "#5aa987", "#a9d2c0"]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
-        "canonical": "#141414",
-        "tonalRamp": ["#0a0a0a", "#141414", "#232323", "#3a3a3a", "#5b5f52", "#6b6f76", "#6a6d64", "#ece8dc"]
+        "canonical": "#12141A",
+        "tonalRamp": ["#08090c", "#12141A", "#232323", "#3a3a3a", "#5b5f52", "#6b6f76", "#6a6d64", "#ece8dc"]
+      },
+      "signature": {
+        "role": "primary",
+        "displayName": "Signature Amber",
+        "canonical": "#e8a23a"
       },
       "app": {
         "role": "neutral",
@@ -36,11 +41,10 @@
       },
       "rail-bg": {
         "role": "neutral",
-        "displayName": "Rail Navy",
-        "canonical": "#0d1f38",
-        "tonalRamp": ["#050c17", "#081527", "#0d1f38", "#152c4d", "#213e66", "#33547f", "#5a7096", "#9aa4b5"]
+        "displayName": "Rail Near-Black",
+        "canonical": "#12141A",
+        "tonalRamp": ["#08090c", "#0d0f13", "#12141A", "#232530", "#3d404d", "#5d616e", "#838791", "#A8A296"]
       },
-      "rail-demo-accent": { "role": "status", "displayName": "Rail Demo Accent", "canonical": "#e8a23a" },
       "rail-facility-text": { "role": "neutral", "displayName": "Rail Facility Text", "canonical": "#7c869a" }
     },
     "typographyMeta": {
@@ -134,7 +138,8 @@
     ],
     "rules": [
       { "name": "The One Border Rule", "body": "hairline and hairline-strong resolve to the identical #ece8dc — this system uses exactly one border weight everywhere. There is no heavier structural weight layered on top.", "section": "colors" },
-      { "name": "The Unified Accent Rule", "body": "--color-accent and --color-positive share the same forest-green hex (#1f6b4c). A resident marked Active and a button inviting a click read as the same color family on purpose.", "section": "colors" },
+      { "name": "The Unified Accent Rule", "body": "--color-accent and --color-positive share the same forest-green hex (#0F5132). A resident marked Active and a button inviting a click read as the same color family on purpose.", "section": "colors" },
+      { "name": "The Signature Amber Rule", "body": "--color-signature (#e8a23a) has exactly two sanctioned uses: the sidebar brand-mark background and the demo-mode indicator. Decorative identity only, never a status color or interactive element.", "section": "colors" },
       { "name": "The Weight-Over-Size Rule", "body": "Hierarchy is carried by weight and structure more than size — a bold 13px row title next to a regular 13px metadata line reads clearly without a large size jump.", "section": "typography" },
       { "name": "The Flat-Card Rule", "body": "A panel's hierarchy comes from its hairline border, never a shadow. Never add elevation to something that isn't actually floating.", "section": "elevation" },
       { "name": "The AA-Over-Distinction Rule", "body": "--color-faint (#6a6d64) and --color-muted (#6b6f76) sit close together on purpose: on a light panel, meaningfully lighter than Muted and still WCAG-AA-passing don't coexist in this hue. Correctness wins over a wider visual gap between the two de-emphasized tokens.", "section": "colors" }

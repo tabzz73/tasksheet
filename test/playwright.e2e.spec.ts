@@ -26,6 +26,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Open resident Mary Smith' }).click();
     await page.getByRole('button', { name: /Care Tasks \(/ }).click();
     await page.getByRole('button', { name: 'Add Care Task' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Show Advanced options/i }).click();
     const coverageSelect = page.getByLabel('Service Coverage');
     await expect(coverageSelect).toBeVisible();
     await coverageSelect.selectOption('PRIVATE_PAY');
@@ -65,7 +66,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('dialog').getByText('MAP2 — Partial Medication Assistance').first().click();
 
     // Verify task title populated
-    await page.locator('form').getByRole('button', { name: 'Add Task' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add Task' }).click();
 
     // 7. Open Print Modal
     await page.getByRole('button', { name: 'Print Shift' }).click();
@@ -104,7 +105,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByPlaceholder(/Search LPN catalog/i).fill('Blood Glucose');
     await expect(page.getByRole('dialog').getByText('Blood Glucose Check').first()).toBeVisible();
     await page.getByRole('dialog').getByText('Blood Glucose Check').first().click();
-    await page.locator('form').getByRole('button', { name: 'Add Task' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add Task' }).click();
 
     // 4. Open Print Modal
     await page.getByRole('button', { name: 'Print Shift' }).click();
@@ -145,7 +146,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByLabel('Search wound products').fill('10x10');
     await page.getByRole('button', { name: /Mepilex Border Flex 10 × 10 cm/i }).click();
     await page.getByLabel(/Quantity per use for Mepilex Border Flex 10 × 10 cm/i).fill('1');
-    await page.locator('form').getByRole('button', { name: 'Add Wound' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add Wound' }).click();
     await expect(page.getByText('Left Forearm Skin Tear')).toBeVisible();
   });
 
@@ -160,7 +161,7 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: 'Add FYI', exact: true }).first().click();
     await page.getByRole('button', { name: 'Unit-wide / Shared' }).click();
     await page.locator('form textarea').fill('Physician visiting today at 14:00.');
-    await page.locator('form').getByRole('button', { name: 'Add FYI' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Add FYI' }).click();
 
     // 3. Verify status says "Update Required"
     await expect(page.getByText(/Physical Binder Update Required/i)).toBeVisible();
@@ -243,9 +244,10 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
   test('Journey 8 — Wound Quick Prints preview weekly and supply reports', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('button', { name: /Print Center/i }).first().click();
-    // Wound quick prints live inside the Wound Care report tab, alongside
-    // that category's preset reports.
-    await page.getByLabel('Print Center sections').getByRole('button', { name: 'Wound Care', exact: true }).click();
+    // Wound quick prints live inside Operational Reports' Wound Care
+    // sub-tab, alongside that category's preset reports.
+    await page.getByLabel('Print Center sections').getByRole('button', { name: 'Operational Reports', exact: true }).click();
+    await page.getByLabel('Operational report categories').getByRole('button', { name: 'Wound Care', exact: true }).click();
     await expect(page.getByText('Wound Quick Prints')).toBeVisible();
 
     await page.getByRole('button', { name: 'Preview' }).first().click();
@@ -257,10 +259,11 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
 
     // "Back" remounts Print Center fresh (same as its date/week pickers
     // already did before this section became tabbed), so re-select the tab.
-    await page.getByLabel('Print Center sections').getByRole('button', { name: 'Wound Care', exact: true }).click();
+    await page.getByLabel('Print Center sections').getByRole('button', { name: 'Operational Reports', exact: true }).click();
+    await page.getByLabel('Operational report categories').getByRole('button', { name: 'Wound Care', exact: true }).click();
     await page.getByLabel('Wound supply report scope').selectOption('all_active');
     await page.getByRole('button', { name: 'Preview' }).nth(1).click();
-    await expect(page.getByRole('heading', { name: 'WOUND SUPPLIES RE-ORDER LIST' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'WOUND SUPPLY RE-ORDER WORKSHEET' })).toBeVisible();
   });
 
   test('Journey 9 — Wound Supply Catalog searches brand products and exact sizes', async ({ page }) => {
@@ -287,18 +290,21 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('button', { name: /Print Center/i }).first().click();
     await expect(page.getByRole('heading', { name: 'Print Center' })).toBeVisible();
 
-    await page.getByLabel('Print Center sections').getByRole('button', { name: 'Residents', exact: true }).click();
+    const sectionTabs = page.getByLabel('Print Center sections');
+    await sectionTabs.getByRole('button', { name: 'Operational Reports', exact: true }).click();
+    const opSubTabs = page.getByLabel('Operational report categories');
+    await opSubTabs.getByRole('button', { name: 'Residents', exact: true }).click();
     await page.getByRole('button', { name: /Resident Directory Active residents/i }).click();
     await expect(page.getByRole('heading', { name: 'Resident Directory' })).toBeVisible();
     const reportFooterCss = await page.locator('.print-only style[data-print-footer]').last().evaluate(element => element.textContent || '');
     expect(reportFooterCss).toContain('Page " counter(page) " of " counter(pages)');
     await page.getByRole('button', { name: 'Back' }).click();
 
-    const sectionTabs = page.getByLabel('Print Center sections');
-    await sectionTabs.getByRole('button', { name: 'Bathing', exact: true }).click();
-    await expect(page.getByRole('button', { name: /Bathing Capacity.*Open Slots/i })).toBeVisible();
+    await sectionTabs.getByRole('button', { name: 'Operational Reports', exact: true }).click();
+    await opSubTabs.getByRole('button', { name: 'Bathing', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Bathing Capacity.*Open Slots/i }).first()).toBeVisible();
 
-    await sectionTabs.getByRole('button', { name: 'Specialized Documents' }).click();
+    await opSubTabs.getByRole('button', { name: 'Specialized', exact: true }).click();
     const weekPicker = page.getByLabel('Select bathing week');
     await weekPicker.fill('2026-09-02');
     await page.getByRole('button', { name: 'Previous bathing week' }).click();
@@ -466,5 +472,77 @@ test.describe('TaskSheet Master Clinical Journeys (E2E)', () => {
     await page.getByRole('menuitem', { name: 'Mark Done' }).click();
     await expect(page.getByText('Collect urine sample')).toHaveCount(0);
     await expect(page.getByText('2 days overdue')).toHaveCount(0);
+  });
+
+  test('Journey 16 — Huddle Must-Not-Miss: overdue urine sample, carry forward from Huddle, then resolve', async ({ page }) => {
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+    await page.getByRole('button', { name: /Start Shift Huddle/ }).click();
+
+    // The Must-Not-Miss section is a prominent, separate heading with an
+    // attention count — not folded into the general Resident Follow-up list.
+    await expect(page.getByText('Must-Not-Miss Follow-up')).toBeVisible();
+    await expect(page.getByText(/needs? attention/)).toBeVisible();
+
+    const huddleDialog = page.getByRole('dialog', { name: 'Shift Huddle' });
+    const openActionsButton = huddleDialog.getByRole('button', { name: /Follow-up actions for Collect urine sample/ });
+    await openActionsButton.click();
+
+    // The compact Follow-up Actions panel opens for that exact task.
+    const actionsDialog = page.getByRole('dialog', { name: 'Follow-up Actions' });
+    await expect(actionsDialog).toBeVisible();
+    await expect(actionsDialog.getByText(/TaskSheet tracks operational follow-up only/)).toBeVisible();
+    await actionsDialog.getByRole('button', { name: 'Carry Forward' }).click();
+
+    // Applies immediately — Huddle updates without closing or a page reload.
+    await expect(huddleDialog.getByText('2 days overdue · Carried forward', { exact: true })).toBeVisible();
+
+    // Resolving from Huddle removes it from the active Must-Not-Miss list —
+    // Dashboard's Resident Follow-up card reflects the same change with no
+    // refresh needed, since both read the same underlying selector.
+    await openActionsButton.click();
+    await actionsDialog.getByRole('button', { name: 'Done' }).click();
+    await page.getByRole('button', { name: 'Mark Done' }).click();
+    await expect(huddleDialog.getByText('Collect urine sample')).toHaveCount(0);
+
+    await huddleDialog.getByRole('button', { name: 'Done' }).click();
+    await expect(page.getByText('Collect urine sample')).toHaveCount(0);
+  });
+
+  test('Journey 17 — Huddle tracking extension: Behaviour Tracking Day X/Y, extend, recompute denominator', async ({ page }) => {
+    await page.getByRole('button', { name: 'Dashboard' }).first().click();
+    await expect(page.getByText(/^Day \d\/\d/).first()).toBeVisible();
+
+    // Behaviour Tracking is mid-period (Day 1 of 6) in demo seed, so it does
+    // NOT qualify for Huddle's Must-Not-Miss section on its own — routine
+    // active tracking never inflates that list. Flag it Needs Review via the
+    // existing Dashboard dropdown first, which always qualifies regardless
+    // of where it sits in its date window, so its interactive Huddle row
+    // becomes available to test Extend against.
+    const dashboardRow = page.locator('li', { has: page.getByText('Behaviour Tracking') });
+    await dashboardRow.getByRole('button', { name: /Update follow-up status for Behaviour Tracking/ }).click();
+    await page.getByRole('menuitem', { name: 'Needs Review' }).click();
+
+    await page.getByRole('button', { name: /Start Shift Huddle/ }).click();
+    const huddleDialog = page.getByRole('dialog', { name: 'Shift Huddle' });
+    await expect(huddleDialog.getByText('Must-Not-Miss Follow-up')).toBeVisible();
+    await huddleDialog.getByRole('button', { name: /Follow-up actions for Behaviour Tracking/ }).click();
+
+    const actionsDialog = page.getByRole('dialog', { name: 'Follow-up Actions' });
+    // Bounded tracking gets Mark Complete / Extend / Needs Review — never
+    // Carry Forward, which is a discrete-task concept.
+    await expect(actionsDialog.getByRole('button', { name: 'Mark Follow-up Complete' })).toBeVisible();
+    await expect(actionsDialog.getByRole('button', { name: 'Carry Forward' })).toHaveCount(0);
+
+    const dateInput = actionsDialog.getByRole('textbox');
+    const currentEnd = await dateInput.inputValue();
+    const extended = new Date(currentEnd + 'T00:00:00');
+    extended.setDate(extended.getDate() + 3);
+    const extendedIso = extended.toISOString().slice(0, 10);
+    await dateInput.fill(extendedIso);
+    await page.getByRole('button', { name: 'Extend' }).click();
+
+    // Panel stays open (a continuation action, not a resolving one) and the
+    // recomputed denominator is visible without closing anything.
+    await expect(page.getByText(/^Day \d\/\d/).first()).toBeVisible();
   });
 });

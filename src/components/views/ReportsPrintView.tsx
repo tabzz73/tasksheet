@@ -27,8 +27,11 @@ import {
   formatGeneratedAt,
   getEntry,
   buildTaskSnapshot,
+  listEntries,
   PrintChangesSummary,
+  PrintHistoryEntry,
 } from '../../services/printHistory';
+import { PrintHistoryPanel } from './PrintHistoryPanel';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,16 +128,21 @@ interface PrintCenterProps {
   navigationResetToken?: number;
 }
 
-// One unified tab bar for the whole Print Center — the Report Library's
-// existing report categories, plus Quick Print / Print Packages /
-// Specialized Documents slotted in beside Bathing. Wound quick prints
-// (weekly overview + supply re-order) live inside the Wound Care tab
-// rather than a separate tab, alongside that category's preset reports.
-const PRINT_CENTER_CATEGORIES = [
-  'Residents', 'Wound Care', 'Care & Tasks', 'FYI', 'Facility / Setup',
-  'Bathing', 'Quick Print', 'Print Packages', 'Specialized Documents', 'Custom',
+// Top-level Print Center tabs, organized around user intent (spec: everyday
+// printing vs. a repeated operational document vs. a repeated bundle vs. a
+// manager one-off report) rather than a flat list of every report category.
+const TOP_LEVEL_TABS = ['Quick Print', 'Operational Reports', 'Print Packages', 'Custom Reports', 'History'] as const;
+type TopLevelTab = (typeof TOP_LEVEL_TABS)[number];
+
+// Sub-navigation shown only under "Operational Reports" — "Specialized" is
+// the 7 dedicated documents (Bathing Grid, Wound Schedule, etc.); the rest
+// are the Report Library's existing preset categories, unchanged. Wound
+// quick prints (weekly overview + supply re-order worksheet) live inside
+// the Wound Care sub-tab, alongside that category's preset reports.
+const OPERATIONAL_SUBCATEGORIES = [
+  'Specialized', 'Residents', 'Wound Care', 'Care & Tasks', 'FYI', 'Facility / Setup', 'Bathing',
 ] as const;
-type PrintCenterCategory = (typeof PRINT_CENTER_CATEGORIES)[number];
+type OperationalSubcategory = (typeof OPERATIONAL_SUBCATEGORIES)[number];
 
 // ─── Change badge ─────────────────────────────────────────────────────────────
 
@@ -164,7 +172,9 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   onPrintPackage,
   navigationResetToken = 0,
 }) => {
-  const [category, setCategory] = useState<PrintCenterCategory>('Quick Print');
+  const [topTab, setTopTab] = useState<TopLevelTab>('Quick Print');
+  const [opSubcategory, setOpSubcategory] = useState<OperationalSubcategory>('Specialized');
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(currentDate);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
@@ -184,7 +194,9 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
     setPackageConfigurationError(null);
     setWoundWeekAnchor(currentDate);
     setBathingWeekAnchor(currentDate);
-    setCategory('Quick Print');
+    setTopTab('Quick Print');
+    setOpSubcategory('Specialized');
+    setHistoryError(null);
   }, [navigationResetToken]);
 
   const state = db.getState();
@@ -239,6 +251,19 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
   // Print a single shift
   const handlePrintSingle = (sheet: GeneratedShiftSheet) => {
     onPrintShiftSheet(sheet);
+  };
+
+  // Re-run a print-history entry's configuration (shift + date) against
+  // CURRENT data — never a replay of the stored snapshot, which exists only
+  // for change-detection (see services/printHistory's ADR-001 note).
+  const handleRerunHistoryEntry = (entry: PrintHistoryEntry) => {
+    setHistoryError(null);
+    try {
+      const sheet = generateShiftSheet(entry.date, entry.shiftId);
+      onPrintShiftSheet(sheet);
+    } catch {
+      setHistoryError(`${entry.shiftName} on ${entry.date} could not be regenerated — that shift may have been removed or changed.`);
+    }
   };
 
   // Print selected shifts sequentially
@@ -392,6 +417,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           <button
             type="button"
             onClick={() => handleDateChange(stepDate(selectedDate, -1))}
+            aria-label="Previous day"
             className="p-1.5 hover:bg-panel-sunken rounded-control text-muted transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -404,6 +430,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
           <button
             type="button"
             onClick={() => handleDateChange(stepDate(selectedDate, 1))}
+            aria-label="Next day"
             className="p-1.5 hover:bg-panel-sunken rounded-control text-muted transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
@@ -421,16 +448,16 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
         </div>
       </div>
 
-      {/* ── PRINT CENTER TABS (one unified bar) ── */}
+      {/* ── PRINT CENTER TABS (top-level, by user intent) ── */}
       <div className="flex overflow-x-auto border-b border-hairline-strong bg-panel rounded-t-surface" aria-label="Print Center sections">
-        {PRINT_CENTER_CATEGORIES.map(item => (
+        {TOP_LEVEL_TABS.map(item => (
           <button
             key={item}
             type="button"
-            onClick={() => setCategory(item)}
-            aria-current={category === item ? 'true' : undefined}
+            onClick={() => setTopTab(item)}
+            aria-current={topTab === item ? 'true' : undefined}
             className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition-colors ${
-              category === item ? 'border-accent-strong text-accent-strong bg-accent-soft' : 'border-transparent text-muted hover:text-ink'
+              topTab === item ? 'border-accent-strong text-accent-strong bg-accent-soft' : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {item}
@@ -438,12 +465,31 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
         ))}
       </div>
 
-      {/* ── REPORT LIBRARY (the 7 report-preset categories) ── */}
-      {category !== 'Quick Print' && category !== 'Print Packages' && category !== 'Specialized Documents' && (
+      {/* ── OPERATIONAL REPORTS SUB-NAVIGATION ── */}
+      {topTab === 'Operational Reports' && (
+        <div className="flex flex-wrap gap-1.5 px-1" aria-label="Operational report categories">
+          {OPERATIONAL_SUBCATEGORIES.map(item => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setOpSubcategory(item)}
+              aria-current={opSubcategory === item ? 'true' : undefined}
+              className={`px-3 py-1.5 rounded-control text-[11px] font-bold transition-colors ${
+                opSubcategory === item ? 'bg-ink text-white' : 'bg-panel-sunken text-ink-soft hover:bg-panel border border-hairline-strong'
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── REPORT LIBRARY (Operational Reports' non-Specialized sub-tabs, and Custom Reports) ── */}
+      {((topTab === 'Operational Reports' && opSubcategory !== 'Specialized') || topTab === 'Custom Reports') && (
         <ReportCatalogPanel
           selectedDate={selectedDate}
           onPreview={onPrintSpecializedDoc}
-          category={category}
+          category={topTab === 'Custom Reports' ? 'Custom' : opSubcategory}
           woundWeekAnchor={woundWeekAnchor}
           onWoundWeekAnchorChange={setWoundWeekAnchor}
           woundSupplyScope={woundSupplyScope}
@@ -452,8 +498,16 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
         />
       )}
 
+      {/* ── HISTORY ── */}
+      {topTab === 'History' && (
+        <>
+          {historyError && <div role="alert" className="p-3 rounded-control bg-danger-soft border border-danger text-xs font-bold text-danger">{historyError}</div>}
+          <PrintHistoryPanel entries={listEntries()} onRerun={handleRerunHistoryEntry} />
+        </>
+      )}
+
       {/* ── QUICK PRINT ── */}
-      {category === 'Quick Print' && (
+      {topTab === 'Quick Print' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         {/* Section header */}
         <div className="px-5 py-3 border-b border-hairline flex items-center justify-between bg-panel-sunken">
@@ -638,7 +692,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       )}
 
       {/* ── PRINT PACKAGES ── */}
-      {category === 'Print Packages' && (
+      {topTab === 'Print Packages' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
           <Package className="w-4 h-4 text-muted" />
@@ -816,7 +870,7 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
       <ConfirmDialog request={deletePackageRequest} onClose={() => setDeletePackageRequest(null)} />
 
       {/* ── OTHER DOCUMENTS (SPECIALIZED SUITE) ── */}
-      {category === 'Specialized Documents' && (
+      {topTab === 'Operational Reports' && opSubcategory === 'Specialized' && (
       <div className="bg-panel rounded-surface border border-hairline-strong overflow-hidden">
         <div className="px-5 py-3 border-b border-hairline bg-panel-sunken flex items-center space-x-2">
           <FileText className="w-4 h-4 text-muted" />

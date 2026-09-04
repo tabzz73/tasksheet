@@ -16,7 +16,7 @@ export const ShiftConfigReferenceDocument: React.FC<ShiftConfigReferenceDocument
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="bg-slate-900 text-white font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+            <span className="bg-slate-100 text-slate-900 border border-slate-300 font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
               OPERATIONAL AUDIT REFERENCE
             </span>
           </div>
@@ -43,15 +43,15 @@ export const ShiftConfigReferenceDocument: React.FC<ShiftConfigReferenceDocument
       <div className="space-y-4">
         {shifts.map(({ shift, role, unitTasksCount, residentTasksCount, unitTasks }) => (
           <div key={shift.id} className="border border-slate-300 rounded overflow-hidden">
-            <div className="bg-slate-900 text-white p-3 flex items-center justify-between">
+            <div className="p-3 flex items-center justify-between" style={{ backgroundColor: 'var(--print-header-fill)', borderBottom: '1.5pt solid var(--print-header-rule)' }}>
               <div className="flex items-center space-x-2.5">
-                <span className="px-2.5 py-1 bg-white text-slate-900 rounded font-mono font-black text-xs">
+                <span className="px-2.5 py-1 bg-slate-900 text-white rounded font-mono font-black text-xs">
                   {shift.shortCode || '—'}
                 </span>
-                <span className="font-bold text-sm">{shift.name}</span>
-                <span className="text-slate-300 text-xs font-normal">({role.name})</span>
+                <span className="font-bold text-sm text-slate-900">{shift.name}</span>
+                <span className="text-slate-500 text-xs font-normal">({role.name})</span>
               </div>
-              <div className="font-mono text-xs font-bold text-teal-300">
+              <div className="font-mono text-xs font-bold text-slate-900">
                 {shift.startTime} – {shift.endTime}
               </div>
             </div>

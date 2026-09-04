@@ -1360,6 +1360,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
                           disabled={idx === 0}
                           className="p-1 rounded text-faint hover:text-ink-soft hover:bg-panel-sunken disabled:opacity-30"
                           title="Move Up"
+                          aria-label={`Move ${s.name} up`}
                         >
                           ▲
                         </button>
@@ -1369,6 +1370,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
                           disabled={idx === filteredShifts.length - 1}
                           className="p-1 rounded text-faint hover:text-ink-soft hover:bg-panel-sunken disabled:opacity-30"
                           title="Move Down"
+                          aria-label={`Move ${s.name} down`}
                         >
                           ▼
                         </button>

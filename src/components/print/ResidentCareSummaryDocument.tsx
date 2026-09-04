@@ -19,7 +19,7 @@ export const ResidentCareSummaryDocument: React.FC<ResidentCareSummaryDocumentPr
       <div className="border-b-2 border-slate-900 pb-3 flex items-start justify-between">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="bg-teal-800 text-white font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+            <span className="bg-teal-100 text-teal-800 border border-teal-300 font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
               CARE PLAN SUMMARY
             </span>
             <span className="px-2.5 py-0.5 bg-slate-900 text-white font-mono font-black rounded text-sm">

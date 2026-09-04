@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { Modal } from '../common/Modal';
+import { FormSection } from '../common/FormSection';
 import { db } from '../../db';
 import { SavedPrintPackage, SavedPrintPackageItem, SavedPrintPackageItemType } from '../../types';
 
@@ -101,6 +102,15 @@ export const SavePrintPackageModal: React.FC<SavePrintPackageModalProps> = ({
     onSaved(pkg);
   };
 
+  const footer = (
+    <>
+      <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+      <button type="button" onClick={handleSave} className="btn btn-accent">
+        {isEditing ? 'Save Changes' : 'Create Package'}
+      </button>
+    </>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -108,27 +118,22 @@ export const SavePrintPackageModal: React.FC<SavePrintPackageModalProps> = ({
       title={isEditing ? 'Edit Print Package' : 'New Print Package'}
       subtitle="Combine existing TaskSheet reports into one repeatable print job."
       maxWidth="lg"
+      footer={footer}
     >
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="package-name" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">
-            Package Name
-          </label>
+      <div className="space-y-5">
+        <FormSection title="Package Name">
           <input
             id="package-name"
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="e.g. Morning Charge Package"
+            aria-label="Package Name"
             className="w-full px-3 h-10 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
           />
-        </div>
+        </FormSection>
 
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-muted uppercase tracking-wider">Documents</span>
-          </div>
-
+        <FormSection title="Documents">
           {items.length === 0 ? (
             <div className="p-4 bg-panel-sunken border border-hairline-strong rounded-control text-center text-xs text-muted">
               No documents yet. Add one below.
@@ -202,9 +207,9 @@ export const SavePrintPackageModal: React.FC<SavePrintPackageModalProps> = ({
               ))}
             </ul>
           )}
-        </div>
+        </FormSection>
 
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2">
           <select
             aria-label="Document type to add"
             value={addType}
@@ -222,15 +227,6 @@ export const SavePrintPackageModal: React.FC<SavePrintPackageModalProps> = ({
         </div>
 
         {error && <p className="text-xs font-semibold text-danger">{error}</p>}
-
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-hairline">
-          <button type="button" onClick={onClose} className="btn btn-secondary">
-            Cancel
-          </button>
-          <button type="button" onClick={handleSave} className="btn btn-accent">
-            {isEditing ? 'Save Changes' : 'Create Package'}
-          </button>
-        </div>
       </div>
     </Modal>
   );

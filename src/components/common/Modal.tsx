@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 
 /** Strong ease-out — the built-in CSS easings read as weak/mushy for a
@@ -13,6 +13,10 @@ interface ModalProps {
   subtitle?: string;
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  /** Optional sticky action row, pinned below the scrolling content instead
+   *  of scrolling away with it. Rendered inside the same focus-trapped panel
+   *  as `children`, so its buttons are still reachable via Tab. */
+  footer?: React.ReactNode;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -24,8 +28,10 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   subtitle,
   children,
-  maxWidth = 'lg'
+  maxWidth = 'lg',
+  footer
 }) => {
+  const modalId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
@@ -141,18 +147,20 @@ export const Modal: React.FC<ModalProps> = ({
   // a modal isn't tied to a specific button, so it should arrive from the
   // middle of the viewport, not from an edge.
   const open = entered && !closing;
+  const titleId = `${modalId}-title`;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
       style={{ transition: `background-color ${TRANSITION_MS}ms ${EASE_OUT}`, backgroundColor: open ? 'color-mix(in srgb, var(--color-ink) 50%, transparent)' : 'transparent' }}
     >
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthClass} bg-panel rounded-surface shadow-elevated border border-hairline-strong overflow-hidden my-auto outline-none`}
+        className={`relative w-full ${maxWidthClass} bg-panel rounded-surface shadow-elevated border border-hairline-strong overflow-hidden my-auto outline-none flex flex-col max-h-[85vh]`}
         style={{
           transition: `opacity ${TRANSITION_MS}ms ${EASE_OUT}, transform ${TRANSITION_MS}ms ${EASE_OUT}`,
           opacity: open ? 1 : 0,
@@ -161,9 +169,9 @@ export const Modal: React.FC<ModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-3.5 min-h-14 border-b border-hairline bg-panel-sunken">
+        <div className="flex items-start justify-between px-5 py-3.5 min-h-14 border-b border-hairline bg-panel-sunken shrink-0">
           <div className="min-w-0">
-            <h3 className="font-heading text-[15px] font-bold text-ink leading-tight truncate">{title}</h3>
+            <h3 id={titleId} className="font-heading text-[15px] font-bold text-ink leading-tight truncate">{title}</h3>
             {subtitle && <p className="text-[11px] text-muted mt-0.5 truncate">{subtitle}</p>}
           </div>
           <button
@@ -177,9 +185,17 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-5 max-h-[80vh] overflow-y-auto">
+        <div className="p-5 overflow-y-auto min-h-0">
           {children}
         </div>
+
+        {/* Sticky footer — pinned below the scrolling content so the
+            primary action never scrolls out of reach on a long form. */}
+        {footer && (
+          <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-hairline bg-panel-sunken shrink-0">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -197,7 +197,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
             </div>
 
             {/* Accessibility: Large Print */}
-            <div className="pt-3 border-t border-hairline flex items-center justify-between">
+            <label className="pt-3 border-t border-hairline flex items-center justify-between cursor-pointer">
               <div>
                 <span className="text-xs font-bold text-ink">Large Print Mode</span>
                 <p className="text-[11px] text-muted">
@@ -210,7 +210,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                 onChange={e => setConfig({ ...config, largePrint: e.target.checked })}
                 className="w-4 h-4 text-accent rounded focus:ring-accent"
               />
-            </div>
+            </label>
           </div>
 
           {/* 2. Quick Vitals Columns (LPN only) */}
@@ -297,6 +297,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                     step="1"
                     value={config.quickVitalsRowsCount || 8}
                     onChange={e => setConfig({ ...config, quickVitalsRowsCount: Number(e.target.value) })}
+                    aria-label="Minimum blank vitals rows"
                     className="w-24 accent-[var(--color-accent)]"
                   />
                   <span className="font-mono text-xs font-bold text-ink w-6 text-right">
@@ -380,6 +381,7 @@ export const PrintProfileEditorTab: React.FC<PrintProfileEditorTabProps> = ({ on
                     step="1"
                     value={config.handoffLinesCount}
                     onChange={e => setConfig({ ...config, handoffLinesCount: Number(e.target.value) })}
+                    aria-label="Handoff writing lines"
                     className="w-24 accent-[var(--color-accent)]"
                   />
                   <span className="font-mono text-xs font-bold text-ink w-6 text-right">

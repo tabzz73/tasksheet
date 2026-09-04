@@ -665,7 +665,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
                 {/* Resident header */}
                 <div className="px-5 py-3 bg-panel-sunken border-b border-hairline-strong flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className="px-2 py-0.5 bg-ink text-white rounded font-mono font-bold text-xs tabular-nums">
+                    <span className="px-2 py-0.5 bg-ink text-white rounded font-mono font-black text-xs tabular-nums">
                       {res.roomNumber}
                     </span>
                     <button

@@ -5,10 +5,8 @@ import {
   UserPlus, 
   Info, 
   Bandage, 
-  Search, 
-  ChevronDown, 
-  ChevronUp, 
-  Clock, 
+  Search,
+  Clock,
   Calendar, 
   Check, 
   Sparkles,
@@ -21,6 +19,9 @@ import {
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { ResidentCombobox } from '../common/ResidentCombobox';
+import { FormSection } from '../common/FormSection';
+import { AdvancedOptionsToggle } from '../common/AdvancedOptionsToggle';
+import { RoutingSummary } from '../common/RoutingSummary';
 import { db } from '../../db';
 import { 
   Resident, 
@@ -141,13 +142,15 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskShowInHuddle, setTaskShowInHuddle] = useState(false);
   const [taskFollowUpDueDate, setTaskFollowUpDueDate] = useState('');
   const [taskFollowUpStatus, setTaskFollowUpStatus] = useState<ResidentTaskFollowUpStatus>('due');
+  const [taskMustNotMiss, setTaskMustNotMiss] = useState(false);
+  const [taskOccurrenceMode, setTaskOccurrenceMode] = useState(false);
+  const [taskRequiredOccurrences, setTaskRequiredOccurrences] = useState('');
   const [coverageType, setCoverageType] = useState('FUNDED');
   const [coverageStartDate, setCoverageStartDate] = useState('');
   const [coverageEndDate, setCoverageEndDate] = useState('');
   const [coverageAdditional, setCoverageAdditional] = useState(false);
   const [coverageNote, setCoverageNote] = useState('');
   const [coverageChangeConfirmed, setCoverageChangeConfirmed] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [allowPausedResidentCare, setAllowPausedResidentCare] = useState(false);
 
   // Form State: Unit Task
@@ -247,6 +250,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskShowInHuddle(initialResidentTask.showInHuddle === true);
         setTaskFollowUpDueDate(initialResidentTask.followUpDueDate || '');
         setTaskFollowUpStatus(initialResidentTask.followUpStatus || 'due');
+        setTaskMustNotMiss(initialResidentTask.mustNotMiss === true);
+        setTaskOccurrenceMode(Boolean(initialResidentTask.trackingConfig?.requiredOccurrences));
+        setTaskRequiredOccurrences(initialResidentTask.trackingConfig?.requiredOccurrences ? String(initialResidentTask.trackingConfig.requiredOccurrences) : '');
         const coverage = normalizeCoverage(initialResidentTask.serviceCoverage);
         setCoverageType(coverage.type); setCoverageStartDate(coverage.startDate || ''); setCoverageEndDate(coverage.endDate || ''); setCoverageAdditional(Boolean(coverage.isAdditionalService)); setCoverageNote(coverage.note || '');
       } else if (initialUnitTask) {
@@ -323,6 +329,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskShowInHuddle(false);
         setTaskFollowUpDueDate('');
         setTaskFollowUpStatus('due');
+        setTaskMustNotMiss(false);
+        setTaskOccurrenceMode(false);
+        setTaskRequiredOccurrences('');
         setCoverageType('FUNDED'); setCoverageStartDate(''); setCoverageEndDate(''); setCoverageAdditional(false); setCoverageNote('');
         setUnitTitle('');
         setUnitInstructions('');
@@ -359,6 +368,21 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const selectedResident = residents.find(resident => resident.id === residentId);
   const pausedResidentNeedsAcknowledgement = Boolean(
     selectedResident && isResidentCarePaused(selectedResident.status) && !allowPausedResidentCare
+  );
+  const pausedResidentCareWarning = selectedResident && isResidentCarePaused(selectedResident.status) && (
+    <div className="rounded-surface border border-warning bg-warning-soft p-3 text-warning" role="alert">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+        <div>
+          <p className="text-xs font-black">Care generation is paused: {getResidentStatusLabel(selectedResident.status)}</p>
+          <p className="mt-1 text-[11px] leading-relaxed">This task will be stored but cannot appear on a TaskSheet until the resident returns to Active.</p>
+          <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] font-bold">
+            <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-warning" />
+            <span>I understand and want to configure future care while this resident is paused.</span>
+          </label>
+        </div>
+      </div>
+    </div>
   );
 
   const getShiftTimeError = (time: string): string | null => {
@@ -456,6 +480,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     const serviceCoverage: TaskServiceCoverage = createCoverageSnapshot(coverageDefinition, { startDate: coverageStartDate, endDate: coverageEndDate, isAdditionalService: coverageAdditional, note: coverageNote });
     if (serviceCoverage.startDate && serviceCoverage.endDate && serviceCoverage.endDate < serviceCoverage.startDate) { setMutationConflict({ status: 'BLOCKED', code: 'INVALID_DATE_RANGE', title: 'Invalid Coverage Period', message: 'Coverage end date must be on or after the start date.' }); return; }
     if (mode === 'edit' && initialResidentTask && normalizeCoverage(initialResidentTask.serviceCoverage).type !== serviceCoverage.type && !coverageChangeConfirmed) { setMutationConflict({ status: 'WARNING', code: 'COVERAGE_CHANGE_IMPACT', title: 'Change Service Coverage?', message: `You are changing this task from ${normalizeCoverage(initialResidentTask.serviceCoverage).labelSnapshot} to ${serviceCoverage.labelSnapshot}. This changes how it appears on TaskSheets, bathing grids, resident summaries, filters, and reports.`, recommendedActions: [{ id: 'confirm_coverage', label: 'Change Coverage', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] }); return; }
+    // Occurrence progress is never reset by a re-save/edit — only the target
+    // count and tracking kind/prompt are editable here.
+    const resolvedTrackingConfig = taskTrackingConfig && (
+      taskOccurrenceMode && taskRequiredOccurrences
+        ? { ...taskTrackingConfig, requiredOccurrences: Number(taskRequiredOccurrences), completedOccurrences: initialResidentTask?.trackingConfig?.completedOccurrences }
+        : { ...taskTrackingConfig, requiredOccurrences: undefined, completedOccurrences: undefined }
+    );
     try {
     if (mode === 'edit' && initialResidentTask) {
       db.updateResidentTask(initialResidentTask.id, {
@@ -471,13 +502,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         frequency: taskFrequency,
         recurrenceRule: taskRecurrenceRule,
         attentionConfig: taskAttentionConfig,
-        trackingConfig: taskTrackingConfig,
+        trackingConfig: resolvedTrackingConfig,
         instructions: taskInstructions.trim() || undefined,
         priority: taskPriority,
         showOnDashboard: taskShowOnDashboard,
         showInHuddle: taskShowInHuddle,
         followUpDueDate: taskFollowUpDueDate || undefined,
-        followUpStatus: taskFollowUpStatus
+        followUpStatus: taskFollowUpStatus,
+        mustNotMiss: taskMustNotMiss
         ,serviceCoverage
       }, { expectedRevision: state.revision });
     } else {
@@ -504,13 +536,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           frequency: taskFrequency,
           recurrenceRule: taskRecurrenceRule,
           attentionConfig: taskAttentionConfig,
-          trackingConfig: taskTrackingConfig,
+          trackingConfig: resolvedTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority,
           showOnDashboard: taskShowOnDashboard,
           showInHuddle: taskShowInHuddle,
           followUpDueDate: taskFollowUpDueDate || undefined,
-          followUpStatus: taskFollowUpStatus
+          followUpStatus: taskFollowUpStatus,
+        mustNotMiss: taskMustNotMiss
           ,serviceCoverage
         }, { expectedRevision: state.revision });
       } else {
@@ -527,13 +560,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           frequency: taskFrequency,
           recurrenceRule: taskRecurrenceRule,
           attentionConfig: taskAttentionConfig,
-          trackingConfig: taskTrackingConfig,
+          trackingConfig: resolvedTrackingConfig,
           instructions: taskInstructions.trim() || undefined,
           priority: taskPriority,
           showOnDashboard: taskShowOnDashboard,
           showInHuddle: taskShowInHuddle,
           followUpDueDate: taskFollowUpDueDate || undefined,
-          followUpStatus: taskFollowUpStatus
+          followUpStatus: taskFollowUpStatus,
+        mustNotMiss: taskMustNotMiss
           ,serviceCoverage
         }, { expectedRevision: state.revision });
       }
@@ -716,6 +750,35 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     ? `Add ${effectiveType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`
     : "What do you want to add?";
 
+  const footer = selectedType ? (
+    <>
+      <button type="button" onClick={requestClose} className="btn btn-secondary">Cancel</button>
+      {selectedType === 'care_task' && (
+        <button type="submit" form="care-task-form" disabled={!!careTaskTimeError || pausedResidentNeedsAcknowledgement} className="btn btn-accent px-6">
+          {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Task'}
+        </button>
+      )}
+      {selectedType === 'unit_task' && (
+        <button type="submit" form="unit-task-form" disabled={!!unitTaskTimeError} className="btn btn-accent px-6">
+          {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Unit Task'}
+        </button>
+      )}
+      {selectedType === 'resident' && (
+        <button type="submit" form="resident-form" className="btn btn-accent px-6">Add Resident</button>
+      )}
+      {selectedType === 'fyi' && (
+        <button type="submit" form="fyi-form" className="btn btn-accent px-6">
+          {mode === 'edit' ? 'Save Changes' : 'Add FYI'}
+        </button>
+      )}
+      {selectedType === 'wound' && (
+        <button type="submit" form="wound-form" className="btn btn-accent px-6">
+          {mode === 'edit' ? 'Save Changes' : 'Add Wound Protocol'}
+        </button>
+      )}
+    </>
+  ) : undefined;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -727,6 +790,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           : "Select what you need to record for the team"
       }
       maxWidth="2xl"
+      footer={footer}
     >
       <div onChangeCapture={() => setHasUnsavedChanges(true)}>
       {showUnsavedWarning && <div className="mb-4"><ConflictNotice result={{ status: 'WARNING', title: 'Unsaved Changes', message: 'You have changes that have not been saved. Keep editing to preserve your entries, or discard them and close this form.', recommendedActions: [{ id: 'keep_editing', label: 'Keep Editing', kind: 'primary' }, { id: 'discard', label: 'Discard Changes', kind: 'cancel' }] }} onAction={action => { if (action === 'discard') onClose(); else setShowUnsavedWarning(false); }} /></div>}
@@ -798,7 +862,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
       {/* 2. CARE TASK FORM (Shared for Add, Edit, Duplicate) */}
       {selectedType === 'care_task' && (
-        <form onSubmit={handleSaveCareTask} className="space-y-4">
+        <form id="care-task-form" onSubmit={handleSaveCareTask} className="space-y-5">
           {!initialType && mode === 'add' && !(contextResidentId && contextShiftId) && (
             <button
               type="button"
@@ -823,7 +887,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
           {/* Resident Picker (if not in context or in edit/duplicate mode where change is supported) */}
           {(!contextResidentId || mode === 'duplicate') && (
-            <div>
+            <FormSection title="Who">
               <label htmlFor="care-task-resident" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Resident <span className="text-danger">*</span>
               </label>
@@ -835,25 +899,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 placeholder="Search resident..."
                 required
               />
-            </div>
+
+              {pausedResidentCareWarning}
+            </FormSection>
           )}
 
-          {selectedResident && isResidentCarePaused(selectedResident.status) && (
-            <div className="rounded-surface border border-warning bg-warning-soft p-3 text-warning" role="alert">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-                <div>
-                  <p className="text-xs font-black">Care generation is paused: {getResidentStatusLabel(selectedResident.status)}</p>
-                  <p className="mt-1 text-[11px] leading-relaxed">This task will be stored but cannot appear on a TaskSheet until the resident returns to Active.</p>
-                  <label className="mt-2 flex cursor-pointer items-start gap-2 text-[11px] font-bold">
-                    <input type="checkbox" checked={allowPausedResidentCare} onChange={event => setAllowPausedResidentCare(event.target.checked)} className="mt-0.5 h-3.5 w-3.5 rounded text-warning" />
-                    <span>I understand and want to configure future care while this resident is paused.</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Context-locked resident (no picker shown) still needs the
+              paused-care warning surfaced. */}
+          {!(!contextResidentId || mode === 'duplicate') && pausedResidentCareWarning}
 
+          <FormSection title="What">
           {/* Shift Picker */}
           {(!contextShiftId || mode === 'duplicate' || mode === 'edit') && (
             <div>
@@ -1009,7 +1064,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </div>
             )}
           </div>
+          </FormSection>
 
+          <FormSection title="When">
           {/* Time Field */}
           <div>
             <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label>
@@ -1073,32 +1130,116 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               }}
             />
           </div>
+          </FormSection>
 
-          <div className="rounded-surface border border-hairline-strong bg-panel-sunken p-3.5 space-y-3">
-            <div>
-              <label htmlFor="resident-task-service-coverage" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Service Coverage</label>
-              <select id="resident-task-service-coverage" value={coverageType} onChange={event => { const code = event.target.value; setCoverageType(code); if (code === 'FUNDED') setCoverageAdditional(false); }} className="w-full rounded-control border border-hairline-strong bg-panel px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-accent">
-                {getCoverageDefinitions(state.settings.serviceCoverageDefinitions).map(item => <option key={item.id} value={item.code}>{item.icon ? `${item.icon} ` : ''}{item.name}</option>)}
-              </select>
-              <p className="mt-1 text-[11px] text-muted">Identifies why the service is provided. TaskSheet does not store prices, invoices, or payment information.</p>
-            </div>
-            {coverageType !== 'FUNDED' && <>
-              <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft"><input type="checkbox" checked={coverageAdditional} onChange={event => setCoverageAdditional(event.target.checked)} className="rounded border-hairline-strong text-accent-strong" />Additional to the resident's funded/authorized service</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="text-xs font-semibold text-ink-soft">Effective Start Date<input type="date" value={coverageStartDate} onChange={event => setCoverageStartDate(event.target.value)} className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm" /></label>
-                <label className="text-xs font-semibold text-ink-soft">Optional End Date<input type="date" value={coverageEndDate} min={coverageStartDate || undefined} onChange={event => setCoverageEndDate(event.target.value)} className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm" /></label>
-              </div>
-              <label className="block text-xs font-semibold text-ink-soft">Coverage Note (Optional)<input value={coverageNote} onChange={event => setCoverageNote(event.target.value)} placeholder="Authorization/reference note; no billing details" className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm font-normal" /></label>
-              {coverageType === 'TEMPORARY_EXCEPTION' && !coverageEndDate && <p className="flex items-center gap-1.5 text-xs font-semibold text-warning"><AlertTriangle className="h-3.5 w-3.5" />Temporary exceptions normally need an end date so they do not continue indefinitely.</p>}
-            </>}
-          </div>
-
-          {/* Instructions */}
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Instructions (Optional)
+          <FormSection title="Follow-up">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-ink">
+              <input
+                type="checkbox"
+                checked={taskMustNotMiss}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setTaskMustNotMiss(checked);
+                  if (checked) {
+                    setTaskShowOnDashboard(true);
+                    setTaskShowInHuddle(true);
+                    setTaskPriority('high');
+                  }
+                }}
+                className="h-3.5 w-3.5 rounded text-accent focus:ring-accent"
+              />
+              Must not be missed
             </label>
+            <p className="text-[11px] text-muted">Keeps this task visible across shifts until resolved.</p>
+
+            {taskMustNotMiss && !taskTrackingConfig && (
+              <label className="block">
+                <span className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">Due Date (optional)</span>
+                <input
+                  type="date"
+                  value={taskFollowUpDueDate}
+                  onChange={(e) => setTaskFollowUpDueDate(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                />
+                <span className="block text-[11px] text-muted mt-0.5">Used to calculate overdue age. Never changes once set — carrying the task forward keeps the original due date.</span>
+              </label>
+            )}
+
+            {taskTrackingConfig && (
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider block">Tracking Pattern</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setTaskOccurrenceMode(false)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-medium ${!taskOccurrenceMode ? 'bg-ink text-white font-bold' : 'bg-panel border border-hairline-strong text-ink-soft'}`}
+                  >
+                    Date range
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTaskOccurrenceMode(true)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-medium ${taskOccurrenceMode ? 'bg-ink text-white font-bold' : 'bg-panel border border-hairline-strong text-ink-soft'}`}
+                  >
+                    Required occurrences
+                  </button>
+                </div>
+                {taskOccurrenceMode ? (
+                  <label className="block">
+                    <span className="text-[11px] text-ink-soft">Required occurrences</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={taskRequiredOccurrences}
+                      onChange={(e) => setTaskRequiredOccurrences(e.target.value)}
+                      className="mt-0.5 w-full px-2.5 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs"
+                    />
+                    <span className="block text-[11px] text-muted mt-0.5">Progress reads as "1/3", "2/3" — an operational reminder count, not a clinical record. Use the recurrence dates above only to schedule the task itself, not to bound this progress.</span>
+                  </label>
+                ) : (
+                  <span className="block text-[11px] text-muted">Progress reads from the recurrence Start/End dates above ("Day 4/5").</span>
+                )}
+              </div>
+            )}
+
+            {mode === 'edit' && initialResidentTask && (
+              <p className="text-[11px] text-ink-soft">
+                <span className="font-semibold">Follow-up status:</span>{' '}
+                {taskFollowUpStatus.replace(/_/g, ' ')}
+                {(initialResidentTask.followUpCarryForwardCount || 0) > 0 ? ` · Carried forward ${initialResidentTask.followUpCarryForwardCount}×` : ''}
+                <span className="block text-[11px] text-muted mt-0.5">Change this from the Resident Follow-up card on the Dashboard, or Shift Huddle.</span>
+              </p>
+            )}
+
+            <p className="text-[11px] text-muted">
+              {taskMustNotMiss ? 'Shown on Dashboard and Huddle.' : (taskShowOnDashboard || taskShowInHuddle) ? 'Custom visibility set below.' : 'Not shown on Dashboard or Huddle.'}
+            </p>
+            <AdvancedOptionsToggle label="Customize visibility">
+              <label className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
+                <input
+                  type="checkbox"
+                  checked={taskShowOnDashboard}
+                  onChange={(e) => setTaskShowOnDashboard(e.target.checked)}
+                  className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
+                />
+                <span>Show on Dashboard (Resident Follow-up)</span>
+              </label>
+              <label className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
+                <input
+                  type="checkbox"
+                  checked={taskShowInHuddle}
+                  onChange={(e) => setTaskShowInHuddle(e.target.checked)}
+                  className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
+                />
+                <span>Show in Huddle</span>
+              </label>
+            </AdvancedOptionsToggle>
+          </FormSection>
+
+          <FormSection title="Instructions">
+            <label htmlFor="care-task-instructions" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Instructions (Optional)</label>
             <textarea
+              id="care-task-instructions"
               rows={2}
               value={taskInstructions}
               onChange={(e) => setTaskInstructions(e.target.value)}
@@ -1108,7 +1249,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             {taskTemplateSlug && (
               <p className="mt-1 text-[11px] text-muted">Pre-filled from the task catalog. Edit these instructions for this resident as needed.</p>
             )}
-          </div>
+          </FormSection>
 
           {taskTrackingConfig && (
             <div className="flex items-center justify-between gap-3 rounded-surface border border-hairline-strong bg-accent-soft px-3 py-2 text-accent-strong">
@@ -1231,165 +1372,95 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             );
           })()}
 
-          {/* Progressive Disclosure: Advanced Options */}
-          <div className="border-t border-hairline-strong pt-2">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center text-xs font-medium text-muted hover:text-ink"
-            >
-              <span>{showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}</span>
-              {showAdvanced ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
-            </button>
-
-            {showAdvanced && (
-              <div className="mt-3 p-3.5 bg-panel-sunken border border-hairline-strong rounded-control space-y-4 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-ink-soft">Priority:</span>
-                  <div className="flex items-center space-x-2">
-                    {(['normal', 'high', 'urgent'] as TaskPriority[]).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setTaskPriority(p)}
-                        className={`px-2.5 py-1 rounded capitalize font-medium ${
-                          taskPriority === p
-                            ? 'bg-ink text-white font-bold'
-                            : 'bg-panel border border-hairline-strong text-ink-soft'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Dashboard / Huddle Visibility — opt-in, for exception follow-up like
-                    RAI/weight/behaviour tracking, not routine tasks. */}
-                <div className="pt-2 border-t border-hairline-strong space-y-1.5">
-                  <span className="font-bold text-ink-soft block">Dashboard &amp; Huddle Visibility:</span>
-                  <label className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
-                    <input
-                      type="checkbox"
-                      checked={taskShowOnDashboard}
-                      onChange={(e) => setTaskShowOnDashboard(e.target.checked)}
-                      className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
-                    />
-                    <span>Show on Dashboard (Resident Follow-up)</span>
-                  </label>
-                  <label className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
-                    <input
-                      type="checkbox"
-                      checked={taskShowInHuddle}
-                      onChange={(e) => setTaskShowInHuddle(e.target.checked)}
-                      className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
-                    />
-                    <span>Show in Huddle</span>
-                  </label>
-                </div>
-
-                {/* Follow-up continuity — only meaningful once a task is
-                    Dashboard-visible, and only for discrete due-date tasks;
-                    bounded tracking progress reads the recurrence dates
-                    above instead. */}
-                {taskShowOnDashboard && !taskTrackingConfig && (
-                  <div className="pt-2 border-t border-hairline-strong space-y-1.5">
-                    <span className="font-bold text-ink-soft block">Operational Follow-up:</span>
-                    <label className="block">
-                      <span className="text-[11px] text-ink-soft">Due Date (optional)</span>
-                      <input
-                        type="date"
-                        value={taskFollowUpDueDate}
-                        onChange={(e) => setTaskFollowUpDueDate(e.target.value)}
-                        className="mt-0.5 w-full px-2.5 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs"
-                      />
-                      <span className="block text-[10px] text-faint mt-0.5">Used to calculate overdue age. Never changes once set — carrying the task forward keeps the original due date.</span>
-                    </label>
-                    {mode === 'edit' && initialResidentTask && (
-                      <p className="text-[11px] text-ink-soft">
-                        <span className="font-semibold">Follow-up status:</span>{' '}
-                        {taskFollowUpStatus.replace(/_/g, ' ')}
-                        {(initialResidentTask.followUpCarryForwardCount || 0) > 0 ? ` · Carried forward ${initialResidentTask.followUpCarryForwardCount}×` : ''}
-                        <span className="block text-[10px] text-faint mt-0.5">Change this from the Resident Follow-up card on the Dashboard.</span>
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Manual Attention Indicators Selector */}
-                <div className="pt-2 border-t border-hairline-strong space-y-2">
-                  <span className="font-bold text-ink-soft block">Manual Attention & Safety Flags:</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {([
-                      'HIGH_ALERT', 
-                      'TIME_CRITICAL', 
-                      'MEAL_LINKED', 
-                      'TWO_PERSON', 
-                      'FOLLOW_UP', 
-                      'OBSERVE', 
-                      'PRECAUTION', 
-                      'EQUIPMENT', 
-                      'DOC_REF'
-                    ] as TaskAttentionIndicator[]).map(ind => {
-                      const d = getIndicatorBadgeDetails(ind, taskAttentionConfig?.mealRelation);
-                      const isChecked = taskAttentionConfig?.indicators?.includes(ind) || false;
-
-                      return (
-                        <label key={ind} className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              const current = taskAttentionConfig?.indicators || [];
-                              const next = isChecked ? current.filter(x => x !== ind) : [...current, ind];
-                              setTaskAttentionConfig({
-                                ...taskAttentionConfig,
-                                indicators: next.length > 0 ? next : undefined,
-                                metadata: isChecked 
-                                  ? taskAttentionConfig?.metadata?.filter(m => m.indicator !== ind)
-                                  : [...(taskAttentionConfig?.metadata || []), { indicator: ind, reason: 'Manually assigned by supervisor', source: 'user_override' }]
-                              });
-                            }}
-                            className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
-                          />
-                          <span>[{d.shortAbbreviation}] {d.label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
+          <AdvancedOptionsToggle>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-ink-soft">Priority:</span>
+              <div className="flex items-center space-x-2">
+                {(['normal', 'high', 'urgent'] as TaskPriority[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setTaskPriority(p)}
+                    className={`px-2.5 py-1 rounded capitalize font-medium ${
+                      taskPriority === p
+                        ? 'bg-ink text-white font-bold'
+                        : 'bg-panel border border-hairline-strong text-ink-soft'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
 
-          <p className="text-[11px] text-muted">
-            <span className="font-bold text-ink-soft">Appears in: </span>
-            {describeTaskRouting(state, { shiftId: shiftId || undefined, roleId: roleId || undefined, showOnDashboard: taskShowOnDashboard, showInHuddle: taskShowInHuddle }).join(' · ')}
-          </p>
+            <div className="pt-2 border-t border-hairline-strong space-y-3">
+              <label htmlFor="resident-task-service-coverage" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Service Coverage</label>
+              <select id="resident-task-service-coverage" value={coverageType} onChange={event => { const code = event.target.value; setCoverageType(code); if (code === 'FUNDED') setCoverageAdditional(false); }} className="w-full rounded-control border border-hairline-strong bg-panel px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-accent">
+                {getCoverageDefinitions(state.settings.serviceCoverageDefinitions).map(item => <option key={item.id} value={item.code}>{item.icon ? `${item.icon} ` : ''}{item.name}</option>)}
+              </select>
+              <p className="mt-1 text-[11px] text-muted">Identifies why the service is provided. TaskSheet does not store prices, invoices, or payment information.</p>
+              {coverageType !== 'FUNDED' && <>
+                <label className="flex items-center gap-2 text-xs font-semibold text-ink-soft"><input type="checkbox" checked={coverageAdditional} onChange={event => setCoverageAdditional(event.target.checked)} className="rounded border-hairline-strong text-accent-strong" />Additional to the resident's funded/authorized service</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="text-xs font-semibold text-ink-soft">Effective Start Date<input type="date" value={coverageStartDate} onChange={event => setCoverageStartDate(event.target.value)} className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm" /></label>
+                  <label className="text-xs font-semibold text-ink-soft">Optional End Date<input type="date" value={coverageEndDate} min={coverageStartDate || undefined} onChange={event => setCoverageEndDate(event.target.value)} className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm" /></label>
+                </div>
+                <label className="block text-xs font-semibold text-ink-soft">Coverage Note (Optional)<input value={coverageNote} onChange={event => setCoverageNote(event.target.value)} placeholder="Authorization/reference note; no billing details" className="mt-1 w-full rounded-control border border-hairline-strong bg-panel px-3 py-2 text-sm font-normal" /></label>
+                {coverageType === 'TEMPORARY_EXCEPTION' && !coverageEndDate && <p className="flex items-center gap-1.5 text-xs font-semibold text-warning"><AlertTriangle className="h-3.5 w-3.5" />Temporary exceptions normally need an end date so they do not continue indefinitely.</p>}
+              </>}
+            </div>
 
-          {/* Submit Button */}
-          <div className="pt-2 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={requestClose}
-              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!!careTaskTimeError || pausedResidentNeedsAcknowledgement}
-              className="btn btn-accent px-6"
-            >
-              {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Task'}
-            </button>
-          </div>
+            {/* Manual Attention Indicators Selector */}
+            <div className="pt-2 border-t border-hairline-strong space-y-2">
+              <span className="font-bold text-ink-soft block">Manual Attention & Safety Flags:</span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {([
+                  'HIGH_ALERT',
+                  'TIME_CRITICAL',
+                  'MEAL_LINKED',
+                  'TWO_PERSON',
+                  'FOLLOW_UP',
+                  'OBSERVE',
+                  'PRECAUTION',
+                  'EQUIPMENT',
+                  'DOC_REF'
+                ] as TaskAttentionIndicator[]).map(ind => {
+                  const d = getIndicatorBadgeDetails(ind, taskAttentionConfig?.mealRelation);
+                  const isChecked = taskAttentionConfig?.indicators?.includes(ind) || false;
+
+                  return (
+                    <label key={ind} className="flex items-center space-x-1.5 cursor-pointer text-[11px] text-ink">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          const current = taskAttentionConfig?.indicators || [];
+                          const next = isChecked ? current.filter(x => x !== ind) : [...current, ind];
+                          setTaskAttentionConfig({
+                            ...taskAttentionConfig,
+                            indicators: next.length > 0 ? next : undefined,
+                            metadata: isChecked
+                              ? taskAttentionConfig?.metadata?.filter(m => m.indicator !== ind)
+                              : [...(taskAttentionConfig?.metadata || []), { indicator: ind, reason: 'Manually assigned by supervisor', source: 'user_override' }]
+                          });
+                        }}
+                        className="rounded text-accent focus:ring-accent w-3.5 h-3.5"
+                      />
+                      <span>[{d.shortAbbreviation}] {d.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </AdvancedOptionsToggle>
+
+          <RoutingSummary labels={describeTaskRouting(state, { shiftId: shiftId || undefined, roleId: roleId || undefined, showOnDashboard: taskShowOnDashboard, showInHuddle: taskShowInHuddle })} />
         </form>
       )}
 
       {/* 3. UNIT TASK FORM (Shared for Add, Edit, Duplicate) */}
       {selectedType === 'unit_task' && (
-        <form onSubmit={handleSaveUnitTask} className="space-y-4">
+        <form id="unit-task-form" onSubmit={handleSaveUnitTask} className="space-y-4">
           {!initialType && mode === 'add' && (
             <button
               type="button"
@@ -1400,99 +1471,93 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             </button>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Shift <span className="text-danger">*</span>
-            </label>
-            <select
-              value={shiftId}
-              onChange={(e) => setShiftId(e.target.value)}
-              required
-              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-            >
-              {shifts.map(s => {
-                const r = roles.find(role => role.id === s.roleId);
-                return (
-                  <option key={s.id} value={s.id}>
-                    {s.shortCode ? `${s.shortCode} — ` : ''}{s.name} ({s.startTime}–{s.endTime} · {r?.name})
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              What needs to be done? <span className="text-danger">*</span>
-            </label>
-            <input
-              type="text"
-              value={unitTitle}
-              onChange={(e) => setUnitTitle(e.target.value)}
-              placeholder="e.g. Medication Fridge Temperature, Controlled Count..."
-              required
-              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-            />
-
-            {mode === 'add' && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className="text-[11px] text-faint self-center mr-1">Templates:</span>
-                {unitTemplates.map(u => (
-                  <button
-                    key={u.slug}
-                    type="button"
-                    onClick={() => selectUnitTemplate(u)}
-                    className="text-[11px] px-2.5 py-1 bg-panel-sunken hover:bg-accent-soft text-ink-soft hover:text-accent-strong rounded-md transition-colors"
-                  >
-                    + {u.title}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <FormSection title="What">
             <div>
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                When in shift?
-              </label>
-              <select
-                value={unitShiftPhase}
-                onChange={(e) => setUnitShiftPhase(e.target.value as any)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-              >
-                <option value="start">Start of Shift (Routines & Safety)</option>
-                <option value="during">During Shift (Routines & Restock)</option>
-                <option value="end">End of Shift (Handoff & Count)</option>
-              </select>
-            </div>
-
-            <div><label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label><select value={unitTimingType} onChange={event => setUnitTimingType(event.target.value as TaskTimingType)} className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"><option value="fixed">Fixed Time</option><option value="start_of_shift">Shift Start</option><option value="end_of_shift">Shift End</option><option value="period">During Shift</option></select></div>
-
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Time (Military 24h)
+                What needs to be done? <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
-                disabled={unitTimingType !== 'fixed'}
-                value={unitTimingType === 'start_of_shift' ? currentShiftObj?.startTime || '' : unitTimingType === 'end_of_shift' ? currentShiftObj?.endTime || '' : unitTimingType === 'period' ? '' : unitTime}
-                onChange={(e) => setUnitTime(e.target.value)}
-                placeholder="0715"
-                aria-invalid={!!unitTaskTimeError}
-                className={`w-full px-3.5 py-2 bg-panel border rounded-control text-sm focus:ring-2 focus:ring-accent font-mono tabular-nums ${unitTaskTimeError ? 'border-danger' : 'border-hairline-strong'}`}
+                value={unitTitle}
+                onChange={(e) => setUnitTitle(e.target.value)}
+                placeholder="e.g. Medication Fridge Temperature, Controlled Count..."
+                required
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+              />
+
+              {mode === 'add' && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="text-[11px] text-faint self-center mr-1">Templates:</span>
+                  {unitTemplates.map(u => (
+                    <button
+                      key={u.slug}
+                      type="button"
+                      onClick={() => selectUnitTemplate(u)}
+                      className="text-[11px] px-2.5 py-1 bg-panel-sunken hover:bg-accent-soft text-ink-soft hover:text-accent-strong rounded-md transition-colors"
+                    >
+                      + {u.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Instructions (Optional)
+              </label>
+              <textarea
+                rows={2}
+                value={unitInstructions}
+                onChange={(e) => setUnitInstructions(e.target.value)}
+                placeholder="e.g. Check emergency seals intact; test backup suction..."
+                className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               />
             </div>
-          </div>
+          </FormSection>
 
-          {unitTaskTimeError && (
-            <p className="flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{unitTaskTimeError}</span>
-            </p>
-          )}
+          <FormSection title="When">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  When in shift?
+                </label>
+                <select
+                  value={unitShiftPhase}
+                  onChange={(e) => setUnitShiftPhase(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+                >
+                  <option value="start">Start of Shift (Routines & Safety)</option>
+                  <option value="during">During Shift (Routines & Restock)</option>
+                  <option value="end">End of Shift (Handoff & Count)</option>
+                </select>
+              </div>
 
-          <div className="pt-2 border-t border-hairline">
+              <div><label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label><select value={unitTimingType} onChange={event => setUnitTimingType(event.target.value as TaskTimingType)} className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"><option value="fixed">Fixed Time</option><option value="start_of_shift">Shift Start</option><option value="end_of_shift">Shift End</option><option value="period">During Shift</option></select></div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Time (Military 24h)
+                </label>
+                <input
+                  type="text"
+                  disabled={unitTimingType !== 'fixed'}
+                  value={unitTimingType === 'start_of_shift' ? currentShiftObj?.startTime || '' : unitTimingType === 'end_of_shift' ? currentShiftObj?.endTime || '' : unitTimingType === 'period' ? '' : unitTime}
+                  onChange={(e) => setUnitTime(e.target.value)}
+                  placeholder="0715"
+                  aria-invalid={!!unitTaskTimeError}
+                  className={`w-full px-3.5 py-2 bg-panel border rounded-control text-sm focus:ring-2 focus:ring-accent font-mono tabular-nums ${unitTaskTimeError ? 'border-danger' : 'border-hairline-strong'}`}
+                />
+              </div>
+            </div>
+
+            {unitTaskTimeError && (
+              <p className="flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{unitTaskTimeError}</span>
+              </p>
+            )}
+
             <RecurrenceSelector
               value={unitRecurrenceRule}
               frequency={unitFrequency}
@@ -1502,49 +1567,38 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 setUnitFrequency(newFrequency);
               }}
             />
-          </div>
+          </FormSection>
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Instructions (Optional)
-            </label>
-            <textarea
-              rows={2}
-              value={unitInstructions}
-              onChange={(e) => setUnitInstructions(e.target.value)}
-              placeholder="e.g. Check emergency seals intact; test backup suction..."
-              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-            />
-          </div>
+          <FormSection title="Assignment">
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Shift <span className="text-danger">*</span>
+              </label>
+              <select
+                value={shiftId}
+                onChange={(e) => setShiftId(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+              >
+                {shifts.map(s => {
+                  const r = roles.find(role => role.id === s.roleId);
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {s.shortCode ? `${s.shortCode} — ` : ''}{s.name} ({s.startTime}–{s.endTime} · {r?.name})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </FormSection>
 
-          <p className="text-[11px] text-muted">
-            <span className="font-bold text-ink-soft">Appears in: </span>
-            {describeTaskRouting(state, { shiftId: shiftId || undefined, roleId: roleId || undefined }).join(' · ')}
-          </p>
-
-          {/* Submit Button */}
-          <div className="pt-2 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={requestClose}
-              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!!unitTaskTimeError}
-              className="btn btn-accent px-6"
-            >
-              {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Unit Task'}
-            </button>
-          </div>
+          <RoutingSummary labels={describeTaskRouting(state, { shiftId: shiftId || undefined, roleId: roleId || undefined })} />
         </form>
       )}
 
       {/* 4. RESIDENT FORM */}
       {selectedType === 'resident' && (
-        <form onSubmit={handleAddResident} className="space-y-4">
+        <form id="resident-form" onSubmit={handleAddResident} className="space-y-4">
           <button
             type="button"
             onClick={() => setSelectedType(null)}
@@ -1553,95 +1607,82 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Choose different type
           </button>
 
-          <div className="grid grid-cols-2 gap-3">
+          <FormSection title="Identity">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  First Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={resFirstName}
+                  onChange={(e) => setResFirstName(e.target.value)}
+                  placeholder="Arthur"
+                  required
+                  className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Last Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={resLastName}
+                  onChange={(e) => setResLastName(e.target.value)}
+                  placeholder="Pendleton"
+                  required
+                  className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+                />
+              </div>
+            </div>
+          </FormSection>
+
+          <FormSection title="Room">
+            <div>
+              <label htmlFor="resident-status" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Resident Status</label>
+              <select id="resident-status" value={resStatus} onChange={event => setResStatus(event.target.value as ResidentStatus)} className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm">
+                <option value="active">Active</option><option value="in_hospital">In Hospital</option><option value="out_on_pass">Out on Pass</option><option value="on_hold">On Hold</option><option value="inactive">Inactive / Not Yet Admitted</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                First Name <span className="text-danger">*</span>
+                Room / Occupancy Location <span className="text-danger">*</span>
               </label>
               <input
                 type="text"
-                value={resFirstName}
-                onChange={(e) => setResFirstName(e.target.value)}
-                placeholder="Arthur"
+                value={resRoomNumber}
+                onChange={(e) => setResRoomNumber(e.target.value)}
+                placeholder="Search or enter a configured label, e.g. L101A"
+                list="available-room-positions"
                 required
-                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent font-mono"
               />
+              <datalist id="available-room-positions">{availablePositions.map(position => <option key={position.id} value={position.displayLabel}>{position.displayLabel} — Available</option>)}</datalist>
+              <p className="mt-1 text-[11px] text-muted">Select an available configured position. A unique new label creates a simple room automatically.</p>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Last Name <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                value={resLastName}
-                onChange={(e) => setResLastName(e.target.value)}
-                placeholder="Pendleton"
-                required
-                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-              />
-            </div>
-          </div>
 
-          <div>
-            <label htmlFor="resident-status" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Resident Status</label>
-            <select id="resident-status" value={resStatus} onChange={event => setResStatus(event.target.value as ResidentStatus)} className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm">
-              <option value="active">Active</option><option value="in_hospital">In Hospital</option><option value="out_on_pass">Out on Pass</option><option value="on_hold">On Hold</option><option value="inactive">Inactive / Not Yet Admitted</option>
-            </select>
-          </div>
+            {residentSaveError && <div role="alert" className="rounded-control border border-danger bg-danger-soft p-3 text-xs font-bold text-danger">{residentSaveError}</div>}
+          </FormSection>
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Room / Occupancy Location <span className="text-danger">*</span>
-            </label>
-            <input
-              type="text"
-              value={resRoomNumber}
-              onChange={(e) => setResRoomNumber(e.target.value)}
-              placeholder="Search or enter a configured label, e.g. L101A"
-              list="available-room-positions"
-              required
-              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent font-mono"
-            />
-            <datalist id="available-room-positions">{availablePositions.map(position => <option key={position.id} value={position.displayLabel}>{position.displayLabel} — Available</option>)}</datalist>
-            <p className="mt-1 text-[11px] text-muted">Select an available configured position. A unique new label creates a simple room automatically.</p>
-          </div>
-
-          {residentSaveError && <div role="alert" className="rounded-control border border-danger bg-danger-soft p-3 text-xs font-bold text-danger">{residentSaveError}</div>}
-
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Resident Notes (Optional)
-            </label>
+          <FormSection title="Notes">
+            <label htmlFor="resident-notes" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Resident Notes (Optional)</label>
             <textarea
+              id="resident-notes"
               rows={2}
               value={resNotes}
               onChange={(e) => setResNotes(e.target.value)}
               placeholder="e.g. Uses rollator walker; prefers morning care after breakfast..."
               className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
             />
-          </div>
-
-          <div className="pt-2 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={requestClose}
-              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-accent px-6"
-            >
-              Add Resident
-            </button>
-          </div>
+          </FormSection>
         </form>
       )}
 
       {/* 5. FYI FORM */}
       {selectedType === 'fyi' && (
-        <form onSubmit={handleAddFYI} className="space-y-4">
+        <form id="fyi-form" onSubmit={handleAddFYI} className="space-y-4">
           <button
             type="button"
             onClick={() => setSelectedType(null)}
@@ -1650,57 +1691,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Choose different type
           </button>
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              FYI Standing Note / Instruction <span className="text-danger">*</span>
-            </label>
-            <textarea
-              rows={3}
-              value={fyiText}
-              onChange={(e) => setFyiText(e.target.value)}
-              placeholder="e.g. Son visits on Saturdays at 14:00 with diabetic treats; check BG before dinner."
-              required
-              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Category
-              </label>
-              <select
-                value={fyiCategory}
-                onChange={(e) => setFyiCategory(e.target.value as FYICategory)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="preference">Resident Preference</option>
-                <option value="safety">Safety Alert</option>
-                <option value="communication">Communication</option>
-                <option value="protocol">Clinical Protocol</option>
-                <option value="medical">Medical Update</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Importance
-              </label>
-              <select
-                value={fyiImportance}
-                onChange={(e) => setFyiImportance(e.target.value as any)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="normal">Normal</option>
-                <option value="high">High (Highlighted)</option>
-                <option value="urgent">Urgent Banner</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Scope
-            </label>
+          <FormSection title="Scope">
             <div className="flex gap-2">
               <button type="button" onClick={() => setFyiScope('resident')} className={`flex-1 px-3 py-2 rounded-control text-sm font-semibold border ${fyiScope === 'resident' ? 'bg-accent-soft border-accent text-accent-strong' : 'border-hairline-strong text-ink-soft'}`}>
                 Specific Resident
@@ -1709,116 +1700,148 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 Unit-wide / Shared
               </button>
             </div>
-          </div>
 
-          {fyiScope === 'resident' && (
-            <div>
-              <label htmlFor="fyi-resident" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Resident <span className="text-danger">*</span>
-              </label>
-              <ResidentCombobox
-                id="fyi-resident"
-                residents={residents}
-                value={residentId}
-                onChange={setResidentId}
-                placeholder="Search resident..."
-                required
-              />
-            </div>
-          )}
+            {fyiScope === 'resident' && (
+              <div>
+                <label htmlFor="fyi-resident" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Resident <span className="text-danger">*</span>
+                </label>
+                <ResidentCombobox
+                  id="fyi-resident"
+                  residents={residents}
+                  value={residentId}
+                  onChange={setResidentId}
+                  placeholder="Search resident..."
+                  required
+                />
+              </div>
+            )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Relevant Shift (optional)
-              </label>
-              <select
-                value={shiftId}
-                onChange={(e) => setShiftId(e.target.value)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="">Any shift</option>
-                {shifts.map(s => <option key={s.id} value={s.id}>{s.shortCode ? `${s.shortCode} — ` : ''}{s.name}</option>)}
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Relevant Shift (optional)
+                </label>
+                <select
+                  value={shiftId}
+                  onChange={(e) => setShiftId(e.target.value)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="">Any shift</option>
+                  {shifts.map(s => <option key={s.id} value={s.id}>{s.shortCode ? `${s.shortCode} — ` : ''}{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Relevant Role (optional)
+                </label>
+                <select
+                  value={fyiRoleId}
+                  onChange={(e) => setFyiRoleId(e.target.value)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="">Any role</option>
+                  {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Relevant Role (optional)
-              </label>
-              <select
-                value={fyiRoleId}
-                onChange={(e) => setFyiRoleId(e.target.value)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="">Any role</option>
-                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
-            </div>
-          </div>
+          </FormSection>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Effective Date
-              </label>
-              <input
-                type="date"
-                value={fyiEffectiveDate}
-                onChange={(e) => setFyiEffectiveDate(e.target.value)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Expires (optional)
-              </label>
-              <input
-                type="date"
-                min={fyiEffectiveDate}
-                value={fyiExpiryDate}
-                onChange={(e) => setFyiExpiryDate(e.target.value)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink-soft">
-              <input type="checkbox" checked={fyiShowOnDashboard} onChange={(e) => setFyiShowOnDashboard(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
-              Show on Dashboard
+          <FormSection title="Message">
+            <label htmlFor="fyi-text" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              FYI Standing Note / Instruction <span className="text-danger">*</span>
             </label>
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink-soft">
-              <input type="checkbox" checked={fyiShowInHuddle} onChange={(e) => setFyiShowInHuddle(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
-              Show in Huddle
-            </label>
-          </div>
+            <textarea
+              id="fyi-text"
+              rows={3}
+              value={fyiText}
+              onChange={(e) => setFyiText(e.target.value)}
+              placeholder="e.g. Son visits on Saturdays at 14:00 with diabetic treats; check BG before dinner."
+              required
+              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Category
+                </label>
+                <select
+                  value={fyiCategory}
+                  onChange={(e) => setFyiCategory(e.target.value as FYICategory)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="preference">Resident Preference</option>
+                  <option value="safety">Safety Alert</option>
+                  <option value="communication">Communication</option>
+                  <option value="protocol">Clinical Protocol</option>
+                  <option value="medical">Medical Update</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Importance
+                </label>
+                <select
+                  value={fyiImportance}
+                  onChange={(e) => setFyiImportance(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="normal">Normal</option>
+                  <option value="high">High (Highlighted)</option>
+                  <option value="urgent">Urgent Banner</option>
+                </select>
+              </div>
+            </div>
+          </FormSection>
 
-          <p className="text-[11px] text-muted">
-            <span className="font-bold text-ink-soft">Appears in: </span>
-            {describeFyiRouting(state, { residentId: fyiScope === 'resident' ? residentId : undefined, roleId: fyiRoleId || undefined, shiftId: shiftId || undefined, showOnDashboard: fyiShowOnDashboard, showInHuddle: fyiShowInHuddle }).join(' · ')}
-          </p>
+          <FormSection title="Effective period">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Effective Date
+                </label>
+                <input
+                  type="date"
+                  value={fyiEffectiveDate}
+                  onChange={(e) => setFyiEffectiveDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Expires (optional)
+                </label>
+                <input
+                  type="date"
+                  min={fyiEffectiveDate}
+                  value={fyiExpiryDate}
+                  onChange={(e) => setFyiExpiryDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                />
+              </div>
+            </div>
+          </FormSection>
 
-          <div className="pt-2 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={requestClose}
-              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-accent px-6"
-            >
-              {mode === 'edit' ? 'Save Changes' : 'Add FYI'}
-            </button>
-          </div>
+          <FormSection title="Visibility">
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink-soft">
+                <input type="checkbox" checked={fyiShowOnDashboard} onChange={(e) => setFyiShowOnDashboard(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
+                Show on Dashboard
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-ink-soft">
+                <input type="checkbox" checked={fyiShowInHuddle} onChange={(e) => setFyiShowInHuddle(e.target.checked)} className="h-3.5 w-3.5 rounded text-accent focus:ring-accent" />
+                Show in Huddle
+              </label>
+            </div>
+          </FormSection>
+
+          <RoutingSummary labels={describeFyiRouting(state, { residentId: fyiScope === 'resident' ? residentId : undefined, roleId: fyiRoleId || undefined, shiftId: shiftId || undefined, showOnDashboard: fyiShowOnDashboard, showInHuddle: fyiShowInHuddle })} />
         </form>
       )}
 
       {/* 6. WOUND PROTOCOL FORM */}
       {selectedType === 'wound' && (
-        <form onSubmit={handleAddWound} className="space-y-4">
+        <form id="wound-form" onSubmit={handleAddWound} className="space-y-4">
           <button
             type="button"
             onClick={() => setSelectedType(null)}
@@ -1828,7 +1851,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </button>
 
           {!contextResidentId && (
-            <div>
+            <FormSection title="Who">
               <label htmlFor="wound-resident" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Resident <span className="text-danger">*</span>
               </label>
@@ -1840,103 +1863,139 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 placeholder="Search resident..."
                 required
               />
-            </div>
+            </FormSection>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Site Location <span className="text-danger">*</span>
-            </label>
-            <input
-              type="text"
-              value={woundSiteLocation}
-              onChange={(e) => setWoundSiteLocation(e.target.value)}
-              placeholder="e.g. Left Lower Leg Venous Ulcer, Right Forearm Skin Tear"
-              required
-              className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <FormSection title="Site & protocol">
             <div>
               <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Primary Action
-              </label>
-              <select
-                value={woundFirstAction}
-                onChange={(e) => setWoundFirstAction(e.target.value as any)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="treatment">Wound Treatment</option>
-                <option value="dressing_change">Dressing Change</option>
-                <option value="assessment">Wound Assessment</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Bathing Relation
-              </label>
-              <select
-                value={woundBathingRelation}
-                onChange={(e) => setWoundBathingRelation(e.target.value as any)}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="independent">Independent of Bathing</option>
-                <option value="after_bath">Perform Immediately After Bath</option>
-                <option value="before_bath">Perform Before Bath</option>
-                <option value="separate_day">Separate Day from Bathing</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="wound-shift" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Assigned LPN/RN Shift <span className="text-danger">*</span>
-              </label>
-              <select
-                id="wound-shift"
-                value={woundShiftId}
-                onChange={(event) => setWoundShiftId(event.target.value)}
-                required
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="">Select clinical shift...</option>
-                {clinicalShifts.map(shift => (
-                  <option key={shift.id} value={shift.id}>
-                    {shift.shortCode} — {shift.name} ({shift.startTime}–{shift.endTime})
-                  </option>
-                ))}
-              </select>
-              {clinicalShifts.length === 0 && (
-                <p className="mt-1 text-[11px] font-semibold text-danger">No active LPN/RN shift is configured. Add one in Settings → Roles &amp; Shifts.</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="wound-time" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Scheduled Time <span className="text-danger">*</span>
+                Site Location <span className="text-danger">*</span>
               </label>
               <input
-                id="wound-time"
                 type="text"
-                value={woundTime}
-                onChange={(event) => setWoundTime(event.target.value)}
+                value={woundSiteLocation}
+                onChange={(e) => setWoundSiteLocation(e.target.value)}
+                placeholder="e.g. Left Lower Leg Venous Ulcer, Right Forearm Skin Tear"
                 required
-                aria-invalid={!!woundShiftTimeError}
-                className={`w-full px-3 py-2 bg-panel border rounded-control text-sm font-mono font-bold ${woundShiftTimeError ? 'border-danger' : 'border-hairline-strong'}`}
-                placeholder="1000"
+                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
               />
             </div>
-          </div>
 
-          {woundShiftTimeError && (
-            <p className="flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{woundShiftTimeError}</span>
-            </p>
-          )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Primary Action
+                </label>
+                <select
+                  value={woundFirstAction}
+                  onChange={(e) => setWoundFirstAction(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="treatment">Wound Treatment</option>
+                  <option value="dressing_change">Dressing Change</option>
+                  <option value="assessment">Wound Assessment</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Bathing Relation
+                </label>
+                <select
+                  value={woundBathingRelation}
+                  onChange={(e) => setWoundBathingRelation(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="independent">Independent of Bathing</option>
+                  <option value="after_bath">Perform Immediately After Bath</option>
+                  <option value="before_bath">Perform Before Bath</option>
+                  <option value="separate_day">Separate Day from Bathing</option>
+                </select>
+              </div>
+            </div>
 
-          <div className="pt-2 border-t border-hairline">
+            <div>
+              <label htmlFor="wound-protocol" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                Treatment Protocol / Dressing Instructions
+              </label>
+              <textarea
+                id="wound-protocol"
+                rows={2}
+                value={woundInstructions}
+                onChange={(e) => setWoundInstructions(e.target.value)}
+                placeholder="Cleanse with sterile NS, apply barrier film, cover with Mepilex Border..."
+                className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <WoundSupplyPicker value={woundSupplies} onChange={setWoundSupplies} />
+              <div>
+                <label htmlFor="wound-assessment-type" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Assessment / Notes Prompt
+                </label>
+                <select
+                  id="wound-assessment-type"
+                  value={woundAssessmentType}
+                  onChange={(event) => setWoundAssessmentType(event.target.value as 'none' | 'partial' | 'full')}
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="none">Notes only</option>
+                  <option value="partial">Partial assessment</option>
+                  <option value="full">Full assessment</option>
+                </select>
+                <p className="mt-1 text-[11px] text-muted">Creates a paper prompt only. No clinical result is stored in TaskSheet.</p>
+              </div>
+            </div>
+          </FormSection>
+
+          <FormSection title="Schedule">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="wound-shift" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Assigned LPN/RN Shift <span className="text-danger">*</span>
+                </label>
+                <select
+                  id="wound-shift"
+                  value={woundShiftId}
+                  onChange={(event) => setWoundShiftId(event.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
+                >
+                  <option value="">Select clinical shift...</option>
+                  {clinicalShifts.map(shift => (
+                    <option key={shift.id} value={shift.id}>
+                      {shift.shortCode} — {shift.name} ({shift.startTime}–{shift.endTime})
+                    </option>
+                  ))}
+                </select>
+                {clinicalShifts.length === 0 && (
+                  <p className="mt-1 text-[11px] font-semibold text-danger">No active LPN/RN shift is configured. Add one in Settings → Roles &amp; Shifts.</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="wound-time" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+                  Scheduled Time <span className="text-danger">*</span>
+                </label>
+                <input
+                  id="wound-time"
+                  type="text"
+                  value={woundTime}
+                  onChange={(event) => setWoundTime(event.target.value)}
+                  required
+                  aria-invalid={!!woundShiftTimeError}
+                  className={`w-full px-3 py-2 bg-panel border rounded-control text-sm font-mono font-bold ${woundShiftTimeError ? 'border-danger' : 'border-hairline-strong'}`}
+                  placeholder="1000"
+                />
+              </div>
+            </div>
+
+            {woundShiftTimeError && (
+              <p className="flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{woundShiftTimeError}</span>
+              </p>
+            )}
+
             <RecurrenceSelector
               value={woundRecurrenceRule}
               frequency={woundFrequency}
@@ -1945,57 +2004,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                 setWoundFrequency(newFrequency);
               }}
             />
-          </div>
-
-          <div>
-            <label htmlFor="wound-protocol" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-              Treatment Protocol / Dressing Instructions
-            </label>
-            <textarea
-              id="wound-protocol"
-              rows={2}
-              value={woundInstructions}
-              onChange={(e) => setWoundInstructions(e.target.value)}
-              placeholder="Cleanse with sterile NS, apply barrier film, cover with Mepilex Border..."
-              className="w-full px-3.5 py-2 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <WoundSupplyPicker value={woundSupplies} onChange={setWoundSupplies} />
-            <div>
-              <label htmlFor="wound-assessment-type" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
-                Assessment / Notes Prompt
-              </label>
-              <select
-                id="wound-assessment-type"
-                value={woundAssessmentType}
-                onChange={(event) => setWoundAssessmentType(event.target.value as 'none' | 'partial' | 'full')}
-                className="w-full px-3 py-2 bg-panel border border-hairline-strong rounded-control text-sm"
-              >
-                <option value="none">Notes only</option>
-                <option value="partial">Partial assessment</option>
-                <option value="full">Full assessment</option>
-              </select>
-              <p className="mt-1 text-[11px] text-muted">Creates a paper prompt only. No clinical result is stored in TaskSheet.</p>
-            </div>
-          </div>
-
-          <div className="pt-2 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={requestClose}
-              className="px-4 py-2.5 border border-hairline-strong hover:bg-panel-sunken text-ink-soft rounded-control text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-accent px-6"
-            >
-              {mode === 'edit' ? 'Save Changes' : 'Add Wound Protocol'}
-            </button>
-          </div>
+          </FormSection>
         </form>
       )}
       </div>

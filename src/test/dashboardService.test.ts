@@ -7,6 +7,7 @@ import {
   getAwayResidents,
   getDashboardFyis,
   getHuddleBriefing,
+  getMustNotMissFollowUp,
   getResidentFollowUpTasks,
   getUnitSituationSummary,
   getValidatedDashboardLayout,
@@ -514,6 +515,142 @@ describe('getResidentFollowUpTasks', () => {
     const titles = getResidentFollowUpTasks(db.getState(), today).map(e => e.task.title);
     expect(titles).not.toContain('Stale Follow-up');
     expect(titles).toContain('Still Relevant Follow-up');
+  });
+});
+
+describe('getResidentFollowUpTasks — occurrence-mode tracking', () => {
+  const today = '2026-09-04';
+  beforeEach(() => { db.resetToDemoState(); db.clearAllOperationalData(); });
+
+  it('shows "X/Y" progress, not a Day-X/Y date window, and requires no recurrenceRule', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Occ', roomNumber: '118', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 3 } });
+
+    const [entry] = getResidentFollowUpTasks(db.getState(), today);
+    expect(entry.statusLabel).toBe('0/3');
+    expect(entry.occurrenceLabel).toBe('0/3');
+    expect(entry.isTracking).toBe(true);
+  });
+
+  it('shows "X/Y · Complete" once the target is reached, via completedOccurrences alone', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Occ2', roomNumber: '119', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 3, completedOccurrences: 2 } });
+
+    const [entry] = getResidentFollowUpTasks(db.getState(), today);
+    expect(entry.statusLabel).toBe('2/3');
+  });
+
+  it('db.recordResidentTaskOccurrence increments, and marks the task done once the target is reached', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Occ3', roomNumber: '120', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 2 } });
+
+    let updated = db.recordResidentTaskOccurrence(task.id);
+    expect(updated.trackingConfig?.completedOccurrences).toBe(1);
+    expect(getResidentFollowUpTasks(db.getState(), today).map(e => e.task.id)).toContain(task.id);
+
+    updated = db.recordResidentTaskOccurrence(task.id);
+    expect(updated.trackingConfig?.completedOccurrences).toBe(2);
+    expect(updated.followUpStatus).toBe('done');
+    expect(getResidentFollowUpTasks(db.getState(), today).map(e => e.task.id)).not.toContain(task.id);
+  });
+
+  it('db.recordResidentTaskOccurrence clamps at the required count and never exceeds it', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Occ4', roomNumber: '121', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 1, completedOccurrences: 1 }, followUpStatus: 'done' });
+
+    const updated = db.recordResidentTaskOccurrence(task.id);
+    expect(updated.trackingConfig?.completedOccurrences).toBe(1);
+  });
+});
+
+describe('getResidentFollowUpTasks — mustNotMiss passthrough', () => {
+  const today = '2026-09-04';
+  beforeEach(() => { db.resetToDemoState(); db.clearAllOperationalData(); });
+
+  it('passes task.mustNotMiss through onto the entry, defaulting to false', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'MNM', roomNumber: '122', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Flagged', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today, mustNotMiss: true });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Not Flagged', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today });
+
+    const entries = getResidentFollowUpTasks(db.getState(), today);
+    expect(entries.find(e => e.task.title === 'Flagged')?.mustNotMiss).toBe(true);
+    expect(entries.find(e => e.task.title === 'Not Flagged')?.mustNotMiss).toBe(false);
+  });
+});
+
+describe('extendResidentTaskTracking', () => {
+  const today = '2026-09-08';
+  beforeEach(() => { db.resetToDemoState(); db.clearAllOperationalData(); });
+
+  it('extends the end date, preserves the original start date, and recomputes Day X/Y', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Ext', roomNumber: '251', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Behaviour Tracking', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, trackingConfig: { kind: 'behavior' }, recurrenceRule: { startDate: '2026-09-03', endDate: '2026-09-05' } });
+
+    const updated = db.extendResidentTaskTracking(task.id, '2026-09-10');
+    expect(updated.recurrenceRule?.startDate).toBe('2026-09-03');
+    expect(updated.recurrenceRule?.endDate).toBe('2026-09-10');
+
+    const [entry] = getResidentFollowUpTasks(db.getState(), today);
+    expect(entry.statusLabel).toBe('Day 6/8');
+  });
+
+  it('rejects an end date before the original start date', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Ext2', roomNumber: '252', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Behaviour Tracking', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, trackingConfig: { kind: 'behavior' }, recurrenceRule: { startDate: '2026-09-03', endDate: '2026-09-05' } });
+    expect(() => db.extendResidentTaskTracking(task.id, '2026-09-01')).toThrow();
+  });
+});
+
+describe('getMustNotMissFollowUp (Huddle attention list — never inflated by routine tracking)', () => {
+  const today = '2026-09-04';
+  beforeEach(() => { db.resetToDemoState(); db.clearAllOperationalData(); });
+
+  it('excludes a mustNotMiss tracking task that is merely mid-period (not due today, not ending today)', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Mid', roomNumber: '130', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Mid Period', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, mustNotMiss: true, trackingConfig: { kind: 'fluid' }, recurrenceRule: { startDate: '2026-09-01', endDate: '2026-09-20' } });
+
+    expect(getMustNotMissFollowUp(db.getState(), today)).toHaveLength(0);
+  });
+
+  it('includes overdue, carried-forward, and needs_review tasks regardless of mustNotMiss', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Qual', roomNumber: '131', status: 'active' });
+    const overdue = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Overdue', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: '2026-09-03' });
+    const carried = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Carried', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: '2026-09-03' });
+    db.setResidentTaskFollowUpStatus(carried.id, 'carry_forward');
+
+    const titles = getMustNotMissFollowUp(db.getState(), today).map(e => e.task.title);
+    expect(titles).toContain('Overdue');
+    expect(titles).toContain('Carried');
+    void overdue;
+  });
+
+  it('includes a due-today or ending-today task only when mustNotMiss is set', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'DueToday', roomNumber: '132', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Not Flagged Due Today', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Flagged Due Today', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today, mustNotMiss: true });
+
+    const titles = getMustNotMissFollowUp(db.getState(), today).map(e => e.task.title);
+    expect(titles).not.toContain('Not Flagged Due Today');
+    expect(titles).toContain('Flagged Due Today');
+  });
+
+  it('sorts Needs Review, then most overdue, then carried forward, then due today, then tracking ending today, then active tracking', () => {
+    const r1 = db.addResident({ firstName: 'F', lastName: 'S1', roomNumber: '141', status: 'active' });
+    const r2 = db.addResident({ firstName: 'F', lastName: 'S2', roomNumber: '142', status: 'active' });
+    const r3 = db.addResident({ firstName: 'F', lastName: 'S3', roomNumber: '143', status: 'active' });
+    const r4 = db.addResident({ firstName: 'F', lastName: 'S4', roomNumber: '144', status: 'active' });
+    const r5 = db.addResident({ firstName: 'F', lastName: 'S5', roomNumber: '145', status: 'active' });
+
+    const review = db.addResidentTask({ residentId: r1.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Review', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: '2026-09-01' });
+    db.setResidentTaskFollowUpStatus(review.id, 'needs_review');
+    db.addResidentTask({ residentId: r2.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Overdue', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: '2026-09-02' });
+    const carried = db.addResidentTask({ residentId: r3.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Carried', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today });
+    db.setResidentTaskFollowUpStatus(carried.id, 'carry_forward');
+    db.addResidentTask({ residentId: r4.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Due Today', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today, mustNotMiss: true });
+    db.addResidentTask({ residentId: r5.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Ending Today', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, mustNotMiss: true, trackingConfig: { kind: 'fluid' }, recurrenceRule: { startDate: '2026-09-01', endDate: today } });
+
+    const titles = getMustNotMissFollowUp(db.getState(), today).map(e => e.task.title);
+    expect(titles).toEqual(['Review', 'Overdue', 'Carried', 'Due Today', 'Ending Today']);
   });
 });
 

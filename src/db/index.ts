@@ -540,20 +540,20 @@ export class DatabaseService {
     });
   }
 
-  public addRoom(displayLabel: string, options: { physicalRoomLabel?: string; positionLabel?: string; area?: string; source?: FacilityRoom['source'] } = {}): OccupancyPosition {
+  public addRoom(displayLabel: string, options: { physicalRoomLabel?: string; positionLabel?: string; wing?: string; floor?: string; source?: FacilityRoom['source'] } = {}): OccupancyPosition {
     const label = displayLabel.trim();
     if (!label) throw new Error('Room / Bed display label is required.');
     if (this.state.occupancyPositions.some(position => roomKey(position.displayLabel) === roomKey(label))) throw new Error(`${label} already exists in Room Setup.`);
     const now = new Date().toISOString();
     const physical = options.physicalRoomLabel?.trim() || label;
     let room = this.state.rooms.find(item => roomKey(item.physicalRoomLabel) === roomKey(physical));
-    const rooms = room ? this.state.rooms : [...this.state.rooms, room = { id: generateUUID(), physicalRoomLabel: physical, area: options.area?.trim() || undefined, active: true, mode: options.positionLabel ? 'structured' : 'simple', createdAt: now, source: options.source || 'manual' }];
+    const rooms = room ? this.state.rooms : [...this.state.rooms, room = { id: generateUUID(), physicalRoomLabel: physical, wing: options.wing?.trim() || undefined, floor: options.floor?.trim() || undefined, active: true, mode: options.positionLabel ? 'structured' : 'simple', createdAt: now, source: options.source || 'manual' }];
     const position: OccupancyPosition = { id: generateUUID(), roomId: room.id, positionLabel: options.positionLabel?.trim() || undefined, displayLabel: label, active: true, createdAt: now, source: options.source || 'manual' };
     this.saveToStorage({ ...this.state, rooms, occupancyPositions: [...this.state.occupancyPositions, position] });
     return position;
   }
 
-  public addMultiOccupancyRoom(physicalRoomLabel: string, positionLabels: string[], area?: string, displayOverrides: Record<string, string> = {}): OccupancyPosition[] {
+  public addMultiOccupancyRoom(physicalRoomLabel: string, positionLabels: string[], wing?: string, floor?: string, displayOverrides: Record<string, string> = {}): OccupancyPosition[] {
     const base = physicalRoomLabel.trim();
     const labels = [...new Set(positionLabels.map(label => label.trim()).filter(Boolean))];
     if (!base || !labels.length) throw new Error('Physical room and at least one occupancy position are required.');
@@ -561,7 +561,7 @@ export class DatabaseService {
     const duplicate = displays.find(display => this.state.occupancyPositions.some(position => roomKey(position.displayLabel) === roomKey(display)));
     if (duplicate) throw new Error(`${duplicate} already exists in Room Setup.`);
     const now = new Date().toISOString();
-    const room: FacilityRoom = { id: generateUUID(), physicalRoomLabel: base, area: area?.trim() || undefined, active: true, mode: 'structured', createdAt: now, source: 'manual' };
+    const room: FacilityRoom = { id: generateUUID(), physicalRoomLabel: base, wing: wing?.trim() || undefined, floor: floor?.trim() || undefined, active: true, mode: 'structured', createdAt: now, source: 'manual' };
     const positions = labels.map((label, index): OccupancyPosition => ({ id: generateUUID(), roomId: room.id, positionLabel: label, displayLabel: displays[index], active: true, createdAt: now, source: 'manual' }));
     this.saveToStorage({ ...this.state, rooms: [...this.state.rooms, room], occupancyPositions: [...this.state.occupancyPositions, ...positions] });
     return positions;
@@ -654,6 +654,59 @@ export class DatabaseService {
       ...current,
       followUpStatus: status,
       followUpCarryForwardCount: status === 'carry_forward' ? (current.followUpCarryForwardCount || 0) + 1 : (current.followUpCarryForwardCount || 0),
+      followUpUpdatedAt: now,
+      updatedAt: now,
+    };
+    this.saveToStorage({
+      ...this.state,
+      residentTasks: this.state.residentTasks.map(t => t.id === id ? updated : t)
+    });
+    return updated;
+  }
+
+  /** Records one occurrence toward an occurrence-mode tracking task's target
+   *  (e.g. "1/3 collections" → "2/3"). An operational reminder counter only —
+   *  not a record of clinical collection/assessment completion. Clamps at
+   *  `requiredOccurrences` and, once reached, resolves the follow-up the same
+   *  way any other completed task does (`followUpStatus: 'done'`) so it
+   *  disappears from the active Dashboard/Huddle lists through the existing
+   *  done-hides-from-list logic — no separate "occurrence complete" bucket. */
+  public recordResidentTaskOccurrence(id: string): ResidentTask {
+    const current = this.state.residentTasks.find(task => task.id === id);
+    if (!current) throw new Error('Resident task not found.');
+    const tracking = current.trackingConfig;
+    if (!tracking?.requiredOccurrences) throw new Error('This task has no required-occurrence target to record against.');
+    const now = new Date().toISOString();
+    const completed = Math.min((tracking.completedOccurrences || 0) + 1, tracking.requiredOccurrences);
+    const complete = completed >= tracking.requiredOccurrences;
+    const updated: ResidentTask = {
+      ...current,
+      trackingConfig: { ...tracking, completedOccurrences: completed },
+      followUpStatus: complete ? 'done' : current.followUpStatus,
+      followUpUpdatedAt: now,
+      updatedAt: now,
+    };
+    this.saveToStorage({
+      ...this.state,
+      residentTasks: this.state.residentTasks.map(t => t.id === id ? updated : t)
+    });
+    return updated;
+  }
+
+  /** Extends a bounded tracking task's end date — the original `startDate`
+   *  is never touched, so Day-X/Y progress keeps counting from where it
+   *  actually began (e.g. "Day 5/5" extended three days becomes "Day 6/8"
+   *  the next day, not a reset window). */
+  public extendResidentTaskTracking(id: string, newEndDate: string): ResidentTask {
+    const current = this.state.residentTasks.find(task => task.id === id);
+    if (!current) throw new Error('Resident task not found.');
+    const rule = current.recurrenceRule;
+    if (!rule?.startDate) throw new Error('This task has no tracking period to extend.');
+    if (newEndDate < rule.startDate) throw new Error('New end date must be on or after the tracking start date.');
+    const now = new Date().toISOString();
+    const updated: ResidentTask = {
+      ...current,
+      recurrenceRule: { ...rule, endDate: newEndDate },
       followUpUpdatedAt: now,
       updatedAt: now,
     };

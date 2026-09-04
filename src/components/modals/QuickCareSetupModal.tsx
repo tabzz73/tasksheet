@@ -416,6 +416,37 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
 
   const totalSelectedCount = selectedPresetIds.size + selectedCatalogSlugs.size;
 
+  const footer = step === 'select' ? (
+    <div className="w-full flex items-center justify-between">
+      <span className="text-xs font-bold text-ink-soft">
+        Selected: <strong className="text-ink">{totalSelectedCount} care routine{totalSelectedCount !== 1 ? 's' : ''}</strong>
+      </span>
+      <div className="flex items-center space-x-3">
+        <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+        <button type="button" disabled={totalSelectedCount === 0} onClick={handleProceedToConfigure} className="btn btn-accent">
+          <span>Configure Selected ({totalSelectedCount})</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="w-full flex items-center justify-between">
+      <button type="button" onClick={() => setStep('select')} className="btn btn-secondary">
+        <ArrowLeft className="w-3.5 h-3.5" />
+        <span>Back</span>
+      </button>
+      <button
+        type="button"
+        onClick={handleSaveAll}
+        disabled={draftTimeErrors.size > 0 || (isResidentCarePaused(resident.status) && !allowPausedResidentCare)}
+        className="btn btn-accent px-6"
+      >
+        <Check className="w-4 h-4" />
+        <span>Save {draftTasks.length} Care Routines to {resident.firstName}</span>
+      </button>
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -423,6 +454,7 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
       title="Set Up Resident Care Plan"
       subtitle={`Room ${resident.roomNumber} — ${resident.firstName} ${resident.lastName}`}
       maxWidth="4xl"
+      footer={footer}
     >
       <div className="space-y-5">
         {isResidentCarePaused(resident.status) && (
@@ -797,22 +829,6 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
               </div>
             )}
 
-            {/* Selection Summary & Navigation */}
-            <div className="pt-4 border-t border-hairline-strong flex items-center justify-between">
-              <span className="text-xs font-bold text-ink-soft">
-                Selected: <strong className="text-ink">{totalSelectedCount} care routine{totalSelectedCount !== 1 ? 's' : ''}</strong>
-              </span>
-
-              <div className="flex items-center space-x-3">
-                <button type="button" onClick={onClose} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="button" disabled={totalSelectedCount === 0} onClick={handleProceedToConfigure} className="btn btn-accent">
-                  <span>Configure Selected ({totalSelectedCount})</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -924,24 +940,6 @@ export const QuickCareSetupModal: React.FC<QuickCareSetupModalProps> = ({
                   )}
                 </div>
               ))}
-            </div>
-
-            {/* Footer Actions */}
-            <div className="pt-4 border-t border-hairline-strong flex items-center justify-between">
-              <button type="button" onClick={() => setStep('select')} className="btn btn-secondary">
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveAll}
-                disabled={draftTimeErrors.size > 0 || (isResidentCarePaused(resident.status) && !allowPausedResidentCare)}
-                className="btn btn-accent px-6"
-              >
-                <Check className="w-4 h-4" />
-                <span>Save {draftTasks.length} Care Routines to {resident.firstName}</span>
-              </button>
             </div>
           </div>
         )}

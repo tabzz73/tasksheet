@@ -25,7 +25,7 @@ describe('Resident Task Dashboard/Huddle visibility (opt-in)', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Show Advanced Options/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Show Customize visibility/i }));
     const dashboardCheckbox = screen.getByRole('checkbox', { name: /Show on Dashboard \(Resident Follow-up\)/i });
     const huddleCheckbox = screen.getByRole('checkbox', { name: 'Show in Huddle' });
     expect(dashboardCheckbox).toHaveProperty('checked', false);
@@ -45,7 +45,7 @@ describe('Resident Task Dashboard/Huddle visibility (opt-in)', () => {
     );
 
     fireEvent.change(screen.getByPlaceholderText(/Search .* catalog/i), { target: { value: 'RAI Tracking' } });
-    fireEvent.click(screen.getByRole('button', { name: /Show Advanced Options/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Show Customize visibility/i }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Show on Dashboard \(Resident Follow-up\)/i }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Show in Huddle' }));
 

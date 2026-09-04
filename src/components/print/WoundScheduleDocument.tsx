@@ -17,7 +17,7 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
       <div className="border-b-2 border-slate-900 pb-2 mb-3 flex items-start justify-between">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="bg-rose-800 text-white font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+            <span className="bg-rose-100 text-rose-800 border border-rose-300 font-black px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
               CLINICAL WORKSHEET
             </span>
             <h1 className="text-lg font-black text-slate-900 tracking-tight uppercase">
@@ -43,13 +43,13 @@ export const WoundScheduleDocument: React.FC<WoundScheduleDocumentProps> = ({ mo
       {/* ── WOUND SCHEDULE TABLE ── */}
       <table className="w-full border-collapse border border-slate-300 text-left">
         <thead>
-          <tr className="bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider">
-            <th className="p-2 border border-slate-700 w-16 text-center">Room</th>
-            <th className="p-2 border border-slate-700 w-36">Resident</th>
-            <th className="p-2 border border-slate-700 w-44">Wound Site & Protocol</th>
-            <th className="p-2 border border-slate-700 w-32">Shift / Time / Shower</th>
-            <th className="p-2 border border-slate-700 flex-1">Treatment / Dressing Protocol</th>
-            <th className="p-2 border border-slate-700 w-48">Observations & Sign-off</th>
+          <tr className="text-slate-900 text-[11px] font-black uppercase tracking-wider" style={{ backgroundColor: 'var(--print-header-fill)' }}>
+            <th className="p-2 border border-slate-400 w-16 text-center">Room</th>
+            <th className="p-2 border border-slate-400 w-36">Resident</th>
+            <th className="p-2 border border-slate-400 w-44">Wound Site & Protocol</th>
+            <th className="p-2 border border-slate-400 w-32">Shift / Time / Shower</th>
+            <th className="p-2 border border-slate-400 flex-1">Treatment / Dressing Protocol</th>
+            <th className="p-2 border border-slate-400 w-48">Observations & Sign-off</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200">
