@@ -470,6 +470,30 @@ export function generateDemoData() {
       isActive: true,
       createdAt: todayStr,
       source: 'demo'
+    },
+
+    // Grace Holloway (305) — demonstrates a tracking ResidentTask explicitly
+    // opted into Dashboard/Huddle visibility (Operational Visibility), while
+    // remaining an ordinary task that still routes to its shift/print.
+    {
+      id: 'task-gh-01',
+      residentId: 'res-305',
+      shiftId: SHIFT_HCA_DAY_ID,
+      roleId: ROLE_HCA_ID,
+      templateSlug: 'hca.tracking.behavior',
+      title: 'Behaviour Tracking',
+      category: 'Health Monitoring',
+      time: '1400',
+      frequency: 'daily',
+      recurrenceRule: { startDate: todayStr, endDate: addDaysToDateStr(todayStr, 5), endType: 'on_date' },
+      trackingConfig: { kind: 'behavior' },
+      instructions: 'Record objective behaviour, possible trigger, intervention, and response on the authorized behaviour record; promptly report safety concerns.',
+      priority: 'high',
+      showOnDashboard: true,
+      showInHuddle: true,
+      isActive: true,
+      createdAt: todayStr,
+      source: 'demo'
     }
   ];
 

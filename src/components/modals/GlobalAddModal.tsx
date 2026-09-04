@@ -73,6 +73,12 @@ interface GlobalAddModalProps {
   initialFYI?: FYI | null;
   contextResidentId?: string;
   contextShiftId?: string;
+  /** The app's current operational date (the Dashboard's Today/Tomorrow
+   *  selection) — used as the default FYI effective date instead of the raw
+   *  wall-clock date, so a note added just after midnight during an
+   *  overnight shift still defaults to the shift's operational day. Falls
+   *  back to the real wall-clock date if not supplied. */
+  currentDate?: string;
   onSuccess?: () => void;
 }
 
@@ -87,6 +93,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   initialFYI,
   contextResidentId,
   contextShiftId,
+  currentDate,
   onSuccess
 }) => {
   const [selectedType, setSelectedType] = useState<AddEntityType | null>(
@@ -165,7 +172,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [fyiImportance, setFyiImportance] = useState<'normal' | 'high' | 'urgent'>('normal');
   const [fyiScope, setFyiScope] = useState<'resident' | 'shared'>('resident');
   const [fyiRoleId, setFyiRoleId] = useState<string>('');
-  const [fyiEffectiveDate, setFyiEffectiveDate] = useState<string>(getTodayLocalDateString());
+  const [fyiEffectiveDate, setFyiEffectiveDate] = useState<string>(currentDate || getTodayLocalDateString());
   const [fyiExpiryDate, setFyiExpiryDate] = useState<string>('');
   const [fyiShowOnDashboard, setFyiShowOnDashboard] = useState(true);
   const [fyiShowInHuddle, setFyiShowInHuddle] = useState(false);
@@ -318,7 +325,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setFyiText('');
         setFyiScope('resident');
         setFyiRoleId('');
-        setFyiEffectiveDate(getTodayLocalDateString());
+        setFyiEffectiveDate(currentDate || getTodayLocalDateString());
         setFyiExpiryDate('');
         setFyiShowOnDashboard(true);
         setFyiShowInHuddle(false);
@@ -336,7 +343,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setWoundStatus('active');
       }
     }
-  }, [isOpen, initialType, initialResidentTask, initialUnitTask, initialWound, initialFYI, contextResidentId, contextShiftId, mode]);
+  }, [isOpen, initialType, initialResidentTask, initialUnitTask, initialWound, initialFYI, contextResidentId, contextShiftId, mode, currentDate]);
 
   const currentShiftObj = shifts.find(s => s.id === shiftId);
   const currentRoleObj = roles.find(r => r.id === (roleId || currentShiftObj?.roleId));

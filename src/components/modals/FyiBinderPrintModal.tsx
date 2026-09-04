@@ -11,6 +11,9 @@ interface FyiBinderPrintModalProps {
   onClose: () => void;
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export const FyiBinderPrintModal: React.FC<FyiBinderPrintModalProps> = ({ isOpen, onClose }) => {
   const state = db.getState();
   const roles = state.roles;
@@ -25,11 +28,53 @@ export const FyiBinderPrintModal: React.FC<FyiBinderPrintModalProps> = ({ isOpen
   );
 
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen || typeof document === 'undefined') return;
     document.body.classList.add('fyi-binder-printing');
     return () => document.body.classList.remove('fyi-binder-printing');
+  }, [isOpen]);
+
+  // Escape-to-close + Tab focus trap, matching the shared Modal component's
+  // behavior — this dialog can't use <Modal> directly (custom header/scope
+  // controls/scrollable preview plus a sibling print-only stream), but it
+  // must still meet the same keyboard-accessibility contract.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      (focusable && focusable[0] ? focusable[0] : dialogRef.current)?.focus();
+    } else {
+      previouslyFocusedRef.current?.focus();
+      previouslyFocusedRef.current = null;
+    }
   }, [isOpen]);
 
   const handlePrint = () => {
@@ -42,10 +87,12 @@ export const FyiBinderPrintModal: React.FC<FyiBinderPrintModalProps> = ({ isOpen
     <>
       {/* Screen overlay / modal */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Print FYI Binder"
-        className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm no-print"
+        tabIndex={-1}
+        className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm no-print outline-none"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         <div className="bg-panel rounded-surface shadow-elevated w-full max-w-5xl mx-4 mt-6 mb-6 flex flex-col max-h-[92vh] overflow-hidden">

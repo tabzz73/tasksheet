@@ -21,3 +21,13 @@ export function isResidentCarePaused(status: ResidentStatus): boolean {
 export function isResidentStatusException(status: ResidentStatus): boolean {
   return status === 'in_hospital' || status === 'out_on_pass' || status === 'on_hold';
 }
+
+/** True for residents still on the unit's roster in some operational sense
+ *  (active, or temporarily away on hospital/pass/hold) — false once they've
+ *  actually left (discharged, deceased, inactive). Dashboard awareness cards
+ *  (Resident Attention, Resident Follow-up, resident-scoped FYIs) use this
+ *  to stop surfacing stale records for residents who are genuinely gone,
+ *  while still showing them for residents who are just temporarily away. */
+export function isResidentCurrent(status: ResidentStatus): boolean {
+  return status !== 'discharged' && status !== 'deceased' && status !== 'inactive';
+}

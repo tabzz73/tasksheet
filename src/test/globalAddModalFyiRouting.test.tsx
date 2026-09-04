@@ -62,4 +62,16 @@ describe('GlobalAddModal — FYI scope, dates, and routing preview', () => {
     expect(saved!.showOnDashboard).toBe(false);
     expect(saved!.showInHuddle).toBe(true);
   });
+
+  it('defaults the FYI effective date to the app\'s operational currentDate, not the raw wall-clock date — so a note added just after midnight during an overnight shift still lands on the shift\'s operational day', () => {
+    // Simulates an LPN working the overnight shift that started "yesterday"
+    // (operationally still Sep 3) opening Quick Add after real midnight.
+    render(<GlobalAddModal isOpen initialType="fyi" onClose={() => undefined} currentDate="2026-09-03" />);
+
+    fireEvent.change(screen.getByPlaceholderText(/Son visits on Saturdays/i), { target: { value: 'Overnight handoff note' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add FYI' }));
+
+    const saved = db.getState().fyis.find(f => f.text === 'Overnight handoff note');
+    expect(saved?.effectiveDate).toBe('2026-09-03');
+  });
 });

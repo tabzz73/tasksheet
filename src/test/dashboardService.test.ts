@@ -7,6 +7,8 @@ import {
   getAwayResidents,
   getDashboardFyis,
   getResidentFollowUpTasks,
+  getUnitSituationSummary,
+  getValidatedDashboardLayout,
   getWoundAttentionItems,
   getTodaysBathingCount,
 } from '../services/dashboard';
@@ -225,6 +227,163 @@ describe('getResidentFollowUpTasks', () => {
 
     const titles = getResidentFollowUpTasks(db.getState(), today).map(e => e.task.title);
     expect(titles).toEqual(['Urgent Priority', 'Normal Priority']);
+  });
+
+  it('showInHuddle is independent of showOnDashboard — a task can be flagged for one, the other, both, or neither', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'F', lastName: 'Huddle', roomNumber: '161', status: 'active' });
+    const dashboardOnly = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Dashboard Only', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, showInHuddle: false });
+    const huddleOnly = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Huddle Only (not on Dashboard)', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: false, showInHuddle: true });
+
+    const dashboardTitles = getResidentFollowUpTasks(db.getState(), today).map(e => e.task.title);
+    expect(dashboardTitles).toContain('Dashboard Only');
+    expect(dashboardTitles).not.toContain('Huddle Only (not on Dashboard)');
+
+    // showInHuddle is persisted independently even though no Huddle View
+    // consumes it yet.
+    const stored = db.getState().residentTasks;
+    expect(stored.find(t => t.id === dashboardOnly.id)?.showInHuddle).toBe(false);
+    expect(stored.find(t => t.id === huddleOnly.id)?.showInHuddle).toBe(true);
+  });
+
+  it('stops surfacing a flagged task once its resident is discharged, but keeps one for a resident merely away (hospital/pass)', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    // Created while active, matching how this happens in practice — a task
+    // is flagged, then the resident's status later changes.
+    const goingAway = db.addResident({ firstName: 'F', lastName: 'Gone', roomNumber: '162', status: 'active' });
+    const hospital = db.addResident({ firstName: 'F', lastName: 'Away', roomNumber: '163', status: 'in_hospital' });
+    db.addResidentTask({ residentId: goingAway.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Stale Follow-up', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true });
+    db.addResidentTask({ residentId: hospital.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Still Relevant Follow-up', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true });
+    db.updateResident(goingAway.id, { status: 'discharged' });
+
+    const titles = getResidentFollowUpTasks(db.getState(), today).map(e => e.task.title);
+    expect(titles).not.toContain('Stale Follow-up');
+    expect(titles).toContain('Still Relevant Follow-up');
+  });
+});
+
+describe('Legacy record normalization (records persisted before Operational Visibility existed)', () => {
+  it('treats an FYI/attention item with no showOnDashboard key at all as shown, matching pre-feature behavior', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const today = '2026-09-03';
+    const resident = db.addResident({ firstName: 'Legacy', lastName: 'Case', roomNumber: '170', status: 'active' });
+
+    // Simulate a record shape from before these fields existed: no
+    // showOnDashboard/showInHuddle/priority keys present at all, not even
+    // as `undefined` — exactly what JSON.parse of old persisted data would
+    // produce, as opposed to a TS optional field merely being unset.
+    db.addFYI({ text: 'Pre-existing standing note', category: 'general', importance: 'normal', effectiveDate: today });
+    db.addResidentAttentionItem(resident.id, { type: 'Pre-existing attention', startDate: today });
+
+    expect(getDashboardFyis(db.getState(), today).some(f => f.text === 'Pre-existing standing note')).toBe(true);
+    expect(getActiveResidentAttentionItems(db.getState(), today).some(e => e.item.type === 'Pre-existing attention')).toBe(true);
+  });
+
+  it('treats a ResidentTask with no showOnDashboard key at all as hidden, matching pre-feature behavior (opt-in)', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const today = '2026-09-03';
+    const resident = db.addResident({ firstName: 'Legacy', lastName: 'Task', roomNumber: '171', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Pre-existing routine task', category: 'Care', time: '0800', frequency: 'daily' });
+
+    expect(getResidentFollowUpTasks(db.getState(), today)).toHaveLength(0);
+  });
+});
+
+describe('getUnitSituationSummary (selective briefing, not a duplicate of the other cards)', () => {
+  const today = '2026-09-03';
+
+  it('caps the summary to the limit even when far more items are eligible', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    for (let i = 0; i < 10; i++) {
+      const resident = db.addResident({ firstName: 'F', lastName: `${i}`, roomNumber: `20${i}`, status: 'active' });
+      db.addResidentAttentionItem(resident.id, { type: `Attention ${i}`, startDate: today, importance: 'urgent' });
+    }
+    expect(getUnitSituationSummary(db.getState(), today, 6)).toHaveLength(6);
+  });
+
+  it('ranks urgent items ahead of routine ones across every source type', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const r1 = db.addResident({ firstName: 'F', lastName: 'Urgent', roomNumber: '210', status: 'active' });
+    const r2 = db.addResident({ firstName: 'F', lastName: 'Normal', roomNumber: '211', status: 'active' });
+    db.addResidentAttentionItem(r2.id, { type: 'Routine Attention', startDate: today, importance: 'normal' });
+    db.addResidentTask({ residentId: r1.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urgent Follow-up', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'urgent' });
+
+    const labels = getUnitSituationSummary(db.getState(), today).map(e => e.label);
+    expect(labels[0]).toContain('Urgent Follow-up');
+  });
+
+  it('never includes a normal-importance FYI (that belongs solely to Latest FYI), and truncates an urgent one rather than showing the full text', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const longText = 'This is a deliberately long FYI sentence written to exceed the short summary truncation limit used by Current Unit Situation so the test can prove it never renders the full text.';
+    db.addFYI({ text: 'Routine note that must stay off the summary', category: 'general', importance: 'normal', effectiveDate: today });
+    db.addFYI({ text: longText, category: 'safety', importance: 'urgent', effectiveDate: today });
+
+    const entries = getUnitSituationSummary(db.getState(), today);
+    expect(entries.some(e => e.label === 'Routine note that must stay off the summary')).toBe(false);
+    const fyiEntry = entries.find(e => e.kind === 'fyi')!;
+    expect(fyiEntry).toBeDefined();
+    expect(fyiEntry.label.length).toBeLessThan(longText.length);
+    expect(fyiEntry.label).not.toBe(longText);
+  });
+
+  it('includes flagged Resident Follow-up tasks, not just Attention/Away/FYI', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    const resident = db.addResident({ firstName: 'F', lastName: 'Track', roomNumber: '212', status: 'active' });
+    db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'RAI Tracking', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, priority: 'high' });
+
+    const entries = getUnitSituationSummary(db.getState(), today);
+    expect(entries.some(e => e.kind === 'follow_up' && e.label.includes('RAI Tracking'))).toBe(true);
+  });
+
+  it('is empty on a quiet shift with nothing eligible', () => {
+    db.resetToDemoState();
+    db.clearAllOperationalData();
+    expect(getUnitSituationSummary(db.getState(), today)).toHaveLength(0);
+  });
+});
+
+describe('getValidatedDashboardLayout (corrupted-config crash guard)', () => {
+  beforeEach(() => db.resetToDemoState());
+
+  it('returns the default layout when dashboardLayout is not an array at all', () => {
+    db.updateSettings({ dashboardLayout: 'not-an-array' as unknown as never });
+    expect(() => getValidatedDashboardLayout(db.getState())).not.toThrow();
+    const layout = getValidatedDashboardLayout(db.getState());
+    expect(Array.isArray(layout)).toBe(true);
+    expect(layout.length).toBeGreaterThan(0);
+  });
+
+  it('drops entries with an unknown widget id or a non-boolean visible flag, keeping the valid ones', () => {
+    db.updateSettings({
+      dashboardLayout: [
+        { id: 'resident_attention', visible: true },
+        { id: 'some_deleted_future_widget', visible: true } as unknown as never,
+        { id: 'latest_fyi', visible: 'yes' } as unknown as never,
+      ],
+    });
+    const layout = getValidatedDashboardLayout(db.getState());
+    expect(layout).toEqual([{ id: 'resident_attention', visible: true }]);
+  });
+
+  it('falls back to the default layout entirely when every entry is malformed', () => {
+    db.updateSettings({ dashboardLayout: [{ bogus: true } as unknown as never] });
+    const layout = getValidatedDashboardLayout(db.getState());
+    expect(layout.length).toBeGreaterThan(0);
+    expect(layout.every(w => typeof w.visible === 'boolean')).toBe(true);
+  });
+
+  it('passes a well-formed layout through unchanged', () => {
+    const wellFormed = [{ id: 'latest_fyi' as const, visible: false }];
+    db.updateSettings({ dashboardLayout: wellFormed });
+    expect(getValidatedDashboardLayout(db.getState())).toEqual(wellFormed);
   });
 });
 

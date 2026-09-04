@@ -1275,6 +1275,9 @@ export class DatabaseService {
       }));
       parsed.woundSupplyCatalog = mergeWoundSupplyCatalog(parsed.woundSupplyCatalog);
       parsed.wounds = (parsed.wounds || []).map((wound: Wound) => migrateWoundStructure(wound, parsed.woundSupplyCatalog));
+      // `importance` is required by the FYI type but was added after some
+      // backups were created; default any legacy record missing it.
+      parsed.fyis = (parsed.fyis || []).map((fyi: FYI) => ({ ...fyi, importance: fyi.importance || 'normal' }));
       Object.assign(parsed, migrateRoomModel(parsed.residents || [], parsed.rooms || [], parsed.occupancyPositions || [], parsed.residentPlacementHistory || []));
       this.saveToStorage(parsed);
     } catch (e: any) {

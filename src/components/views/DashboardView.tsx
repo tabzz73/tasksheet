@@ -15,7 +15,7 @@ import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generato
 import { AddEntityType } from '../modals/GlobalAddModal';
 import { CardNavigationButton } from '../common/CardNavigationButton';
 import { ViewHeader } from '../common/ViewHeader';
-import { DEFAULT_DASHBOARD_LAYOUT } from '../../data/defaultData';
+import { getValidatedDashboardLayout } from '../../services/dashboard';
 import {
   AwayFromUnitCard,
   ResidentAttentionCard,
@@ -59,7 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [addAttentionOpen, setAddAttentionOpen] = React.useState(false);
   const [, forceRerender] = React.useState(0);
   const state = db.getState();
-  const layout = state.settings.dashboardLayout || DEFAULT_DASHBOARD_LAYOUT;
+  const layout = getValidatedDashboardLayout(state);
   const openResident = onOpenResidentProfile || (() => undefined);
   const goToSettings = onNavigateToSettings || (() => undefined);
   const goToBathing = onNavigateToBathing || (() => undefined);
@@ -234,6 +234,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         isOpen={addAttentionOpen}
         onClose={() => setAddAttentionOpen(false)}
         onSaved={() => forceRerender(n => n + 1)}
+        currentDate={currentDate}
       />
 
       {/* Today's shifts — schedule table, not a card grid */}

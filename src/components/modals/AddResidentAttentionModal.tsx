@@ -8,6 +8,10 @@ interface AddResidentAttentionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
+  /** The app's current operational date (Dashboard's Today/Tomorrow
+   *  selection) — used as the default start date instead of the raw
+   *  wall-clock date. Falls back to the real wall-clock date if omitted. */
+  currentDate?: string;
 }
 
 const SUGGESTED_TYPES = [
@@ -20,15 +24,16 @@ const SUGGESTED_TYPES = [
   'Temporary Care Change',
 ];
 
-export const AddResidentAttentionModal: React.FC<AddResidentAttentionModalProps> = ({ isOpen, onClose, onSaved }) => {
+export const AddResidentAttentionModal: React.FC<AddResidentAttentionModalProps> = ({ isOpen, onClose, onSaved, currentDate }) => {
   const state = db.getState();
   const activeResidents = state.residents.filter(r => r.status === 'active').sort((a, b) => a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true }));
   const shifts = [...state.shifts].filter(s => s.isActive !== false).sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99));
+  const defaultStartDate = currentDate || getTodayLocalDateString();
 
   const [residentId, setResidentId] = useState(activeResidents[0]?.id || '');
   const [type, setType] = useState('');
   const [note, setNote] = useState('');
-  const [startDate, setStartDate] = useState(getTodayLocalDateString());
+  const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState('');
   const [shiftId, setShiftId] = useState('');
   const [importance, setImportance] = useState<'normal' | 'high' | 'urgent'>('normal');
@@ -41,7 +46,7 @@ export const AddResidentAttentionModal: React.FC<AddResidentAttentionModalProps>
 
   const reset = () => {
     setResidentId(activeResidents[0]?.id || '');
-    setType(''); setNote(''); setStartDate(getTodayLocalDateString()); setEndDate('');
+    setType(''); setNote(''); setStartDate(defaultStartDate); setEndDate('');
     setShiftId(''); setImportance('normal'); setIncludeInFyiBinder(false);
     setShowOnDashboard(true); setShowInHuddle(false); setError('');
   };

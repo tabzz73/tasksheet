@@ -1,4 +1,4 @@
-import { AppDatabaseState, Resident, ResidentTask, Wound, Role, Shift, FacilitySettings, CatalogTaskTemplate, WoundSupplyProduct, FacilityRoom, OccupancyPosition, ResidentPlacementHistory, ResidentStatus } from '../types';
+import { AppDatabaseState, FYI, Resident, ResidentTask, Wound, Role, Shift, FacilitySettings, CatalogTaskTemplate, WoundSupplyProduct, FacilityRoom, OccupancyPosition, ResidentPlacementHistory, ResidentStatus } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_ROLES, DEFAULT_SHIFTS, DEFAULT_BINDER_STATE } from '../data/defaultData';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { WOUND_SUPPLY_CATALOG_SEED } from '../data/woundSupplyCatalog';
@@ -278,7 +278,10 @@ export function migrateLoadedState(parsed: any): AppDatabaseState {
     ...roomModel,
     residentTasks: migratedResidentTasks,
     unitTasks: parsed.unitTasks || [],
-    fyis: parsed.fyis || [],
+    // `importance` is required by the FYI type but was added after some
+    // backups were created; default any legacy record missing it so
+    // Dashboard sorting/priority filtering never sees `undefined`.
+    fyis: (parsed.fyis || []).map((f: FYI) => ({ ...f, importance: f.importance || 'normal' })),
     wounds: migratedWounds,
     woundSupplyCatalog,
     legacyCompletions: parsed.legacyCompletions || parsed.completions || [], // migrate old key

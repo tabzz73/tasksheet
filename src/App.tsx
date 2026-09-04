@@ -269,6 +269,7 @@ export function App() {
         initialType={modal.addModal.initialType}
         contextResidentId={modal.addModal.contextResidentId}
         contextShiftId={modal.addModal.contextShiftId}
+        currentDate={nav.currentDate}
       />
 
       {/* Quick Care Setup Modal */}

@@ -1,12 +1,35 @@
-import { AppDatabaseState, FYI, OperationalPriority, Resident, ResidentAttentionItem, ResidentTask, Wound } from '../types';
-import { getResidentStatusLabel } from './residentStatus';
+import { AppDatabaseState, DashboardWidgetConfig, DashboardWidgetId, FYI, OperationalPriority, Resident, ResidentAttentionItem, ResidentTask, Wound } from '../types';
+import { getResidentStatusLabel, isResidentCurrent } from './residentStatus';
 import { sortRoomNumbers } from './generator';
 import { buildBathingScheduleModel } from './print/specializedDocs';
 import { isWithinActiveWindow } from './recurrence';
+import { DEFAULT_DASHBOARD_LAYOUT } from '../data/defaultData';
 
 export { isWithinActiveWindow };
 
 const PRIORITY_RANK: Record<OperationalPriority, number> = { urgent: 0, high: 1, normal: 2 };
+
+const KNOWN_WIDGET_IDS: readonly DashboardWidgetId[] = [
+  'unit_situation', 'away_from_unit', 'resident_attention', 'resident_follow_up',
+  'latest_fyi', 'code_of_month', 'todays_bathing', 'wound_attention',
+];
+
+/** Defensive read of the Dashboard's saved layout — mirrors the same
+ *  "corrupted localStorage/backup can never crash the app" pattern already
+ *  used for saved print packages. A non-array value, or one containing
+ *  malformed entries, falls back to the default layout entirely rather
+ *  than letting `.filter`/`.map` throw on a shape nothing here produced
+ *  (e.g. a hand-edited backup file, or a value from an even older schema). */
+export function getValidatedDashboardLayout(state: AppDatabaseState): DashboardWidgetConfig[] {
+  const raw = state.settings.dashboardLayout;
+  if (!Array.isArray(raw)) return DEFAULT_DASHBOARD_LAYOUT;
+  const cleaned = raw.filter((w): w is DashboardWidgetConfig =>
+    Boolean(w) && typeof w === 'object' &&
+    KNOWN_WIDGET_IDS.includes((w as DashboardWidgetConfig).id) &&
+    typeof (w as DashboardWidgetConfig).visible === 'boolean'
+  );
+  return cleaned.length > 0 ? cleaned : DEFAULT_DASHBOARD_LAYOUT;
+}
 
 export interface DashboardAttentionEntry {
   resident: Resident;
@@ -23,6 +46,7 @@ export function getActiveResidentAttentionItems(state: AppDatabaseState, today: 
   const tomorrow = addDays(today, 1);
   const entries: DashboardAttentionEntry[] = [];
   for (const resident of state.residents) {
+    if (!isResidentCurrent(resident.status)) continue;
     for (const item of resident.attentionItems || []) {
       if (!item.active) continue;
       if (item.showOnDashboard === false) continue;
@@ -65,6 +89,11 @@ export function getAwayResidents(state: AppDatabaseState): AwayResidentEntry[] {
 export function getDashboardFyis(state: AppDatabaseState, today: string, limit = 5): FYI[] {
   return state.fyis
     .filter(f => f.status === 'active' && f.showOnDashboard !== false && isWithinActiveWindow(f.effectiveDate, f.expiryDate, today))
+    .filter(f => {
+      if (!f.residentId) return true;
+      const resident = state.residents.find(r => r.id === f.residentId);
+      return Boolean(resident && isResidentCurrent(resident.status));
+    })
     .sort((a, b) => {
       const rankDiff = PRIORITY_RANK[a.importance] - PRIORITY_RANK[b.importance];
       if (rankDiff !== 0) return rankDiff;
@@ -126,7 +155,7 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
     const end = task.recurrenceRule?.endDate;
     if (!isWithinActiveWindow(start, end, today)) continue;
     const resident = state.residents.find(r => r.id === task.residentId);
-    if (!resident) continue;
+    if (!resident || !isResidentCurrent(resident.status)) continue;
     const dateLabel = !end ? 'Active' : end === today ? 'Ends today' : `Through ${formatShortDate(end)}`;
     entries.push({ resident, task, dateLabel, endingSoon: end === today || end === tomorrow });
   }
@@ -135,6 +164,87 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
     if (rankDiff !== 0) return rankDiff;
     return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
   });
+}
+
+export type UnitSituationEntryKind = 'attention' | 'follow_up' | 'away' | 'fyi';
+
+export interface UnitSituationEntry {
+  kind: UnitSituationEntryKind;
+  id: string;
+  roomNumber?: string;
+  label: string;
+  /** Opens the resident profile when clicked; undefined for unscoped FYIs. */
+  residentId?: string;
+  /** 'away' entries only — picks Hospital vs. a neutral away icon. */
+  isHospital?: boolean;
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+/** The flagship huddle briefing: a SELECTIVE summary of the highest-priority
+ *  items across every source (Resident Attention, Resident Follow-up, Away
+ *  From Unit, urgent FYIs) — not an exhaustive re-listing of everything
+ *  already shown on its own dedicated card. FYI text is truncated to a
+ *  short line here specifically so this card never duplicates the full FYI
+ *  text the Latest FYI card already shows. Capped to `limit` items so a
+ *  quiet shift renders a short, scannable list instead of every record. */
+export function getUnitSituationSummary(state: AppDatabaseState, today: string, limit = 6): UnitSituationEntry[] {
+  const pool: (UnitSituationEntry & { rank: number })[] = [];
+
+  for (const { resident, item } of getActiveResidentAttentionItems(state, today)) {
+    pool.push({
+      kind: 'attention',
+      id: `att_${item.id}`,
+      roomNumber: resident.roomNumber,
+      label: item.type,
+      residentId: resident.id,
+      rank: PRIORITY_RANK[item.importance || 'normal'],
+    });
+  }
+
+  for (const { resident, task, dateLabel } of getResidentFollowUpTasks(state, today)) {
+    pool.push({
+      kind: 'follow_up',
+      id: `fu_${task.id}`,
+      roomNumber: resident.roomNumber,
+      label: `${task.title} — ${dateLabel}`,
+      residentId: resident.id,
+      rank: PRIORITY_RANK[task.priority || 'normal'],
+    });
+  }
+
+  for (const { resident, statusLabel } of getAwayResidents(state)) {
+    pool.push({
+      kind: 'away',
+      id: `away_${resident.id}`,
+      roomNumber: resident.roomNumber,
+      label: statusLabel,
+      residentId: resident.id,
+      isHospital: resident.status === 'in_hospital',
+      rank: 1, // "important" tier — not clinically urgent, but not routine either
+    });
+  }
+
+  // Only FYIs already important enough to warrant a mention — a normal FYI
+  // belongs solely on the Latest FYI card, never duplicated here.
+  for (const fyi of getDashboardFyis(state, today, 20).filter(f => f.importance !== 'normal')) {
+    pool.push({
+      kind: 'fyi',
+      id: `fyi_${fyi.id}`,
+      label: truncate(fyi.text, 70),
+      rank: PRIORITY_RANK[fyi.importance],
+    });
+  }
+
+  return pool
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, limit)
+    .map(({ rank: _rank, ...entry }) => entry);
 }
 
 /** Count of residents scheduled to bathe on `today`, reusing the exact same

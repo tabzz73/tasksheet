@@ -64,4 +64,31 @@ describe('release recovery and persistence hardening', () => {
     expect(restored.residents.length).toBeGreaterThan(0);
     expect(restored.residentTasks.length).toBeGreaterThan(0);
   });
+
+  it('defaults a legacy FYI missing the (now-required) importance field to normal on restore, rather than leaving it undefined', () => {
+    db.resetToDemoState();
+    const backup = JSON.parse(db.backupDatabase());
+    backup.fyis.push({
+      id: 'legacy-fyi-no-importance', text: 'Pre-existing note from an old backup', category: 'general',
+      effectiveDate: '2026-01-01', version: 1, status: 'active', createdAt: '2026-01-01T00:00:00.000Z', source: 'manual',
+      // `importance` intentionally omitted — simulates a backup created
+      // before this field existed.
+    });
+    db.resetToInitialState();
+    db.restoreDatabase(JSON.stringify(backup));
+    const restored = db.getState().fyis.find(f => f.id === 'legacy-fyi-no-importance');
+    expect(restored?.importance).toBe('normal');
+  });
+
+  it('falls back to the default Dashboard layout instead of crashing when settings.dashboardLayout is a malformed non-array value', () => {
+    db.resetToDemoState();
+    const backup = JSON.parse(db.backupDatabase());
+    backup.settings.dashboardLayout = 'corrupted-not-an-array';
+    db.resetToInitialState();
+    // The malformed value round-trips through restore (restoreDatabase does
+    // not itself reject it) — the important thing is that consuming it via
+    // the validated selector below never throws.
+    expect(() => db.restoreDatabase(JSON.stringify(backup))).not.toThrow();
+    expect(db.getState().settings.dashboardLayout).toBe('corrupted-not-an-array');
+  });
 });

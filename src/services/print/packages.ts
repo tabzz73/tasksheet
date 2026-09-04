@@ -121,6 +121,7 @@ export function buildHcaDailyPackage(
       });
     } catch (err) {
       console.error('[buildHcaDailyPackage] Error generating shift sheet:', err);
+      configurationWarnings.push(`${shift.shortCode || shift.name} could not be generated and was left out of this package — check its configuration in Settings → Roles & Shifts.`);
     }
   }
 
@@ -219,6 +220,7 @@ export function buildLpnClinicalPackage(
       });
     } catch (err) {
       console.error('[buildLpnClinicalPackage] Error generating clinical sheet:', err);
+      configurationWarnings.push(`${shift.shortCode || shift.name} could not be generated and was left out of this package — check its configuration in Settings → Roles & Shifts.`);
     }
   }
 

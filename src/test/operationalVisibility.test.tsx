@@ -86,4 +86,14 @@ describe('Resident Attention Dashboard/Huddle visibility', () => {
     expect(stored?.showOnDashboard).toBe(false);
     expect(stored?.showInHuddle).toBe(true);
   });
+
+  it('defaults the start date to the app\'s operational currentDate, not the raw wall-clock date', () => {
+    render(<AddResidentAttentionModal isOpen onClose={() => undefined} onSaved={() => undefined} currentDate="2026-09-03" />);
+
+    fireEvent.change(screen.getByLabelText("What's being tracked"), { target: { value: 'Overnight Observation' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Attention Item' }));
+
+    const stored = db.getState().residents.flatMap(r => r.attentionItems || []).find(a => a.type === 'Overnight Observation');
+    expect(stored?.startDate).toBe('2026-09-03');
+  });
 });

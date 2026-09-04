@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ClockAlert, CircleAlert, Droplets, Hospital, Info, ShieldAlert, Sparkles, TriangleAlert } from 'lucide-react';
+import { Activity, ClockAlert, CircleAlert, Droplets, Hospital, Info, LogOut, ShieldAlert, Sparkles, TriangleAlert } from 'lucide-react';
 import { AppDatabaseState, EmergencyCode } from '../../types';
 import {
   getActiveResidentAttentionItems,
@@ -7,8 +7,19 @@ import {
   getDashboardFyis,
   getResidentFollowUpTasks,
   getTodaysBathingCount,
+  getUnitSituationSummary,
   getWoundAttentionItems,
+  UnitSituationEntry,
 } from '../../services/dashboard';
+
+/** One icon per content kind, never the same warning icon for everything —
+ *  reinforces what the item actually is, not just that it's important. */
+const UNIT_SITUATION_ICON: Record<UnitSituationEntry['kind'], React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>> = {
+  attention: TriangleAlert,
+  follow_up: Activity,
+  away: Hospital, // overridden per-entry for non-hospital away statuses
+  fyi: Info,
+};
 
 const FYI_IMPORTANCE_BADGE: Record<string, string> = {
   urgent: 'badge-danger',
@@ -83,7 +94,7 @@ export const ResidentAttentionCard: React.FC<{ state: AppDatabaseState; today: s
         Resident Attention
       </h3>
       {items.length === 0 ? (
-        <p className="text-[12px] text-muted">No active attention items.</p>
+        <p className="text-[12px] text-muted">No active resident attention items.</p>
       ) : (
         <ul className="space-y-1.5">
           {items.map(({ resident, item, endingSoon }) => (
@@ -184,12 +195,13 @@ export const LatestFyiCard: React.FC<{ state: AppDatabaseState; today: string; o
 };
 
 // ─── Current Unit Situation (flagship huddle panel) ────────────────────────
+// A SELECTIVE briefing summary — the highest-priority items across Resident
+// Attention, Resident Follow-up, Away From Unit, and urgent FYIs, capped to
+// a handful of lines. It intentionally does not re-list everything already
+// shown in full on those cards' own dedicated widgets; FYI text here is a
+// short truncated line, never the full text Latest FYI already shows.
 export const UnitSituationCard: React.FC<{ state: AppDatabaseState; today: string; onOpenResident: (id: string) => void; onNavigateToBinder: () => void }> = ({ state, today, onOpenResident, onNavigateToBinder }) => {
-  const away = getAwayResidents(state);
-  const attention = getActiveResidentAttentionItems(state, today);
-  const urgentFyis = getDashboardFyis(state, today, 5).filter(f => f.importance !== 'normal');
-
-  const lineCount = away.length + attention.length + urgentFyis.length;
+  const entries = getUnitSituationSummary(state, today);
 
   return (
     <div className="title-block rounded-surface p-4">
@@ -197,36 +209,23 @@ export const UnitSituationCard: React.FC<{ state: AppDatabaseState; today: strin
         <ShieldAlert className="w-4 h-4 text-accent" aria-hidden="true" />
         <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft">Current Unit Situation</h3>
       </div>
-      {lineCount === 0 ? (
+      {entries.length === 0 ? (
         <p className="text-[12px] text-muted">Nothing unusual to report — a quiet shift so far.</p>
       ) : (
         <ul className="space-y-1.5">
-          {attention.map(({ resident, item }) => (
-            <li key={`att_${item.id}`}>
-              <button type="button" onClick={() => onOpenResident(resident.id)} className="w-full flex items-center gap-1.5 text-left px-2 py-1 -mx-2 rounded-control hover:bg-panel-sunken transition-colors text-[12.5px]">
-                <Activity className="w-3.5 h-3.5 text-warning shrink-0" aria-hidden="true" />
-                <span className="font-mono font-bold text-ink-soft mr-1.5">{resident.roomNumber}</span>
-                <span className="text-ink">{item.type}</span>
-              </button>
-            </li>
-          ))}
-          {away.map(({ resident, statusLabel }) => (
-            <li key={`away_${resident.id}`}>
-              <button type="button" onClick={() => onOpenResident(resident.id)} className="w-full flex items-center gap-1.5 text-left px-2 py-1 -mx-2 rounded-control hover:bg-panel-sunken transition-colors text-[12.5px]">
-                {resident.status === 'in_hospital' && <Hospital className="w-3.5 h-3.5 text-warning shrink-0" aria-hidden="true" />}
-                <span className="font-mono font-bold text-ink-soft mr-1.5">{resident.roomNumber}</span>
-                <span className="text-ink">{statusLabel}</span>
-              </button>
-            </li>
-          ))}
-          {urgentFyis.map(fyi => (
-            <li key={`fyi_${fyi.id}`}>
-              <button type="button" onClick={onNavigateToBinder} className="w-full flex items-center gap-1.5 text-left px-2 py-1 -mx-2 rounded-control hover:bg-panel-sunken transition-colors text-[12.5px] text-ink">
-                <FyiImportanceFlag importance={fyi.importance} />
-                <span className="truncate">{fyi.text}</span>
-              </button>
-            </li>
-          ))}
+          {entries.map(entry => {
+            const Icon = entry.kind === 'away' && !entry.isHospital ? LogOut : UNIT_SITUATION_ICON[entry.kind];
+            const onClick = entry.kind === 'fyi' ? onNavigateToBinder : () => entry.residentId && onOpenResident(entry.residentId);
+            return (
+              <li key={entry.id}>
+                <button type="button" onClick={onClick} className="w-full flex items-center gap-1.5 text-left px-2 py-1 -mx-2 rounded-control hover:bg-panel-sunken transition-colors text-[12.5px]">
+                  <Icon className="w-3.5 h-3.5 text-warning shrink-0" aria-hidden="true" />
+                  {entry.roomNumber && <span className="font-mono font-bold text-ink-soft mr-1.5 shrink-0">{entry.roomNumber}</span>}
+                  <span className="text-ink truncate">{entry.label}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
