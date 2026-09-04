@@ -7,6 +7,7 @@ import { AddResidentAttentionModal } from '../components/modals/AddResidentAtten
 import { db } from '../db';
 import { SHIFT_HCA_DAY_ID } from '../data/defaultData';
 import { ResidentFollowUpCard } from '../components/dashboard/DashboardWidgets';
+import { getTodayLocalDateString } from '../services/recurrence';
 
 describe('Resident Task Dashboard/Huddle visibility (opt-in)', () => {
   beforeEach(() => db.resetToDemoState());
@@ -60,7 +61,11 @@ describe('Resident Task Dashboard/Huddle visibility (opt-in)', () => {
     expect(saved!.showInHuddle).toBe(true);
 
     cleanup();
-    render(<ResidentFollowUpCard state={db.getState()} today="2026-09-03" onOpenResident={() => undefined} />);
+    // Match "today" to what the task's own default due date was actually
+    // computed from (real wall-clock time via createdAt/getTodayLocalDateString)
+    // — a fixed literal here drifts out of sync with that default as the
+    // real calendar date moves on, wrongly excluding a not-yet-due task.
+    render(<ResidentFollowUpCard state={db.getState()} today={getTodayLocalDateString()} onOpenResident={() => undefined} />);
     expect(screen.getByText('RAI Tracking')).not.toBeNull();
   });
 });

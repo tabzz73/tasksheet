@@ -88,7 +88,11 @@ describe('GlobalAddModal — Follow-up due date field', () => {
     fireEvent.change(dueDateInput, { target: { value: '2026-09-01' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add Task' }));
 
-    const saved = db.getState().residentTasks.find(t => t.title === 'Collect urine sample');
+    // Scoped by residentId, not just title — demo seed data already includes
+    // an unrelated resident's task titled "Collect urine sample", and a
+    // title-only match can silently pick that one up instead of the task
+    // this test just created.
+    const saved = db.getState().residentTasks.find(t => t.residentId === resident.id && t.title === 'Collect urine sample');
     expect(saved?.followUpDueDate).toBe('2026-09-01');
   });
 

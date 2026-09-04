@@ -10,6 +10,7 @@ import {
   ResidentFollowUpCard,
   UnitSituationCard,
 } from '../components/dashboard/DashboardWidgets';
+import { getTodayLocalDateString } from '../services/recurrence';
 
 const noop = () => undefined;
 
@@ -46,7 +47,10 @@ describe('Dashboard aggregation — no duplication, correct empty/demo states', 
 
     it('demonstrates all three content types with non-empty cards', () => {
       const state = db.getState();
-      const today = '2026-09-03';
+      // Demo seed data's active windows are computed relative to the real
+      // wall-clock date (not a fixed literal), so "today" here must match
+      // that same real date or eligibility silently drifts as time passes.
+      const today = getTodayLocalDateString();
 
       render(<ResidentAttentionCard state={state} today={today} onOpenResident={noop} />);
       expect(screen.queryByText('No active resident attention items.')).toBeNull();
