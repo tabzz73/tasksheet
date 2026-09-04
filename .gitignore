@@ -57,3 +57,7 @@ temp/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Impeccable skill: session-local caches, not project design-system history
+.impeccable/hook.cache.json
+.impeccable/live/

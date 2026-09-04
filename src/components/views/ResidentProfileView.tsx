@@ -317,7 +317,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 bg-ink text-white rounded-surface shadow-elevated text-xs font-semibold flex items-center space-x-2 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 p-4 bg-ink text-white rounded-surface shadow-elevated text-xs font-semibold flex items-center space-x-2 animate-toast-in">
           <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -444,7 +444,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                 {addMenuOpen && (
                   <div 
                     onClick={() => setAddMenuOpen(false)}
-                    className="absolute right-0 mt-1.5 w-48 bg-panel rounded-surface shadow-elevated border border-hairline-strong py-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-100"
+                    className="absolute right-0 mt-1.5 w-48 bg-panel rounded-surface shadow-elevated border border-hairline-strong py-1.5 z-40 text-xs animate-popover-in"
                   >
                     <button
                       type="button"

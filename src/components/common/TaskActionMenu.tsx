@@ -89,6 +89,9 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
         top: openUpwards ? undefined : rect.bottom + gap,
         bottom: openUpwards ? window.innerHeight - rect.top + gap : undefined,
         maxHeight: Math.max(160, openUpwards ? rect.top - padding - gap : spaceBelow - gap),
+        // The menu should visibly scale out of the corner nearest its
+        // trigger, not the geometric center of the popup.
+        transformOrigin: `${openUpwards ? 'bottom' : 'top'} ${align === 'right' ? 'right' : 'left'}`,
       });
     } else {
       setMenuPosition(null);
@@ -105,7 +108,7 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
         onClick={handleToggle}
         aria-label={ariaLabel}
         aria-expanded={isOpen}
-        className="p-1.5 sm:p-1 rounded-control text-faint hover:text-ink hover:bg-panel-sunken active:bg-hairline transition-colors focus:outline-none focus:ring-2 focus:ring-accent min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0 cursor-pointer"
+        className="hit-target-44 p-1.5 sm:p-1 rounded-control text-faint hover:text-ink hover:bg-panel-sunken active:bg-hairline transition-colors focus:outline-none focus:ring-2 focus:ring-accent min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0 cursor-pointer"
       >
         <MoreVertical className="w-4 h-4" />
       </button>
@@ -114,7 +117,7 @@ export const TaskActionMenu: React.FC<TaskActionMenuProps> = ({
         <div
           ref={popupRef}
           style={menuPosition}
-          className="fixed z-[9999] w-48 overflow-y-auto rounded-surface bg-panel shadow-elevated border border-hairline-strong py-1 text-xs text-ink-soft focus:outline-none animate-in fade-in zoom-in-95 duration-100"
+          className="fixed z-[9999] w-48 overflow-y-auto rounded-surface bg-panel shadow-elevated border border-hairline-strong py-1 text-xs text-ink-soft focus:outline-none animate-popover-in"
           role="menu"
           aria-label={`${typeLabel} actions`}
           onClick={(event) => event.stopPropagation()}

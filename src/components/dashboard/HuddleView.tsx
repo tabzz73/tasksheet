@@ -9,17 +9,21 @@ interface HuddleViewProps {
   onClose: () => void;
   state: AppDatabaseState;
   today: string;
+  /** Same "Thursday, September 3, 2026" format the Dashboard header shows —
+   *  passed in rather than reformatted here so the two views can never drift
+   *  onto different date conventions for what is the same operational day. */
+  formattedToday: string;
 }
 
 const SectionHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h4 className="text-[12px] font-bold uppercase tracking-wide text-ink-soft mb-1.5">{children}</h4>
+  <h4 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-1.5">{children}</h4>
 );
 
 /** Read-only shift-change briefing — assembled fresh from Census, Away,
  *  showInHuddle Attention (Unit/Site and Resident), showInHuddle Resident
  *  Tasks, showInHuddle FYIs, and Code of the Month. Not a record type: there
  *  is nothing here to create, edit, or persist. */
-export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, today }) => {
+export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, today, formattedToday }) => {
   if (!isOpen) return null;
   const briefing = getHuddleBriefing(state, today);
   const nothingToShow =
@@ -30,7 +34,7 @@ export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, 
     briefing.importantFyis.length === 0;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Shift Huddle" subtitle={`Briefing for ${today}`} maxWidth="3xl">
+    <Modal isOpen={isOpen} onClose={onClose} title="Shift Huddle" subtitle={`Briefing for ${formattedToday}`} maxWidth="3xl">
       <div className="space-y-5">
         <div>
           <SectionHeading>Census</SectionHeading>
@@ -130,6 +134,10 @@ export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, 
         {nothingToShow && (
           <p className="text-[12.5px] text-muted">Nothing flagged for huddle — a quiet shift so far.</p>
         )}
+
+        <div className="flex items-center justify-end pt-3 border-t border-hairline">
+          <button type="button" onClick={onClose} className="btn btn-secondary">Done</button>
+        </div>
       </div>
     </Modal>
   );

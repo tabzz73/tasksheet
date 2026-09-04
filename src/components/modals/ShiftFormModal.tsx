@@ -149,7 +149,7 @@ export const ShiftFormModal: React.FC<ShiftFormModalProps> = ({
       <form onSubmit={handleSubmit} onChangeCapture={() => setHasUnsavedChanges(true)} className="space-y-4">
         {showUnsavedWarning && <ConflictNotice result={{ status: 'WARNING', title: 'Unsaved Changes', message: 'You have shift changes that have not been saved. Keep editing to preserve them, or discard them and close.', recommendedActions: [{ id: 'keep_editing', label: 'Keep Editing', kind: 'primary' }, { id: 'discard', label: 'Discard Changes', kind: 'cancel' }] }} onAction={action => { if (action === 'discard') onClose(); else setShowUnsavedWarning(false); }} />}
         {error && (
-          <div className="p-3 bg-danger-soft border border-danger rounded-control text-xs font-semibold text-danger flex items-start space-x-2 animate-in fade-in">
+          <div className="p-3 bg-danger-soft border border-danger rounded-control text-xs font-semibold text-danger flex items-start space-x-2 animate-fade-in">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>

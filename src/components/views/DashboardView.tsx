@@ -8,8 +8,11 @@ import {
   ClipboardList,
   Bandage,
   ChevronDown,
+  ChevronRight,
   Settings2,
   Megaphone,
+  Activity,
+  BookOpenCheck,
 } from 'lucide-react';
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
@@ -56,10 +59,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigateToSettings,
   onNavigateToBathing,
 }) => {
-  const [quickAddOpen, setQuickAddOpen] = React.useState(false);
-  const [customizeOpen, setCustomizeOpen] = React.useState(false);
-  const [addAttentionOpen, setAddAttentionOpen] = React.useState(false);
-  const [huddleOpen, setHuddleOpen] = React.useState(false);
+  // A single overlay slot, not four independent booleans, so opening one
+  // dashboard overlay always closes any other — without this, Customize and
+  // Shift Huddle (or the Quick Add dropdown) could be triggered in sequence
+  // and stay open simultaneously, stacking two modal backdrops with no
+  // defined z-order between them.
+  type DashboardOverlay = 'quickAdd' | 'customize' | 'addAttention' | 'huddle' | null;
+  const [openOverlay, setOpenOverlay] = React.useState<DashboardOverlay>(null);
   const [, forceRerender] = React.useState(0);
   const state = db.getState();
   const layout = getValidatedDashboardLayout(state);
@@ -108,7 +114,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setAddAttentionOpen(true)}
+              onClick={() => setOpenOverlay('addAttention')}
               className="btn btn-secondary"
             >
               <Info className="w-3.5 h-3.5" />
@@ -116,7 +122,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setCustomizeOpen(true)}
+              onClick={() => setOpenOverlay('customize')}
               className="btn btn-secondary"
             >
               <Settings2 className="w-3.5 h-3.5" />
@@ -124,7 +130,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setHuddleOpen(true)}
+              onClick={() => setOpenOverlay('huddle')}
               className="btn btn-accent"
             >
               <Megaphone className="w-3.5 h-3.5" />
@@ -133,7 +139,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="relative">
             <button
               type="button"
-              onClick={() => setQuickAddOpen(!quickAddOpen)}
+              onClick={() => setOpenOverlay(openOverlay === 'quickAdd' ? null : 'quickAdd')}
               className="btn btn-accent"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -141,9 +147,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <ChevronDown className="w-3 h-3 opacity-80" />
             </button>
 
-            {quickAddOpen && (
+            {openOverlay === 'quickAdd' && (
               <div
-                onClick={() => setQuickAddOpen(false)}
+                onClick={() => setOpenOverlay(null)}
                 className="absolute right-0 mt-1.5 w-56 bg-panel rounded-surface border border-hairline-strong shadow-elevated py-1 z-40 text-[13px]"
               >
                 <button type="button" onClick={() => onOpenQuickAdd('care_task')} className="w-full px-3.5 h-9 text-left hover:bg-panel-sunken font-semibold text-ink flex items-center gap-2.5">
@@ -173,29 +179,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         }
       />
 
-      {/* Operational summary — 4 individual stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="title-block rounded-surface px-5 py-4">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Scheduled Today</div>
+      {/* Operational summary — one unified strip, not four separate cards.
+          Column dividers (not per-tile borders/shadows) keep this from
+          reading as a generic admin-dashboard KPI row; the two navigable
+          tiles carry a persistent chevron so their affordance doesn't
+          depend on hover to be discovered. */}
+      <div className="title-block rounded-surface grid grid-cols-2 lg:grid-cols-4 lg:divide-x divide-hairline">
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-muted">
+            <Clock className="w-3 h-3" aria-hidden="true" />
+            Scheduled Today
+          </div>
           <div className="font-heading text-[32px] font-extrabold text-ink tabular-nums mt-1.5">{totalScheduledToday}</div>
           <div className="text-[12px] text-faint mt-0.5">across {activeShifts.length} shift{activeShifts.length === 1 ? '' : 's'}</div>
         </div>
-        <button type="button" onClick={onNavigateToResidents} className="title-block rounded-surface px-5 py-4 text-left hover:bg-panel-sunken transition-colors">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Residents</div>
+        <button type="button" onClick={onNavigateToResidents} className="relative px-5 py-4 text-left hover:bg-panel-sunken transition-colors">
+          <ChevronRight className="w-3.5 h-3.5 text-faint absolute top-4 right-4" aria-hidden="true" />
+          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-muted">
+            <Users className="w-3 h-3" aria-hidden="true" />
+            Residents
+          </div>
           <div className="font-heading text-[32px] font-extrabold text-ink tabular-nums mt-1.5">{activeResidentCount}</div>
           <div className="text-[12px] text-faint mt-0.5">
             {suspendedCount > 0 ? `${inHospitalCount} hosp · ${outOnPassCount} pass · ${onHoldCount} hold` : 'no care suspensions'}
           </div>
         </button>
-        <div className="title-block rounded-surface px-5 py-4">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">Active Shifts</div>
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-muted">
+            <Activity className="w-3 h-3" aria-hidden="true" />
+            Active Shifts
+          </div>
           <div className="font-heading text-[32px] font-extrabold text-ink tabular-nums mt-1.5">{activeShifts.length}</div>
           <div className="text-[12px] text-faint mt-0.5 truncate">
             {activeShifts.slice(0, 3).map(s => s.shortCode || s.name).join(' · ')}{activeShifts.length > 3 ? ` +${activeShifts.length - 3}` : ''}
           </div>
         </div>
-        <button type="button" onClick={onNavigateToBinder} className="title-block rounded-surface px-5 py-4 text-left hover:bg-panel-sunken transition-colors">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-muted">FYI Binder</div>
+        <button type="button" onClick={onNavigateToBinder} className="relative px-5 py-4 text-left hover:bg-panel-sunken transition-colors">
+          <ChevronRight className="w-3.5 h-3.5 text-faint absolute top-4 right-4" aria-hidden="true" />
+          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-muted">
+            <BookOpenCheck className="w-3 h-3" aria-hidden="true" />
+            FYI Binder
+          </div>
           <div className={`font-heading text-[32px] font-extrabold mt-1.5 ${binderNeedsUpdate ? 'text-warning' : 'text-positive'}`}>
             {binderNeedsUpdate ? 'Update Req.' : 'Current'}
           </div>
@@ -205,59 +229,75 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </button>
       </div>
 
-      {/* Operational awareness widgets — configurable via Customize */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+      {/* Operational awareness widgets — configurable via Customize.
+          A CSS multi-column layout, not a grid: with grid auto-flow, one
+          tall widget (e.g. Latest FYI with several entries) stretches its
+          entire row and strands a short row-mate in dead whitespace above
+          the next row — and since widget order is user-reconfigurable via
+          Customize, which pair lands in the same row (and how badly it
+          mismatches) isn't predictable. Columns let each widget's height
+          stay its own; nothing downstream is forced to match a sibling. */}
+      <div className="columns-1 lg:columns-2 gap-3.5">
         {layout.filter(w => w.visible).map(w => {
-          switch (w.id) {
-            case 'unit_situation':
-              return <UnitSituationCard key={w.id} state={state} today={currentDate} />;
-            case 'resident_attention':
-              return <ResidentAttentionCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
-            case 'resident_follow_up':
-              return <ResidentFollowUpCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} onChanged={() => forceRerender(n => n + 1)} />;
-            case 'latest_fyi':
-              return <LatestFyiCard key={w.id} state={state} today={currentDate} onNavigateToBinder={onNavigateToBinder} />;
-            case 'away_from_unit':
-              return <AwayFromUnitCard key={w.id} state={state} onOpenResident={openResident} />;
-            case 'code_of_month':
-              return <CodeOfMonthCard key={w.id} state={state} onOpenSettings={goToSettings} />;
-            case 'todays_bathing':
-              return <TodaysBathingCard key={w.id} state={state} today={currentDate} onNavigateToBathing={goToBathing} />;
-            case 'wound_attention':
-              return <WoundAttentionCard key={w.id} state={state} today={currentDate} onOpenResident={openResident} />;
-            default:
-              return null;
-          }
+          const widget = (() => {
+            switch (w.id) {
+              case 'unit_situation':
+                return <UnitSituationCard state={state} today={currentDate} />;
+              case 'resident_attention':
+                return <ResidentAttentionCard state={state} today={currentDate} onOpenResident={openResident} />;
+              case 'resident_follow_up':
+                return <ResidentFollowUpCard state={state} today={currentDate} onOpenResident={openResident} onChanged={() => forceRerender(n => n + 1)} />;
+              case 'latest_fyi':
+                return <LatestFyiCard state={state} today={currentDate} onNavigateToBinder={onNavigateToBinder} />;
+              case 'away_from_unit':
+                return <AwayFromUnitCard state={state} onOpenResident={openResident} />;
+              case 'code_of_month':
+                return <CodeOfMonthCard state={state} onOpenSettings={goToSettings} />;
+              case 'todays_bathing':
+                return <TodaysBathingCard state={state} today={currentDate} onNavigateToBathing={goToBathing} />;
+              case 'wound_attention':
+                return <WoundAttentionCard state={state} today={currentDate} onOpenResident={openResident} />;
+              default:
+                return null;
+            }
+          })();
+          if (!widget) return null;
+          return (
+            <div key={w.id} className="break-inside-avoid mb-3.5">
+              {widget}
+            </div>
+          );
         })}
       </div>
 
       <CustomizeDashboardModal
-        isOpen={customizeOpen}
-        onClose={() => setCustomizeOpen(false)}
+        isOpen={openOverlay === 'customize'}
+        onClose={() => setOpenOverlay(null)}
         layout={layout}
         onSave={(next) => {
           db.updateSettings({ dashboardLayout: next });
-          setCustomizeOpen(false);
+          setOpenOverlay(null);
           forceRerender(n => n + 1);
         }}
       />
       <AddResidentAttentionModal
-        isOpen={addAttentionOpen}
-        onClose={() => setAddAttentionOpen(false)}
+        isOpen={openOverlay === 'addAttention'}
+        onClose={() => setOpenOverlay(null)}
         onSaved={() => forceRerender(n => n + 1)}
         currentDate={currentDate}
       />
       <HuddleView
-        isOpen={huddleOpen}
-        onClose={() => setHuddleOpen(false)}
+        isOpen={openOverlay === 'huddle'}
+        onClose={() => setOpenOverlay(null)}
         state={state}
         today={currentDate}
+        formattedToday={formattedDate}
       />
 
       {/* Today's shifts — schedule table, not a card grid */}
       <div>
         <div className="mb-2 flex items-baseline justify-between">
-          <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft">Today's Shifts</h3>
+          <h2 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft">Today's Shifts</h2>
           <p className="text-[11px] text-muted">Select a shift to review or print.</p>
         </div>
 
@@ -312,7 +352,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       type="button"
                       onClick={() => onPrintShift(sheet)}
                       aria-label={`Print ${sheet.shift.shortCode || sheet.shift.name}`}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-control border border-hairline-strong text-ink-soft hover:bg-panel-sunken hover:text-ink transition-colors"
+                      className="hit-target-44 inline-flex items-center justify-center w-8 h-8 rounded-control border border-hairline-strong text-ink-soft hover:bg-panel-sunken hover:text-ink transition-colors"
                     >
                       <Printer className="w-3.5 h-3.5" />
                     </button>

@@ -271,7 +271,7 @@ export const ShiftsView: React.FC<ShiftsViewProps> = ({
                       type="button"
                       onClick={e => handlePrintDirect(e, sheet)}
                       aria-label={`Print ${shift.shortCode || shift.name}`}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-control border border-hairline-strong text-ink-soft hover:bg-panel-sunken hover:text-ink transition-colors"
+                      className="hit-target-44 inline-flex items-center justify-center w-8 h-8 rounded-control border border-hairline-strong text-ink-soft hover:bg-panel-sunken hover:text-ink transition-colors"
                     >
                       <Printer className="w-3.5 h-3.5" />
                     </button>

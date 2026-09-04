@@ -97,7 +97,14 @@
   --color-ink: #141414;
   --color-ink-soft: #5b5f52;
   --color-muted: #6b6f76;
-  --color-faint: #9a9d8f;
+  /* Darkened from #9a9d8f (2.77:1 on panel — failed WCAG AA text contrast,
+     4.5:1 minimum) to #6a6d64, which clears 4.5:1 against both --color-panel
+     and --color-app. This sits close to --color-muted by necessity: on a
+     light panel, "still readable" and "visibly lighter than muted" are in
+     tension, and correctness wins. Reserve --color-faint for genuinely
+     decorative or disabled-adjacent use (AA doesn't apply there); anything
+     that's real informational text should likely use --color-muted instead. */
+  --color-faint: #6a6d64;
 
   /* Hairlines — card border weight (#ece8dc) doubles as the "strong"
      token since this system uses one border weight everywhere; the
@@ -199,8 +206,9 @@
     font-size: 0.8125rem;
     font-weight: 600;
     white-space: nowrap;
-    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease-out;
   }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .btn-primary {
@@ -253,6 +261,19 @@
   .badge-danger { background: var(--color-danger-soft); color: var(--color-danger); }
   .badge-positive { background: var(--color-positive-soft); color: var(--color-positive); }
 
+  /* Expands a small icon button's tappable area to the ~44px touch-target
+     guideline without changing its visual size — a transparent pseudo-
+     element pads the hit region outward. Requires `position: relative` on
+     the button (already true everywhere this is applied). */
+  .hit-target-44 {
+    position: relative;
+  }
+  .hit-target-44::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+
   /* Schedule-table language: hairline rules, no cell boxing, dense rows */
   .table-schedule {
     width: 100%;
@@ -289,39 +310,39 @@
     background: var(--color-panel);
   }
 
-  /* Blueprint corner registration marks — a sparse accent for a primary
-     title-context box, not for every panel. Not yet applied anywhere;
-     available for a future per-screen pass that introduces a bordered
-     title-context header pattern. Apply to a `position: relative`
-     container with one `<span>`/`<i>` per corner. */
-  .corner {
-    position: absolute;
-    width: 11px;
-    height: 11px;
-    color: var(--color-hairline-strong);
+  /* Popover/menu/tooltip entrance — trigger-anchored (set --transform-origin
+     inline per instance; defaults to top-right, the common corner-menu case).
+     Replaces the old `animate-in fade-in zoom-in-95 duration-100` classes,
+     which relied on the tailwindcss-animate plugin — never installed, so
+     they silently did nothing and every menu/tooltip popped in instantly. */
+  @keyframes popover-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
   }
-  .corner::before {
-    content: '';
-    position: absolute;
-    left: 5px;
-    top: 0;
-    width: 1px;
-    height: 100%;
-    background: currentColor;
+  .animate-popover-in {
+    transform-origin: var(--transform-origin, top right);
+    animation: popover-in 140ms cubic-bezier(0.23, 1, 0.32, 1);
   }
-  .corner::after {
-    content: '';
-    position: absolute;
-    top: 5px;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background: currentColor;
+
+  /* Toast entrance — matches its fixed bottom-right anchor, per the same
+     "animate-in" dead-class issue above. */
+  @keyframes toast-in-bottom {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  .corner-tl { top: -6px; left: -6px; }
-  .corner-tr { top: -6px; right: -6px; }
-  .corner-bl { bottom: -6px; left: -6px; }
-  .corner-br { bottom: -6px; right: -6px; }
+  .animate-toast-in {
+    animation: toast-in-bottom 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* Inline banner entrance — opacity only, no scale/translate: this isn't
+     anchored to a trigger, it's a block appearing in normal document flow. */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fade-in 160ms ease-out;
+  }
 }
 
 /* ─── Print CSS ─────────────────────────────────────────────────────────────── */

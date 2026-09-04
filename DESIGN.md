@@ -1,200 +1,228 @@
-# TaskSheet — Design System
+---
+name: TaskSheet
+description: Print-first shift-organization software for HCA/LPN long-term-care workflows — the screen exists to produce a correct paper TaskSheet, not to be the product.
+colors:
+  app: "#faf7f0"
+  panel: "#ffffff"
+  panel-sunken: "#f5f2e9"
+  ink: "#141414"
+  ink-soft: "#5b5f52"
+  muted: "#6b6f76"
+  faint: "#6a6d64"
+  hairline: "#ece8dc"
+  rail-demo-accent: "#e8a23a"
+  rail-facility-text: "#7c869a"
+  accent: "#1f6b4c"
+  accent-strong: "#1a5c40"
+  accent-soft: "#e8f2ec"
+  danger: "#b3261e"
+  danger-soft: "#fde2e1"
+  warning: "#8a6a1e"
+  warning-soft: "#fdf3d8"
+  positive: "#1f6b4c"
+  positive-soft: "#e5f1ea"
+  rail-bg: "#0d1f38"
+  rail-text-muted: "#9aa4b5"
+typography:
+  heading:
+    fontFamily: "Archivo, Public Sans, sans-serif"
+    fontWeight: 700
+  body:
+    fontFamily: "Public Sans, system-ui, -apple-system, sans-serif"
+    fontWeight: 400
+  mono:
+    fontFamily: "IBM Plex Mono, ui-monospace, SF Mono, monospace"
+    fontWeight: 500
+rounded:
+  control: "0.5rem"
+  surface: "0.75rem"
+  badge: "0.2rem"
+spacing:
+  control-h: "2.25rem"
+components:
+  button-primary:
+    backgroundColor: "{colors.ink}"
+    textColor: "#ffffff"
+    rounded: "{rounded.control}"
+    padding: "0 0.85rem"
+    height: "{spacing.control-h}"
+  button-primary-hover:
+    backgroundColor: "#000000"
+  button-accent:
+    backgroundColor: "{colors.accent}"
+    textColor: "#ffffff"
+    rounded: "{rounded.control}"
+    height: "{spacing.control-h}"
+  button-accent-hover:
+    backgroundColor: "{colors.accent-strong}"
+  button-secondary:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    height: "{spacing.control-h}"
+  button-secondary-hover:
+    backgroundColor: "{colors.panel-sunken}"
+  button-danger:
+    backgroundColor: "{colors.danger}"
+    textColor: "#ffffff"
+    rounded: "{rounded.control}"
+    height: "{spacing.control-h}"
+  badge-accent:
+    backgroundColor: "{colors.accent-soft}"
+    textColor: "{colors.accent-strong}"
+    rounded: "{rounded.badge}"
+---
 
-<!-- impeccable:design-schema 1 -->
+# Design System: TaskSheet
 
-This document is authoritative for TaskSheet's screen-UI visual language. It describes what was actually built during the `/impeccable` redesign pass and is written to prevent a future session from drifting the interface back toward a generic Tailwind admin-dashboard look. See `PRODUCT.md` for product context (users, purpose, positioning, constraints).
+## Overview
 
-## Product Visual Philosophy
+**Creative North Star: "The Shift Binder"**
 
-TaskSheet is purpose-built healthcare workflow software — an ORGANIZE → GENERATE → PRINT tool for LTC/assisted-living HCA and LPN staff. It is **not** a generic SaaS dashboard, not a marketing site, not an EMAR, and not a startup product competing for attention. The screen UI's job is to get a shift's information organized correctly and fast, then get out of the way of the printed page, which is the actual work product.
+TaskSheet's screen UI plays a supporting role to the artifact staff actually carry away from it: a printed paper worksheet. The system reads like the working documents of a well-run nursing unit — a dark navy rail as fixed structural chrome (the binder's spine), a warm cream working surface (the paper itself), flat hairline-bordered panels (never an elevated card), one confident forest-green accent for anything interactive, and numeral-led identifiers (room, shift code, time) set apart in a mono face so they scan instantly down a column. Nothing competes for attention with the task at hand; the interface is built to disappear into the workflow, not to be evaluated on its own.
 
-Core principles, in priority order:
+This is at least the third named visual direction this codebase has shipped — an earlier teal "Field Blueprint+" pass was superseded by a deliberate revert back toward TaskSheet's original navy-and-green identity. This document describes the system as it is actually built today, in `src/index.css`'s own words: **"navy rail / forest accent."** A prior DESIGN.md described Field Blueprint+'s teal/Barlow/heavier-hairline system in detail; none of those specific values are current and this file replaces it rather than merging stale numbers forward.
 
-1. **Calm.** No decorative color, no motion for its own sake, no visual noise competing with the task at hand.
-2. **Clinical.** Restrained palette, precise numerals (room, shift code, time) set against quiet metadata — the visual world of a technical drawing schedule (a door schedule, a room-finish schedule), not a marketing page.
-3. **Compact.** Dense, scannable layouts. A shift-change worker should see what they need without excessive scrolling.
-4. **Operational.** Every screen answers "what do I need to do or know right now," not "how healthy is this business" (no vanity KPIs, no decorative charts).
-5. **Print-oriented.** Screen chrome exists to produce a correct paper TaskSheet; it must never be confused with, or allowed to influence, the print output itself.
-6. **Desktop-first.** Designed and density-tuned for 1366×768–1920×1080 workstation use; mobile is a usable fallback, not a parallel design target.
-7. **Accessible.** Keyboard navigation, visible focus, semantic controls, and modal focus-trapping are load-bearing requirements, not nice-to-haves.
-8. **Restrained decoration.** No gradients, no hover-lift, no rainbow icon backgrounds, no shadows except true elevation — see Shadow Rules. Structure comes from a crisp, visible border weight, in the spirit of a technical drawing; one sparse accent (corner registration marks, see the `.corner` utility) is available for a primary title-context box.
-9. **Strong information hierarchy.** Achieved through type weight, spacing, and structure — not size alone, and not color.
+**Key Characteristics:**
+- Flat, hairline-bordered panels — never a floating card
+- One accent color, reserved for "interactive or selected," never decoration
+- Dense, numeral-forward typography for anything tabular
+- Motion limited to subtle press/entrance feedback — never lift, bounce, or attention-seeking movement
+- Desktop-first density tuned for a single nursing-station workstation, not a marketing surface
 
-## Color Tokens
+## Colors
 
-All screen-UI color lives in `src/index.css` under `@theme`, generating real Tailwind utilities (`bg-accent`, `text-ink`, `border-hairline-strong`, etc.). **Never use raw Tailwind palette classes** (`bg-slate-100`, `text-teal-600`, `bg-rose-50`, …) or arbitrary hex (`bg-[#...]`) in screen UI — if a value doesn't exist as a token, add the token, don't reach for a one-off.
+The palette pairs a warm, paper-like working surface with one confident forest-green accent — closer to a ledger or clinical schedule than a SaaS dashboard.
 
-| Token | Value | Meaning — when to use it |
-|---|---|---|
-| `--color-app` | `#f2f2f3` | Page background only — the surface the whole app shell sits on. Never used for panels or cards. |
-| `--color-panel` | `#ffffff` | The working surface: table backgrounds, modal bodies, input backgrounds, card-equivalent bordered sections. |
-| `--color-panel-sunken` | `#f4f4f4` | A slightly recessed surface *inside* a panel — table header rows, hover states, toolbar bars, the canvas behind a print-preview paper. Never used as the outermost page background. |
-| `--color-ink` | `#1d1f20` | Primary text, headings, and the "primary" button fill. |
-| `--color-ink-soft` | `#616262` | Secondary text — subtitles, body copy inside dense rows, form labels' descriptive text. |
-| `--color-muted` | `#848585` | Tertiary/metadata text — timestamps, counts, helper captions. |
-| `--color-faint` | `#a5a5a6` | Lowest-emphasis text/icons — empty-state icons, disabled-adjacent hints. |
-| `--color-hairline` | `#e4e4e4` | Default border/divider weight — table row dividers, section separators. |
-| `--color-hairline-strong` | `#b0b1b1` | Structural border weight — panel/card outlines, segmented-control borders, table header underlines. Deliberately heavier/more visible than a typical hairline, in the spirit of a technical drawing's crisp lines — panels use this weight (see Surface Rules). |
-| `--color-accent` | `#5eaaa0` (teal) | The **one** interactive/brand accent — primary CTAs, active nav/tab state, links, focus rings. Reserved for "this is interactive or currently selected," not decoration. Kept deliberately separate from `--color-positive` this pass — no evidence supports reusing the accent hue for status/badge meaning here. |
-| `--color-accent-strong` | `#3f7a72` | Accent hover/pressed state, and accent-toned text needing more contrast than `--color-accent` on a light background. |
-| `--color-accent-soft` | `#eaf5f3` | Accent-tinted background — selected list rows, info callouts, `.badge-accent`. |
-| `--color-danger` | `#991b1b` | Destructive actions and true errors/blocking conditions only (delete, validation failure, wound/clinical-safety flags). Never used for "inactive" or merely historical data. |
-| `--color-danger-soft` | `#fee2e2` | Danger-tinted background for alerts/badges. |
-| `--color-warning` | `#d97706` | Needs-attention states: paused care, demo-mode banners, setup-required banners, stopped tasks, on-hold/out-on-pass/in-hospital resident status. |
-| `--color-warning-soft` | `#fef3c7` | Warning-tinted background. |
-| `--color-positive` | `#0d5c46` (deep forest green) | Confirmed-good states only: Active resident status, "binder current," successful save feedback. A different hue from `--color-accent` this pass — kept as its own established green rather than unified with the new teal, since nothing in this direction's source evidences a shared identity. |
-| `--color-positive-soft` | `#e7f2ed` | Positive-tinted background. |
+### Primary
+- **Forest Accent** (`#1f6b4c`): the one interactive/brand color in the system — primary CTAs, active nav state, links, focus rings. Also the positive/confirmed-good status color (see Named Rules); this system does not carry a separate positive hue.
+- **Forest Accent Strong** (`#1a5c40`): accent hover/pressed state.
+- **Forest Accent Soft** (`#e8f2ec`): accent-tinted backgrounds — selected rows, `.badge-accent`.
 
-*(Revised 2026-09-03, pass 3 "Field Blueprint+": accent moves from deep forest green to teal, following a design direction the user picked from two explorations in the same Claude Design project. Neutrals move off the slate family back to an ink-based (`#1d1f20`) rgba-composited family; hairline-strong becomes notably heavier/more visible (technical-drawing weight); panels lose the pass-2 shadow and revert to flat/bordered-only, now using hairline-strong instead of hairline. `--color-positive` no longer shares a value with `--color-accent` (see the two rows above) — this pass had no evidence for that unification, unlike pass 2. Danger/warning, radius scale, and Print Separation are unchanged across all three passes. Supersedes the pass-2 entry above.)*
+### Neutral
+- **Warm Cream** (`#faf7f0`): the outermost page background only — never a panel or card surface.
+- **Panel White** (`#ffffff`): every working surface — panels, modals, inputs, table backgrounds.
+- **Panel Sunken** (`#f5f2e9`): a recessed surface *inside* a panel — table header rows, hover states, the print-preview canvas.
+- **Ink** (`#141414`): primary text, headings, `.btn-primary`'s fill.
+- **Ink Soft** (`#5b5f52`): secondary text — subtitles, dense-row body copy, form-label descriptions.
+- **Muted** (`#6b6f76`): tertiary/metadata text — timestamps, counts, captions.
+- **Faint** (`#6a6d64`): lowest-emphasis text/icons — empty-state hints, disabled-adjacent content. Sits close to Muted by necessity (see the AA-Over-Distinction Rule); reserve it for content that's genuinely decorative or disabled, not a lighter-weight version of real informational text.
+- **Hairline** (`#ece8dc`): the system's one border weight — row dividers *and* panel/card outlines both use this exact value (see the One Border Rule).
 
-**Status-semantic mapping (apply consistently everywhere a status/state appears — resident status, task status, binder status, shift toggles):**
+### Status
+- **Danger** (`#b3261e` / soft `#fde2e1`): destructive actions and true blocking errors only — never used for "inactive" or merely historical data.
+- **Warning** (`#8a6a1e` / soft `#fdf3d8`): needs-attention states — paused care, demo-mode banners, on-hold/out-on-pass/in-hospital resident status.
+- **Positive** (`#1f6b4c` / soft `#e5f1ea`): confirmed-good states — Active resident status, "binder current." Shares its hex with Accent (see Named Rules).
 
-- Active / current / confirmed-good → `positive`
-- In Hospital / Out on Pass / On Hold / paused / stopped / setup-required / demo-mode → `warning`
-- Discharged / inactive / historical / "schedule ended" → `neutral` (badge-neutral / ink-soft), **not** danger — inactivity is not an error
-- Destructive action or blocking validation failure → `danger`
-- Everything else that's just "this is the current selection or an interactive control" → `accent`
+**One documented exception:** `src/components/layout/Sidebar.tsx` defines its own small dark-navy palette for the persistent left rail and mobile bottom bar — deliberately separate from the screen tokens above, since nothing in the inherited style chain provides legible text against a navy background this dark. `#0d1f38` background, `#9aa4b5` muted nav text, a `rgba(255,255,255,…)` hover/active tint, plus two one-off text colors: `#e8a23a` (demo-mode indicator) and `#7c869a` (facility name and the "SoftVibeSolutions" publisher line).
 
-**One exception, documented at its source:** `src/components/layout/Sidebar.tsx` defines its own small dark-surface palette (`RAIL_BG = '#1d2d3d'`, `RAIL_LINE`, `RAIL_TEXT_MUTED = '#8b9096'`, `RAIL_ACTIVE_TINT`) for the dark blue-slate sidebar and mobile bottom bar/drawer — deliberately separate from the screen tokens above, since nothing else in the inherited style chain provides a legible color against `RAIL_BG`. Unlike the previous pass, `--color-accent` (`#5eaaa0`) is used directly for the active-state stripe — this rail background is lighter than the previous pass's near-black navy, so the screen accent already reads clearly against it without needing a separate brighter rail-only constant.
+### Named Rules
+**The One Border Rule.** `hairline` and `hairline-strong` resolve to the identical `#ece8dc` — this system uses exactly one border weight everywhere (row dividers, panel outlines, table header underlines). There is no heavier "structural" weight layered on top; don't introduce one without updating this token first.
 
-## Typography Hierarchy
+**The Unified Accent Rule.** `--color-accent` and `--color-positive` share the same forest-green hex (`#1f6b4c`). This system does not carry a separate "confirmed good" hue distinct from its brand color — a resident marked Active and a button inviting a click read as the same color family on purpose.
 
-Three fonts, each with a specific job — not a single stack used everywhere:
+**The AA-Over-Distinction Rule.** `--color-faint` and `--color-muted` sit close together (`#6a6d64` vs. `#6b6f76`). On a light panel, a text color that's meaningfully lighter than Muted and still clears 4.5:1 WCAG AA doesn't exist in this hue — correctness won over preserving a wider visual gap between the two "de-emphasized" tokens. Don't lighten Faint back toward its old `#9a9d8f` value without re-verifying contrast against both `--color-panel` and `--color-app`.
 
-- **Barlow** (`--font-body`, weights 400–700, self-hosted static files — this family does not ship as a single variable font for the latin subset, unlike the two families it replaced) — body text, form values, table cells, everything not called out below. Applied globally via `body { font-family: var(--font-body) }`.
-- **Barlow Condensed** (`--font-heading`, weights 500–700, self-hosted static files) — page titles (`h1`) and section titles (`h2`), applied globally via a base-layer rule, plus every button label via `.btn`'s shared class. Used for emphasis/display, never for body copy.
-- **JetBrains Mono** (`--font-mono`, weights 500/600, self-hosted variable font — unchanged this pass) — tabular/numeric identifiers only: shift codes, times, room numbers. Applied per-element (`font-[family-name:--font-mono]` or an inline style), not globally — most text should not be monospace.
+## Typography
 
-`font-variant-numeric: tabular-nums` remains set globally on `body` so numeral columns still align even where JetBrains Mono isn't applied. Sizes are set per-element with Tailwind arbitrary values (`text-[22px]`, `text-[13px]`, …) rather than the default type scale, to hit exact hierarchy targets:
+**Heading Font:** Archivo (with Public Sans, sans-serif fallback)
+**Body Font:** Public Sans (with system-ui fallback)
+**Mono Font:** IBM Plex Mono (with ui-monospace fallback)
 
-| Level | Size / weight | Where |
-|---|---|---|
-| Page title | `22px`, `font-bold`, Barlow Condensed | One per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page. |
-| Section title | `13px`, `font-bold`, uppercase, `tracking-wide`, Barlow Condensed | "Today's Shifts," settings nav-group labels, table section headers. |
-| Body | `13px`, regular/medium, Barlow | Row content, form values, descriptive text. |
-| Metadata | `11–11.5px`, `text-muted` or `text-faint` | Counts, timestamps, secondary descriptors under a title. |
-| Table headers | `10.5–11px`, `font-bold`, uppercase, `tracking-wide`, `text-muted` | `.table-schedule thead th` and equivalent div-grid headers. |
-| Labels (forms) | `11–12px`, `font-bold`, uppercase, `tracking-wider`, `text-ink-soft` | Field labels — bold-and-small, not large-and-regular. |
-| Helper text | `11px`, `text-muted` | Under an input, explaining format or consequence. |
-| Tabular data | JetBrains Mono | Shift codes, time ranges, room numbers — anywhere columns of numerals need to align by digit width, not just proportionally. |
+**Character:** A grotesque-sans pairing — Archivo's heavier weights carry titles and every button label; Public Sans stays quiet everywhere else. IBM Plex Mono is reserved for numerals that must align by digit width down a column (room numbers, shift codes, times), never used as a general UI face. All three ship self-hosted (static per-weight `.woff2` files) so the UI renders correctly with no internet access, consistent with TaskSheet's local-first positioning.
 
-Hierarchy is carried by **weight and structure more than size** — a bold 13px row title next to a regular 13px metadata line reads clearly without needing a large size jump.
+### Hierarchy
+- **Page title** (700, 22px, Archivo): one per screen — "Dashboard," "Shifts," "Settings." Never larger; this is workstation software, not a landing page.
+- **Section title** (700, 13px, uppercase, `tracking-wide`, Archivo): "Today's Shifts," settings nav-group labels.
+- **Body** (400–500, 13px, Public Sans): row content, form values, descriptive text.
+- **Metadata** (400, 11–11.5px, `muted`/`faint`): counts, timestamps, secondary descriptors.
+- **Table headers** (700, 10.5–11px, uppercase, `tracking-wide`, `muted`): `.table-schedule thead th` and equivalent grid headers.
+- **Form labels** (700, 11–12px, uppercase, `tracking-wider`, `ink-soft`): bold-and-small, never large-and-regular.
+- **Tabular data** (IBM Plex Mono, 500/600): shift codes, time ranges, room numbers — anywhere digits must align by width, not just proportion.
 
-## Surface Rules
+`font-variant-numeric: tabular-nums` is set globally on `body`, so numeral columns stay aligned even outside the mono face.
 
-- **Full page background:** `bg-app` on the outermost scroll container only.
-- **Panel:** `bg-panel` + `border border-hairline-strong` + `rounded-surface` — the default "this is a distinct section" treatment. Flat, no shadow — structure comes from the heavier border weight, not elevation (see Shadow Rules). Class: `.title-block` (bordered context bar / header treatment) or a bare `bg-panel rounded-surface border border-hairline-strong ...` block for a one-off panel. Optionally accent a *primary* title-context box with the `.corner` utility (four `.corner-tl/tr/bl/br` marks on a `position: relative` container) — sparingly, not on every panel.
-- **Bordered section inside a panel:** use `border-t border-hairline` dividers, not a nested panel. **Do not nest panels inside panels** — this was the single biggest anti-pattern removed in this redesign (endless white rounded-xl cards nested in cards).
-- **Divider:** `border-hairline` for row-level separation (table rows, list items), `border-hairline-strong` for structural separation (panel edges, section boundaries, table header underline).
+### Named Rules
+**The Weight-Over-Size Rule.** Hierarchy is carried by weight and structure more than size — a bold 13px row title next to a regular 13px metadata line reads clearly without a large size jump.
 
-**When NOT to use a card:** if the content is a single list of comparable items (reports, shifts, presets, entity-type choices, filter options), use a flat `divide-y divide-hairline` list inside one bordered container, not one card per item. Cards-per-item were converted to flat lists in three places during this pass: the GlobalAddModal entity-type picker, the Print Center report catalog, and (structurally) the Dashboard/Shifts/Residents row lists. Reach for a card only for a genuinely standalone, non-repeating block (e.g., the paused-care-status callout, a single stat strip).
+## Layout
 
-## Radius Rules
+Desktop-first: density is tuned for 1366×768–1920×1080 workstation use; every primary screen fits with minimal scrolling at 1366×768. Tablet (~768px) and mobile (375px) are a usable fallback, not a parallel design target.
 
-Two tokens only:
+- Toolbars use `flex-wrap` rather than clipping at narrow widths.
+- Wide tables scroll horizontally inside their own `overflow-x-auto` container rather than compressing until content overlaps.
+- Multi-column stat strips reflow to fewer columns rather than overflowing.
+- Any percentage-based CSS Grid table must give every header cell `min-w-0 truncate` and wrap the whole grid in `overflow-x-auto` with an explicit `min-w-[Npx]` — without this the grid silently overflows the page at narrow widths (a real, previously-shipped defect, fixed on Dashboard/Shifts/Residents).
+- Mobile collapses the sidebar to a bottom tab bar (Dashboard/Shifts/Residents/FYI Binder + a "More" trigger) plus a "More" sheet for Settings/Print Center, sharing the rail's dark identity.
 
-- `--radius-control` (`0.25rem`) — buttons, inputs, badges, small chips, table-adjacent controls.
-- `--radius-surface` (`0.375rem`) — panels, modals, dropdown menus.
+Don't "fix" density by shrinking text below the Typography scale — use hierarchy, grouping, and removing decorative whitespace instead.
 
-**Never use `rounded-xl`/`rounded-2xl`/`rounded-full` in screen UI** (the one exception is a genuine pill/circular element with no equivalent, which does not currently occur). Bubbly, oversized radii were systematically converted to these two values across every redesigned file.
+## Elevation & Depth
 
-## Shadow Rules
+Flat by default. Panels, table rows, cards, and buttons carry no shadow at rest — their structure comes entirely from the one hairline border weight, never elevation. `--shadow-elevated` is the single shadow token in the system, reserved for things genuinely floating above the page: modals, dropdown/status menus, tooltips, toasts, and the print-preview "paper" (screen-only, never inside the print document itself).
 
-`--shadow-elevated` is the **only** shadow token, and it is reserved for things that are genuinely floating above the page:
+### Shadow Vocabulary
+- **Elevated** (`box-shadow: 0 8px 24px -8px rgb(23 25 28 / 0.28), 0 1px 0 rgb(23 25 28 / 0.04)`): modals, popovers, toasts, the print-preview sheet.
 
-- Modals (`Modal.tsx`)
-- Dropdown menus / popovers (`TaskActionMenu`, Add-menus, status-change menus)
-- The print-preview "paper" (screen-only; never applied inside `.tasksheet-print-document` itself)
-- The dark full-screen print-preview toolbar (`PrintPreviewPage.tsx`)
+### Named Rules
+**The Flat-Card Rule.** A panel's hierarchy comes from its hairline border, never a shadow. If a surface needs to read as "more important," give it a bolder heading or a section title — never add elevation to something that isn't actually floating.
 
-Flat panels, table rows, cards, and buttons carry **no shadow** — their structure comes from `border-hairline-strong`, not elevation. `shadow-sm`/`shadow-md`/`shadow-xs` on non-floating elements should not appear in screen UI. (A brief two-shadow-tier system existed in the immediately preceding pass; this pass's "Field Blueprint+" direction has no elevated-card treatment in its source, so it was reverted along with `.title-block`'s shadow.)
+## Shapes
 
-### `.corner` — blueprint registration marks
+Three radius steps: `--radius-control` (0.5rem) for buttons, inputs, and small chips; `--radius-surface` (0.75rem) for panels, modals, and dropdown menus; a `0.2rem` badge-only radius, smaller than either named token, on `.badge`. No `rounded-xl`/`rounded-2xl`/`rounded-full` in screen UI outside a genuine pill/circular element (none currently occurs). The browser-default scrollbar thumb uses its own `4px` radius, sized to its 8px track rather than the control/surface scale — a functional micro-detail, not a system radius.
 
-A sparse decorative accent, not a shadow: `.corner-tl`/`.corner-tr`/`.corner-bl`/`.corner-br` (each pairs with the base `.corner` class) draw a small L-shaped registration mark at one corner of a `position: relative` bordered box, evoking a technical drawing's corner marks. Defined in `@layer components` (`src/index.css`), colored from `--color-hairline-strong`. **Not yet applied anywhere in the app** — it's infrastructure for a future pass that introduces a bordered title-context header pattern per screen (today's page headers are a plain flex row, not a bordered box). Use sparingly on one primary title-context box per screen, never on every panel.
+## Components
 
-## Button Hierarchy
+### Buttons
+Four levels, one shared height (`2.25rem`), one radius, one type scale (Archivo, 600 weight, 13px):
+- **Primary** (`.btn-primary`, ink fill → black on hover): the highest-emphasis action that isn't specifically "the accent action" — banner CTAs, confirm on non-destructive dialogs.
+- **Accent** (`.btn-accent`, forest green → accent-strong on hover): the "do the main thing" action — Add/Save/Configure/Print. This is the button users should reach for most often.
+- **Secondary** (`.btn-secondary`, white + hairline border → panel-sunken on hover): Cancel, Back, and other non-primary actions that still need a real button, not a bare text link.
+- **Danger** (`.btn-danger`, danger fill → darker red on hover): destructive confirmation only (Delete) — never for a reversible action like "Stop," which uses Primary or Secondary with a warning-toned icon instead.
+- **Press feedback:** every button scales to `0.97` on `:active` (120ms ease-out) — the one sanctioned scale transform in the system, reserved for confirming a press was heard, never used for hover or entrance decoration.
 
-Exactly four levels, defined once in `@layer components` (`src/index.css`) as `.btn` + a modifier:
+Never give two buttons doing the same conceptual job (e.g. five "submit this form" buttons across five entity types) five different colors — unify to `.btn-accent`.
 
-- **`.btn-primary`** (`bg-ink`) — the highest-emphasis action on a screen that isn't specifically "the accent action." Used for banner CTAs (Demo Mode, setup-required) and confirm buttons on non-destructive dialogs.
-- **`.btn-accent`** (`bg-accent`) — the primary "do the main thing" action: Add/Save/Configure/Print buttons across forms and toolbars. This is the button users should reach for most often.
-- **`.btn-secondary`** (`bg-panel` + border) — Cancel, Back, Duplicate, and other non-primary actions that still need a real button (not a bare text link).
-- **`.btn-danger`** (`bg-danger`) — destructive confirmation only (Delete). Never used for "Stop" (a reversible, non-destructive action — that uses `.btn-primary` or `.btn-secondary` with a `text-warning` icon instead).
+**Icon-only buttons** (row overflow menus, print/edit triggers) stay visually small (28–32px, matching the row density this system is built around) but carry `.hit-target-44` — a transparent `::before` pseudo-element (`inset: -6px`) that pads the actual tappable region out to ~44px without changing the button's rendered size. Apply it to any new icon-only control whose visible box is under 44px.
 
-All four share one height (`--spacing-control-h`, `2.25rem`), one radius (`--radius-control`), and one type scale. **Never give two buttons that do the same conceptual thing (e.g., five different "submit this form" buttons across five entity types) five different colors** — this was a real anti-pattern found and fixed in `GlobalAddModal.tsx` (blue/purple/amber/rose/teal submit buttons unified to `.btn-accent`).
+### Badges
+`.badge` + one of `neutral`/`accent`/`warning`/`danger`/`positive`. Reserved for real identity or state (Demo, Active, In Hospital, a category tag, a count) — never decoration, never a substitute for a table column. Follow the Colors status mapping; don't invent a sixth badge color.
 
-## Badge Semantics
+### Panels
+`bg-panel` + `border border-hairline` + `rounded-surface`, flat, no shadow (`.title-block`). Don't nest panels inside panels — group related content with an internal `border-t border-hairline` divider instead. When content is a single set of comparable items (reports, shifts, presets, filter options), use a flat `divide-y` list inside one bordered container rather than one card per item.
 
-`.badge` + one of `.badge-neutral` / `.badge-accent` / `.badge-warning` / `.badge-danger` / `.badge-positive`. Badges are reserved for real identity or state — Demo, Active, In Hospital, HCA/LPN/RN, a category tag, a count. They are not decoration and not a substitute for a table column. Follow the status-semantic mapping above; do not invent a fifth badge color (violet/purple/blue/cyan/sky badges were all found and converted to one of the five during this pass).
+### Modals
+`Modal.tsx` provides the shared shell: `bg-panel`, `rounded-surface`, `shadow-elevated`, `border-hairline`, focus trap, Escape-to-close, focus restoration on close. Header uses `bg-panel-sunken` with a `border-b border-hairline`. Opens and closes with a centered scale-and-fade (`scale(0.96) → scale(1)`, opacity `0 → 1`, 200ms, strong custom ease-out `cubic-bezier(0.23,1,0.32,1)`) rather than a hard cut — occasional enough (never keyboard-repeated) to earn the animation budget. Don't build a one-off modal overlay outside this shared component — `FyiBinderPrintModal` is the one deliberate exception, since it must render an embedded print-document preview, and even there the screen chrome reuses the same tokens.
 
-## Table Design
+Dangerous-action confirmation is visually distinct from a routine save: a danger/warning icon, tone-matched callout background, and a `.btn-danger` (or tone-matched) confirm button — never the same visual weight as an "OK" on a routine dialog.
 
-`.table-schedule` (in `@layer components`) is the shared language for real `<table>` markup: uppercase muted headers with a `hairline-strong` bottom border, `hairline` row dividers, `panel-sunken` row hover, `accent-soft` focus-within. Used by `FYIBinderView`.
+`FyiBinderPrintModal`'s own overlay (its documented shell exception) additionally uses `backdrop-blur-sm` — a deliberate, bounded effect on that one full-viewport print-preview backdrop, not a general system pattern. Don't add blur to `Modal.tsx`'s shared shell or any other overlay without a similarly specific reason.
 
-Several list surfaces (Dashboard, ShiftsView list, ResidentsView list) use **CSS Grid rows** instead of a real `<table>`, specifically because each row needs a full-row click target (`CardNavigationButton`, see Accessibility below) that cannot coexist with real `<tr role="button">` semantics. These grids replicate the same visual language (uppercase muted header row, hairline dividers, tabular-nums) via a shared `gridTemplateColumns` string per screen.
+### Menus, Tooltips, Toasts
+Popovers/dropdown menus and tooltips enter with a trigger-anchored scale-and-fade (`scale(0.95) → 1`, 140ms, the same strong ease-out curve, `transform-origin` set to the corner nearest the trigger — never a bare geometric center). Toasts enter from their fixed anchor (`translateY(8px) → 0`, 200ms). All three replace an earlier set of Tailwind utility classes (`animate-in fade-in zoom-in-95`) that referenced a plugin never installed in this project and silently did nothing — every menu, tooltip, and toast used to appear with a hard instant cut despite the code implying otherwise.
 
-**Mandatory safety rule for any percentage-based `gridTemplateColumns` table:** grid tracks sized by percentage will still expand to fit unwrappable header/content text unless every cell has `min-w-0` (plus `truncate` where the text can be long). Without this, the grid — and the whole page around it — silently overflows horizontally at narrow viewports. **Always** wrap such a table in `overflow-x-auto`, give the grid a `min-w-[Npx]` matching its natural content width, and put `min-w-0 truncate` on every header cell. This exact bug (unwrappable "Resident Care"/"Unit Tasks" header text forcing the entire Dashboard page to overflow at 768px) was found and fixed in this pass in `DashboardView.tsx`, `ShiftsView.tsx`, and `ResidentsView.tsx` — do not reintroduce a percentage grid table without this wrapper.
+### Tables
+`.table-schedule`: uppercase muted headers with a hairline bottom border, hairline row dividers, panel-sunken row hover, accent-soft focus-within. Several list surfaces (Dashboard, Shifts, Residents) use CSS Grid rows instead of a real `<table>`, specifically because each row needs a full-row click target that can't coexist with real `<tr role="button">` semantics — see the No-Nested-Interactive rule below.
 
-Toolbars above a table (date navigator + search + view toggle) must use `flex-wrap`, not a fixed height with no-wrap, so they degrade to a second line at narrow widths instead of clipping.
+### Forms
+Section-based, not card-per-field — group related fields (Short Code + Role side by side) to show their relationship and increase density. Labels: bold, small, uppercase, `ink-soft`, with a `danger`-colored `*` for required fields. Inputs: hairline border, `rounded-control`, height matches `.btn`, `focus:ring-2 focus:ring-accent`. Helper/consequence text uses an inline `accent-soft`/`warning-soft` callout directly under the fields it explains — never a modal, never a tooltip. Footer actions: secondary action(s) left, accent/primary submit action last.
 
-## Forms
+### Navigation
+A persistent left rail (`w-56`, deliberately separate dark-navy palette — see Colors), not a top bar and not floating pills. The brand mark is a solid accent-green square carrying a white "T," next to the "TaskSheet" wordmark and a small-caps "SoftVibeSolutions" line. Active nav state is white text over a subtle `rgba(255,255,255,0.1)` background tint. Settings is a normal item in the same flat vertical list (Dashboard/Shifts/Residents/FYI Binder/Print Center/Settings), not split into its own utility section. Mobile collapses to a bottom tab bar (same four primary items) plus a "More" sheet, sharing the rail's dark identity and requiring an explicit muted-on-dark text color since nothing in the inherited chain supplies one.
 
-- Section-based, not card-per-field. Group related fields (e.g., Short Code + Role side by side) to increase density and show the relationships between fields, rather than stacking every field full-width in its own box.
-- Labels: bold, small, uppercase, `text-ink-soft`, with a `text-danger` `*` for required fields.
-- Inputs: `border-hairline-strong`, `rounded-control`, height matches `.btn` (`h-10`/`2.5rem` is the norm), `focus:ring-2 focus:ring-accent focus:outline-none`.
-- Helper/consequence text (e.g., "Overnight shift: working hours automatically span past midnight") uses an inline `bg-accent-soft` or `bg-warning-soft` callout directly under the fields it explains — not a modal, not a tooltip.
-- Footer actions: secondary action(s) left or first, primary/accent submit action last, using `.btn-secondary` / `.btn-accent` — never ad hoc button styling per form.
+## Do's and Don'ts
 
-## Modals
+### Do:
+- **Do** route every color through the tokens above — never a raw Tailwind palette class (`bg-slate-100`, `text-teal-600`) or an arbitrary hex in screen UI.
+- **Do** use `CardNavigationButton` (`src/components/common/CardNavigationButton.tsx`) for any fully-clickable row/card — a real `<button data-card-navigation="true">` positioned as a *sibling* to any other interactive control in that row, never a `<div role="button">` or `<tr role="button">` that contains a nested real button.
+- **Do** give every interactive element a visible focus ring (`focus-visible:ring-2 focus-visible:ring-accent`).
+- **Do** communicate status with a text label, never color alone — a badge carries text, not just a color chip.
+- **Do** keep `.tasksheet-print-document`, everything under `@media print`, and `src/components/print/` on their own separately-verified typography contract (Arial/Helvetica) — a print-hardware-reliability choice, not a stylistic one. Never "fix" it toward the screen fonts, and verify with a diff that no print-only line changed as a side effect of a shared-code edit.
 
-`Modal.tsx` provides the shared shell: `bg-panel`, `rounded-surface`, `shadow-elevated`, `border-hairline-strong`, focus trap, Escape-to-close, focus restoration on close. Header uses `bg-panel-sunken` with a `border-b border-hairline`. **Never build a one-off modal overlay** (`fixed inset-0 bg-black/60`) outside this shared component — `FyiBinderPrintModal` is the one deliberate exception because it must render an embedded print-document preview, and even there the screen chrome (header, controls, close button) reuses the same tokens.
-
-Dangerous-action confirmation (`ConfirmDialog`, `TaskActionConfirmModal`) is visually distinct from a routine save: a danger/warning icon, tone-matched callout background, and a `.btn-danger` or tone-matched confirm button — never the same visual weight as an "OK" button on a routine dialog.
-
-## Navigation
-
-A persistent left sidebar (`<aside data-testid="app-sidebar">`, `w-60`), dark blue-slate background (`RAIL_BG`/`RAIL_LINE`/`RAIL_TEXT_MUTED` — a deliberately separate dark palette from the screen tokens, documented above), not a top bar and not floating rounded pills. Active state is a **3px left accent-stripe** (`border-left: 3px solid var(--color-accent)`) plus a teal-tinted background (`RAIL_ACTIVE_TINT`, `rgba(94,170,160,0.12)`) with white text — not a filled tinted row without a stripe. The brand mark is a plus-and-circle SVG icon in the accent color (no background box), next to the "TaskSheet" wordmark and a small-caps "SoftVibeSolutions" line. Settings is a normal item in the same flat vertical nav list (Dashboard/Shifts/Residents/FYI Binder/Print Center/Settings), not separated into its own "bottom utility" section. The app tagline sits in a footer block below the nav list.
-
-Mobile collapses to a bottom tab bar (`Dashboard`/`Shifts`/`Residents`/`FYI Binder` + a "More" trigger) plus a "More" sheet for Settings/Print Center, sharing the same dark identity and teal active-tint as the desktop rail — both the bar and the sheet must set an explicit base text color (`RAIL_TEXT_MUTED`) on their container, since nothing else in the inherited style chain provides a legible color against `RAIL_BG`. `Navbar.tsx`'s `<header data-testid="app-navbar">` (facility identity + date control) sits above the main content column, to the right of the sidebar.
-
-## Responsive Rules
-
-Desktop-first: density is tuned and verified at 1366×768, 1440×900, and 1920×1080 — every primary screen must fit with minimal scrolling at 1366×768 (verified: Dashboard, Shifts, Residents all fit with zero scroll at this size in the demo dataset). Tablet (~768px) and mobile (375px) are a **usable fallback**, not a parallel design target:
-
-- Toolbars wrap (`flex-wrap`) rather than clip.
-- Wide tables scroll horizontally inside their own `overflow-x-auto` container rather than compressing until content overlaps or breaking the page's own width.
-- Multi-column stat strips (`flex flex-wrap` with `min-w-[Npx]` per cell) reflow to fewer columns rather than overflowing.
-- The mobile bottom nav + "More" drawer must remain legible (explicit muted-on-dark text color, not inherited).
-
-Do not "fix" density by shrinking text below the type scale above — use hierarchy, grouping, and removing decorative whitespace (`p-8`, `gap-6`, oversized headers) instead.
-
-## Accessibility Rules
-
-- **No nested interactive descendants.** A row/card that is fully clickable must use `CardNavigationButton` (`src/components/common/CardNavigationButton.tsx`) — a real `<button data-card-navigation="true">` absolutely positioned as a *sibling* to any other interactive control in that row (Print, Care Setup, overflow menu), never a `<tr role="button">` or `<div role="button">` that *contains* a real nested `<button>`. This is enforced by tests (`clickableShiftCards.test.tsx`, `residentsMenu.test.tsx`) and must not be "simplified" back into a clickable-row-with-nested-button pattern.
-- Every interactive element has a visible focus ring (`focus-visible:ring-2 focus-visible:ring-accent`, or the `CardNavigationButton`'s own focus-visible style).
-- Modals trap focus and restore it to the trigger on close (`Modal.tsx`).
-- Escape closes modals and dropdown menus.
-- Overflow/action menus have accessible names (`aria-label`) and correct `aria-expanded`/`aria-haspopup`.
-- Form controls have associated `<label>`s; required fields are marked both visually (`*`) and via `required`.
-- Status is never communicated by color alone — badges carry text, not just a color chip.
-
-## Print Separation
-
-**Screen-design tokens defined in this document must never be used to casually alter the print-document system.** `.tasksheet-print-document`, everything under `@media print` in `src/index.css`, and the components under `src/components/print/` are a separately verified, print-certified system with its own typography contract (`--print-font-family: Arial, Helvetica, sans-serif`, `--print-title-size`, etc.). Arial is used there deliberately for print-hardware reliability, not as a stylistic choice — the `/impeccable` detector's "overused-font" rule flags it as a false positive for this reason; do not "fix" it.
-
-If a change to shared print/screen code is unavoidable, verify with a diff that no line under the `/* ─── Print CSS ─── */` boundary in `src/index.css`, and no print-document component's print-only output, changed as a side effect.
-
-## Anti-Patterns (do not reintroduce)
-
-- Card grids for everything, including single-item lists that should be a flat `divide-y` list.
-- Rainbow icon backgrounds / a different accent color per entity type, tab, or button that does the same conceptual job.
-- Decorative gradients or glows (the old sidebar brand-mark glow, hero-card gradients).
-- Oversized marketing-style headings (anything above 22px for a page title).
-- Hover-lift, bounce, scale, or other decorative motion — only subtle color/background transitions on hover and focus.
-- Nested interactive controls (`<tr role="button">` containing a real `<button>`) — see Accessibility above.
-- Fake clickable table rows without a real, independently-testable navigation control.
-- Arbitrary Tailwind palette colors (`slate`, `rose`, `amber`, `blue`, `purple`, `violet`, `sky`, `cyan`, `indigo` as raw utility classes) anywhere in screen UI — always route through the tokens above.
-- Excessive rounded containers (`rounded-xl`/`rounded-2xl`/`rounded-full`) — use `rounded-control` / `rounded-surface`.
-- Decorative badges — a badge with no real identity/state behind it.
-- Percentage-based CSS Grid tables without a `min-w-0`/`truncate`/`overflow-x-auto` safety net (see Table Design).
+### Don't:
+- **Don't** nest panels inside panels — use an internal `border-t border-hairline` divider instead.
+- **Don't** use `rounded-xl`/`rounded-2xl`/`rounded-full` outside a genuine pill/circular element.
+- **Don't** add a shadow to a surface that isn't genuinely floating — hierarchy comes from the hairline border.
+- **Don't** add hover-lift, bounce, or other attention-seeking motion — the only sanctioned transforms are the button press-scale and the modal/popover/toast entrances documented under Components.
+- **Don't** give two buttons doing the same conceptual job different colors.
+- **Don't** invent a sixth badge color.

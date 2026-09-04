@@ -51,7 +51,7 @@ export const FollowUpStatusMenu: React.FC<FollowUpStatusMenuProps> = ({ onSetSta
         <div
           role="menu"
           aria-label={ariaLabel}
-          className="absolute right-0 mt-1 w-48 z-40 rounded-control border border-hairline-strong bg-panel shadow-elevated py-1 text-xs"
+          className="absolute right-0 mt-1 w-48 z-40 rounded-control border border-hairline-strong bg-panel shadow-elevated py-1 text-xs animate-popover-in"
         >
           <button type="button" role="menuitem" onClick={() => choose('done')} className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-positive-soft text-positive">
             <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />

@@ -56,7 +56,7 @@ export const AwayFromUnitCard: React.FC<{ state: AppDatabaseState; onOpenResiden
   const away = getAwayResidents(state);
   return (
     <div className="title-block rounded-surface p-4">
-      <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">Away From Unit</h3>
+      <h2 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">Away From Unit</h2>
       {away.length === 0 ? (
         <p className="text-[12px] text-muted">Everyone is currently in the facility.</p>
       ) : (
@@ -90,10 +90,10 @@ export const ResidentAttentionCard: React.FC<{ state: AppDatabaseState; today: s
   const items = getActiveAttentionItems(state, today, 'resident');
   return (
     <div className="title-block rounded-surface p-4">
-      <h3 className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">
+      <h2 className="flex items-center gap-1.5 font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">
         <TriangleAlert className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
         Resident Attention
-      </h3>
+      </h2>
       {items.length === 0 ? (
         <p className="text-[12px] text-muted">No active resident attention items.</p>
       ) : (
@@ -147,10 +147,10 @@ export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: st
 
   return (
     <div className="title-block rounded-surface p-4">
-      <h3 className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">
+      <h2 className="flex items-center gap-1.5 font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">
         <Activity className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
         Resident Follow-up
-      </h3>
+      </h2>
       {items.length === 0 ? (
         <p className="text-[12px] text-muted">No follow-up tasks flagged for the Dashboard.</p>
       ) : (
@@ -187,10 +187,10 @@ export const LatestFyiCard: React.FC<{ state: AppDatabaseState; today: string; o
   return (
     <div className="title-block rounded-surface p-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-wide text-ink-soft">
+        <h2 className="flex items-center gap-1.5 font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft">
           <Info className="w-3.5 h-3.5 text-accent" aria-hidden="true" />
           Latest FYI
-        </h3>
+        </h2>
         <button type="button" onClick={onNavigateToBinder} className="text-[11px] font-bold text-accent-strong hover:text-accent transition-colors">
           View FYI Binder →
         </button>
@@ -223,7 +223,7 @@ export const UnitSituationCard: React.FC<{ state: AppDatabaseState; today: strin
     <div className="title-block rounded-surface p-4">
       <div className="flex items-center gap-2 mb-2">
         <ShieldAlert className="w-4 h-4 text-accent" aria-hidden="true" />
-        <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft">Current Unit Situation</h3>
+        <h2 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft">Current Unit Situation</h2>
       </div>
       {entries.length === 0 ? (
         <p className="text-[12px] text-muted">Nothing unusual to report — a quiet shift so far.</p>
@@ -250,12 +250,18 @@ export const CodeOfMonthCard: React.FC<{ state: AppDatabaseState; onOpenSettings
   const enabled = state.settings.codeOfTheMonthEnabled === true;
   const code: EmergencyCode | undefined = (state.settings.emergencyCodes || []).find(c => c.id === state.settings.codeOfTheMonthId);
 
-  if (!enabled) return null;
-
   return (
     <div className="title-block rounded-surface p-4">
-      <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">Code of the Month</h3>
-      {code ? (
+      <h2 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">Code of the Month</h2>
+      {!enabled ? (
+        // Customize Dashboard's checkbox only controls whether this widget CAN
+        // appear — actual content is gated by a separate Settings flag. Without
+        // this branch the widget just vanished with no explanation, even though
+        // Customize showed it as checked/visible.
+        <button type="button" onClick={onOpenSettings} className="text-[12px] text-accent-strong hover:text-accent font-semibold">
+          Not enabled — turn on in Settings → Emergency Codes →
+        </button>
+      ) : code ? (
         <div>
           <p className="font-heading font-extrabold text-[18px] text-danger">CODE {code.code.toUpperCase()}</p>
           <p className="text-[12.5px] text-ink-soft">{code.name}</p>
@@ -278,7 +284,7 @@ export const TodaysBathingCard: React.FC<{ state: AppDatabaseState; today: strin
     <div className="title-block rounded-surface p-4">
       <div className="flex items-center gap-2 mb-2">
         <Droplets className="w-4 h-4 text-accent" aria-hidden="true" />
-        <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft">Today's Bathing</h3>
+        <h2 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft">Today's Bathing</h2>
       </div>
       <p className="font-heading text-[24px] font-extrabold text-ink">{count}</p>
       <p className="text-[12px] text-muted">scheduled today</p>
@@ -297,7 +303,7 @@ export const WoundAttentionCard: React.FC<{ state: AppDatabaseState; today: stri
     <div className="title-block rounded-surface p-4">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className={`w-4 h-4 ${hasAttention ? 'text-danger' : 'text-ink-soft'}`} aria-hidden="true" />
-        <h3 className="text-[13px] font-bold uppercase tracking-wide text-ink-soft">Wound Attention</h3>
+        <h2 className="font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft">Wound Attention</h2>
       </div>
       {items.length === 0 ? (
         <p className="text-[12px] text-muted">No new or recently changed wounds.</p>

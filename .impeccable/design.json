@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-04T00:00:00.000Z",
+  "title": "Design System: TaskSheet",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Forest Accent",
+        "canonical": "#1f6b4c",
+        "tonalRamp": ["#0d2e21", "#123f2d", "#17513a", "#1c6346", "#1f6b4c", "#2f8a67", "#5aa987", "#a9d2c0"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#141414",
+        "tonalRamp": ["#0a0a0a", "#141414", "#232323", "#3a3a3a", "#5b5f52", "#6b6f76", "#6a6d64", "#ece8dc"]
+      },
+      "app": {
+        "role": "neutral",
+        "displayName": "Warm Cream",
+        "canonical": "#faf7f0",
+        "tonalRamp": ["#ece8dc", "#f0ede2", "#f3f0e6", "#f5f2e9", "#f7f4ec", "#faf7f0", "#fcfbf6", "#ffffff"]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "Danger",
+        "canonical": "#b3261e",
+        "tonalRamp": ["#4a0f0c", "#6b1512", "#8f1e18", "#b3261e", "#c94a41", "#dd7972", "#efaea9", "#fde2e1"]
+      },
+      "warning": {
+        "role": "status",
+        "displayName": "Warning",
+        "canonical": "#8a6a1e",
+        "tonalRamp": ["#3a2d0d", "#584312", "#6f5518", "#8a6a1e", "#a8853a", "#c4a35f", "#dfc492", "#fdf3d8"]
+      },
+      "rail-bg": {
+        "role": "neutral",
+        "displayName": "Rail Navy",
+        "canonical": "#0d1f38",
+        "tonalRamp": ["#050c17", "#081527", "#0d1f38", "#152c4d", "#213e66", "#33547f", "#5a7096", "#9aa4b5"]
+      },
+      "rail-demo-accent": { "role": "status", "displayName": "Rail Demo Accent", "canonical": "#e8a23a" },
+      "rail-facility-text": { "role": "neutral", "displayName": "Rail Facility Text", "canonical": "#7c869a" }
+    },
+    "typographyMeta": {
+      "heading": { "displayName": "Archivo (headings)", "purpose": "Page/section titles and every button label. Never used for body copy." },
+      "body": { "displayName": "Public Sans (body)", "purpose": "Row content, form values, descriptive text — everything not called out elsewhere." },
+      "mono": { "displayName": "IBM Plex Mono (tabular)", "purpose": "Room numbers, shift codes, time ranges — anywhere digits must align by width." }
+    },
+    "shadows": [
+      { "name": "elevated", "value": "0 8px 24px -8px rgb(23 25 28 / 0.28), 0 1px 0 rgb(23 25 28 / 0.04)", "purpose": "The one shadow in the system, for things genuinely floating: modals, popovers, toasts, the print-preview sheet." }
+    ],
+    "motion": [
+      { "name": "ease-strong-out", "value": "cubic-bezier(0.23,1,0.32,1)", "purpose": "Strong ease-out for modal, popover, tooltip, and toast entrances/exits — the built-in CSS ease-out reads too weak at this panel size." },
+      { "name": "press-scale", "value": "transform: scale(0.97); transition: transform 120ms ease-out", "purpose": "The one sanctioned scale transform: :active feedback on every button. Never used for hover or entrance decoration." },
+      { "name": "modal-transition", "value": "opacity 200ms cubic-bezier(0.23,1,0.32,1), transform 200ms cubic-bezier(0.23,1,0.32,1)", "purpose": "Modal panel open/close: scale(0.96)↔scale(1) + opacity 0↔1." },
+      { "name": "popover-in", "value": "animation: popover-in 140ms cubic-bezier(0.23,1,0.32,1); transform: scale(0.95)→scale(1)", "purpose": "Trigger-anchored entrance for dropdown menus and tooltips." },
+      { "name": "toast-in", "value": "animation: toast-in-bottom 200ms cubic-bezier(0.23,1,0.32,1); transform: translateY(8px)→translateY(0)", "purpose": "Toast entrance from its fixed bottom-right anchor." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "375px" },
+      { "name": "tablet", "value": "768px" },
+      { "name": "desktop", "value": "1366px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Highest-emphasis action that isn't the accent action — banner CTAs, confirm on routine dialogs.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Configure Facility</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; height:2.25rem; padding-inline:0.85rem; border-radius:0.5rem; font-family:'Archivo','Public Sans',sans-serif; font-size:0.8125rem; font-weight:600; white-space:nowrap; border:none; cursor:pointer; transition:background-color 120ms ease, transform 120ms ease-out; } .ds-btn:active { transform:scale(0.97); } .ds-btn-primary { background:#141414; color:#fff; } .ds-btn-primary:hover { background:#000; }"
+    },
+    {
+      "name": "Accent Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "The \"do the main thing\" action — Add/Save/Configure/Print. Reached for most often.",
+      "html": "<button class=\"ds-btn ds-btn-accent\">Add Task</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; height:2.25rem; padding-inline:0.85rem; border-radius:0.5rem; font-family:'Archivo','Public Sans',sans-serif; font-size:0.8125rem; font-weight:600; white-space:nowrap; border:none; cursor:pointer; transition:background-color 120ms ease, transform 120ms ease-out; } .ds-btn:active { transform:scale(0.97); } .ds-btn-accent { background:#1f6b4c; color:#fff; } .ds-btn-accent:hover { background:#1a5c40; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Cancel, Back, and other non-primary actions that still need a real button.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; height:2.25rem; padding-inline:0.85rem; border-radius:0.5rem; font-family:'Archivo','Public Sans',sans-serif; font-size:0.8125rem; font-weight:600; white-space:nowrap; cursor:pointer; transition:background-color 120ms ease, transform 120ms ease-out; } .ds-btn:active { transform:scale(0.97); } .ds-btn-secondary { background:#ffffff; color:#141414; border:1px solid #ece8dc; } .ds-btn-secondary:hover { background:#f5f2e9; }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge-accent",
+      "description": "Reserved for real identity/state — Demo, Active, In Hospital, a category tag. Never decoration.",
+      "html": "<span class=\"ds-badge ds-badge-accent\">Active</span>",
+      "css": ".ds-badge { display:inline-flex; align-items:center; height:1.25rem; padding-inline:0.4rem; border-radius:0.2rem; font-family:'Public Sans',sans-serif; font-size:0.6875rem; font-weight:700; letter-spacing:0.02em; text-transform:uppercase; line-height:1; } .ds-badge-accent { background:#e8f2ec; color:#1a5c40; }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "The default \"this is a distinct section\" treatment — flat, no shadow, hierarchy from the hairline border only.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-panel-title\">Today's Shifts</div><div class=\"ds-panel-body\">Select a shift to review or print.</div></div>",
+      "css": ".ds-panel { background:#ffffff; border:1px solid #ece8dc; border-radius:0.75rem; overflow:hidden; } .ds-panel-title { font-family:'Archivo',sans-serif; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#141414; padding:14px 16px; border-bottom:1px solid #ece8dc; } .ds-panel-body { font-family:'Public Sans',sans-serif; font-size:13px; color:#6b6f76; padding:14px 16px; }"
+    },
+    {
+      "name": "Modal Shell",
+      "kind": "custom",
+      "refersTo": "modal",
+      "description": "Shared modal chrome: bg-panel, rounded-surface, shadow-elevated, focus-trapped, centered scale-and-fade entrance.",
+      "html": "<div class=\"ds-modal-backdrop\"><div class=\"ds-modal\"><div class=\"ds-modal-header\"><span class=\"ds-modal-title\">Add Care Task</span></div><div class=\"ds-modal-body\">Modal content goes here.</div></div></div>",
+      "css": ".ds-modal-backdrop { background: rgba(20,20,20,0.5); display:flex; align-items:center; justify-content:center; padding:24px; } .ds-modal { width:100%; max-width:480px; background:#ffffff; border-radius:0.75rem; border:1px solid #ece8dc; box-shadow:0 8px 24px -8px rgb(23 25 28 / 0.28), 0 1px 0 rgb(23 25 28 / 0.04); overflow:hidden; opacity:1; transform:scale(1); transition:opacity 200ms cubic-bezier(0.23,1,0.32,1), transform 200ms cubic-bezier(0.23,1,0.32,1); } .ds-modal-header { background:#f5f2e9; border-bottom:1px solid #ece8dc; padding:14px 20px; } .ds-modal-title { font-family:'Archivo',sans-serif; font-size:15px; font-weight:700; color:#141414; } .ds-modal-body { padding:20px; font-family:'Public Sans',sans-serif; font-size:13px; color:#141414; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Persistent left-rail navigation row — dark navy background, white active text over a subtle white-tint background.",
+      "html": "<div class=\"ds-rail\"><button class=\"ds-nav-item ds-nav-item-active\">Dashboard</button><button class=\"ds-nav-item\">Shifts</button></div>",
+      "css": ".ds-rail { background:#0d1f38; padding:6px 8px; display:flex; flex-direction:column; gap:2px; width:224px; } .ds-nav-item { width:100%; text-align:left; height:40px; padding:0 12px; border-radius:0.5rem; border:none; background:transparent; color:#9aa4b5; font-family:'Public Sans',sans-serif; font-size:13.5px; font-weight:600; cursor:pointer; transition:background-color 150ms ease, color 150ms ease; } .ds-nav-item:hover { background:rgba(255,255,255,0.06); } .ds-nav-item-active { color:#ffffff; background:rgba(255,255,255,0.1); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Shift Binder",
+    "overview": "TaskSheet's screen UI plays a supporting role to the artifact staff actually carry away from it: a printed paper worksheet. The system reads like the working documents of a well-run nursing unit — a dark navy rail as fixed structural chrome (the binder's spine), a warm cream working surface (the paper itself), flat hairline-bordered panels (never an elevated card), one confident forest-green accent for anything interactive, and numeral-led identifiers (room, shift code, time) set apart in a mono face so they scan instantly down a column. Nothing competes for attention with the task at hand; the interface is built to disappear into the workflow, not to be evaluated on its own.\n\nThis is at least the third named visual direction this codebase has shipped — an earlier teal \"Field Blueprint+\" pass was superseded by a deliberate revert back toward TaskSheet's original navy-and-green identity. This document describes the system as it is actually built today, in src/index.css's own words: \"navy rail / forest accent.\"",
+    "keyCharacteristics": [
+      "Flat, hairline-bordered panels — never a floating card",
+      "One accent color, reserved for \"interactive or selected,\" never decoration",
+      "Dense, numeral-forward typography for anything tabular",
+      "Motion limited to subtle press/entrance feedback — never lift, bounce, or attention-seeking movement",
+      "Desktop-first density tuned for a single nursing-station workstation, not a marketing surface"
+    ],
+    "rules": [
+      { "name": "The One Border Rule", "body": "hairline and hairline-strong resolve to the identical #ece8dc — this system uses exactly one border weight everywhere. There is no heavier structural weight layered on top.", "section": "colors" },
+      { "name": "The Unified Accent Rule", "body": "--color-accent and --color-positive share the same forest-green hex (#1f6b4c). A resident marked Active and a button inviting a click read as the same color family on purpose.", "section": "colors" },
+      { "name": "The Weight-Over-Size Rule", "body": "Hierarchy is carried by weight and structure more than size — a bold 13px row title next to a regular 13px metadata line reads clearly without a large size jump.", "section": "typography" },
+      { "name": "The Flat-Card Rule", "body": "A panel's hierarchy comes from its hairline border, never a shadow. Never add elevation to something that isn't actually floating.", "section": "elevation" },
+      { "name": "The AA-Over-Distinction Rule", "body": "--color-faint (#6a6d64) and --color-muted (#6b6f76) sit close together on purpose: on a light panel, meaningfully lighter than Muted and still WCAG-AA-passing don't coexist in this hue. Correctness wins over a wider visual gap between the two de-emphasized tokens.", "section": "colors" }
+    ],
+    "dos": [
+      "Do route every color through the design tokens — never a raw Tailwind palette class or an arbitrary hex in screen UI.",
+      "Do use CardNavigationButton for any fully-clickable row/card — a real sibling button, never a nested interactive control.",
+      "Do give every interactive element a visible focus ring.",
+      "Do communicate status with a text label, never color alone.",
+      "Do keep the print document system on its own Arial/Helvetica typography contract — never \"fix\" it toward the screen fonts."
+    ],
+    "donts": [
+      "Don't nest panels inside panels — use an internal divider instead.",
+      "Don't use rounded-xl/rounded-2xl/rounded-full outside a genuine pill/circular element.",
+      "Don't add a shadow to a surface that isn't genuinely floating.",
+      "Don't add hover-lift, bounce, or other attention-seeking motion — only the button press-scale and the modal/popover/toast entrances are sanctioned.",
+      "Don't give two buttons doing the same conceptual job different colors.",
+      "Don't invent a sixth badge color."
+    ]
+  }
+}

@@ -2,7 +2,7 @@
   "name": "tasksheet",
   "productName": "TaskSheet",
   "private": true,
-  "version": "1.0.0-rc.34",
+  "version": "1.0.0-rc.35",
   "description": "Shift-organized, print-ready HCA and LPN TaskSheets.",
   "author": "SoftVibeSolutions",
   "main": "electron/main.cjs",

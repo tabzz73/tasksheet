@@ -83,7 +83,7 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
     <Modal isOpen={isOpen} onClose={() => { reset(); onClose(); }} title="Add Attention" subtitle="A temporary situation staff need to be aware of — not a to-do item." maxWidth="md">
       <div className="space-y-4">
         <div>
-          <label className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Scope</label>
+          <label className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Scope</label>
           <div className="grid grid-cols-3 gap-2">
             {(['resident', 'unit', 'site'] as AttentionScope[]).map(s => (
               <button
@@ -101,7 +101,7 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
 
         {scope === 'resident' && (
           <div>
-            <label htmlFor="attn-resident" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Resident</label>
+            <label htmlFor="attn-resident" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Resident</label>
             <ResidentCombobox
               id="attn-resident"
               residents={activeResidents}
@@ -115,28 +115,28 @@ export const AddResidentAttentionModal: React.FC<AddAttentionModalProps> = ({ is
         )}
 
         <div>
-          <label htmlFor="attn-title" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Title</label>
+          <label htmlFor="attn-title" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Title</label>
           <input id="attn-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={scope === 'resident' ? 'e.g. Temporary increased exit-seeking concern' : scope === 'unit' ? 'e.g. Unit internet unavailable' : 'e.g. Fire drill'} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
         </div>
 
         <div>
-          <label htmlFor="attn-details" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Details (optional)</label>
+          <label htmlFor="attn-details" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Details (optional)</label>
           <input id="attn-details" type="text" value={details} onChange={(e) => setDetails(e.target.value)} placeholder="One short line of context" className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="attn-start" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Starts</label>
+            <label htmlFor="attn-start" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Starts</label>
             <input id="attn-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
           </div>
           <div>
-            <label htmlFor="attn-end" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Ends (optional)</label>
+            <label htmlFor="attn-end" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Ends (optional)</label>
             <input id="attn-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent" />
           </div>
         </div>
 
         <div>
-          <label htmlFor="attn-priority" className="block text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Priority</label>
+          <label htmlFor="attn-priority" className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Priority</label>
           <select id="attn-priority" value={priority} onChange={(e) => setPriority(e.target.value as 'normal' | 'high' | 'urgent')} className="w-full px-3 h-9 border border-hairline-strong rounded-control text-sm bg-panel focus:ring-2 focus:ring-accent">
             <option value="normal">Normal</option>
             <option value="high">High (Highlighted)</option>

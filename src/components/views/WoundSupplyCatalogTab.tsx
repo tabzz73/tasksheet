@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Check, Edit2, PackagePlus, Plus, Search } from 'lucide-react';
 import { db } from '../../db';
 import { WoundSupplyLocalStatus, WoundSupplyProduct } from '../../types';
@@ -17,17 +17,8 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
   const [showInactive, setShowInactive] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editor, setEditor] = useState(EMPTY_PRODUCT);
-  const firstFieldRef = useRef<HTMLInputElement | null>(null);
   const editorOpen = editingId !== null || editor !== EMPTY_PRODUCT;
   const refresh = () => setProducts([...db.getState().woundSupplyCatalog]);
-
-  useEffect(() => {
-    if (!editorOpen) return;
-    const frame = window.requestAnimationFrame(() => {
-      firstFieldRef.current?.focus({ preventScroll: true });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [editorOpen, editingId]);
 
   const filtered = useMemo(() => products
     .filter(product => showInactive || product.isActive)
@@ -111,7 +102,7 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
     >
       <div id="wound-product-editor" className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Field inputRef={firstFieldRef} label="Product Family" value={editor.productFamily} onChange={value => setEditor({ ...editor, productFamily: value })} />
+        <Field autoFocus label="Product Family" value={editor.productFamily} onChange={value => setEditor({ ...editor, productFamily: value })} />
         <Field label="Product Name" value={editor.productName} onChange={value => setEditor({ ...editor, productName: value })} />
         <Field label="Manufacturer / Brand" value={editor.manufacturer} onChange={value => setEditor({ ...editor, manufacturer: value })} />
         <Field label="Dressing Category" value={editor.category} onChange={value => setEditor({ ...editor, category: value })} />
@@ -130,4 +121,4 @@ export const WoundSupplyCatalogTab: React.FC<{ onShowFeedback?: (type: 'success'
   </div>;
 };
 
-const Field: React.FC<{ label: string; value: string; onChange: (value: string) => void; type?: string; inputRef?: React.Ref<HTMLInputElement> }> = ({ label, value, onChange, type = 'text', inputRef }) => <label className="text-xs font-bold text-ink-soft">{label}<input ref={inputRef} type={type} value={value} onChange={event => onChange(event.target.value)} className="mt-1 w-full px-3 py-2 border border-hairline-strong rounded-control text-sm" /></label>;
+const Field: React.FC<{ label: string; value: string; onChange: (value: string) => void; type?: string; autoFocus?: boolean }> = ({ label, value, onChange, type = 'text', autoFocus }) => <label className="text-xs font-bold text-ink-soft">{label}<input data-autofocus={autoFocus || undefined} type={type} value={value} onChange={event => onChange(event.target.value)} className="mt-1 w-full px-3 py-2 border border-hairline-strong rounded-control text-sm" /></label>;

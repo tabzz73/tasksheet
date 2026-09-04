@@ -1,5 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+
+/** Strong ease-out — the built-in CSS easings read as weak/mushy for a
+ *  panel this size; this curve gives the open a noticeable "arrival". */
+const EASE_OUT = 'cubic-bezier(0.23,1,0.32,1)';
+const TRANSITION_MS = 200;
 
 interface ModalProps {
   isOpen: boolean;
@@ -23,6 +28,62 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  // `shouldRender` is derived straight from `isOpen` (plus `closing`) so the
+  // panel mounts on the SAME render where isOpen first becomes true — not a
+  // render cycle later. That matters beyond visuals: the focus-on-open
+  // effect below reads `panelRef.current` in the same commit, so if mounting
+  // lagged by even one render, it would find nothing and focus would
+  // silently fail. `closing` alone extends rendering for TRANSITION_MS after
+  // isOpen goes false, so the panel can animate out instead of hard-cutting.
+  const wasOpenRef = useRef(false);
+  const [closing, setClosing] = useState(false);
+  // `entered` starts false on every fresh mount so the very first paint
+  // renders the closed styles; a frame later it flips true and the CSS
+  // transition carries it to the open styles. Without this two-frame gap
+  // the open and closed styles would both apply on the same paint and
+  // nothing would visibly animate. This only gates which styles apply —
+  // never whether the panel is mounted — so it can't affect focus timing.
+  const [entered, setEntered] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const rafRef = useRef<number | undefined>(undefined);
+
+  // Lock body scroll while open so ambient wheel/touch input can't scroll
+  // the page behind a modal — without this, a stray scroll over the panel
+  // (e.g. reading a long Shift Huddle briefing) scrolls the underlying page
+  // and the modal, which tracks `isOpen`, disappears mid-read with no undo.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    window.clearTimeout(closeTimerRef.current);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (isOpen) {
+      wasOpenRef.current = true;
+      setClosing(false);
+      setEntered(false);
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = requestAnimationFrame(() => setEntered(true));
+      });
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      setClosing(true);
+      setEntered(false);
+      closeTimerRef.current = setTimeout(() => setClosing(false), TRANSITION_MS);
+    }
+    return () => {
+      window.clearTimeout(closeTimerRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [isOpen]);
+
+  const shouldRender = isOpen || closing;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -52,15 +113,19 @@ export const Modal: React.FC<ModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       previouslyFocusedRef.current = document.activeElement as HTMLElement;
+      // A caller can mark one field `data-autofocus` (e.g. the first real
+      // input, instead of the close button) to claim initial focus
+      // deterministically — no rAF-timing race against a second effect.
+      const marked = panelRef.current?.querySelector<HTMLElement>('[data-autofocus]');
       const focusable = panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-      (focusable && focusable[0] ? focusable[0] : panelRef.current)?.focus();
+      (marked || (focusable && focusable[0]) || panelRef.current)?.focus();
     } else {
       previouslyFocusedRef.current?.focus();
       previouslyFocusedRef.current = null;
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const maxWidthClass = {
     sm: 'max-w-sm',
@@ -72,22 +137,33 @@ export const Modal: React.FC<ModalProps> = ({
     '4xl': 'max-w-4xl',
   }[maxWidth];
 
+  // Centered scale-in is correct here (unlike a trigger-anchored popover):
+  // a modal isn't tied to a specific button, so it should arrive from the
+  // middle of the viewport, not from an edge.
+  const open = entered && !closing;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-ink/50 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+      style={{ transition: `background-color ${TRANSITION_MS}ms ${EASE_OUT}`, backgroundColor: open ? 'color-mix(in srgb, var(--color-ink) 50%, transparent)' : 'transparent' }}
     >
       <div
         ref={panelRef}
         tabIndex={-1}
         className={`relative w-full ${maxWidthClass} bg-panel rounded-surface shadow-elevated border border-hairline-strong overflow-hidden my-auto outline-none`}
+        style={{
+          transition: `opacity ${TRANSITION_MS}ms ${EASE_OUT}, transform ${TRANSITION_MS}ms ${EASE_OUT}`,
+          opacity: open ? 1 : 0,
+          transform: open ? 'scale(1)' : 'scale(0.96)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-3.5 min-h-14 border-b border-hairline bg-panel-sunken">
           <div className="min-w-0">
-            <h3 className="text-[15px] font-bold text-ink leading-tight truncate">{title}</h3>
+            <h3 className="font-heading text-[15px] font-bold text-ink leading-tight truncate">{title}</h3>
             {subtitle && <p className="text-[11px] text-muted mt-0.5 truncate">{subtitle}</p>}
           </div>
           <button

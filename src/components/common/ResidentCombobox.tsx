@@ -190,7 +190,8 @@ export const ResidentCombobox: React.FC<ResidentComboboxProps> = ({
           id={listboxId}
           role="listbox"
           aria-label={ariaLabel || 'Residents'}
-          className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-control border border-hairline-strong bg-panel shadow-elevated py-1"
+          className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto rounded-control border border-hairline-strong bg-panel shadow-elevated py-1 animate-popover-in"
+          style={{ '--transform-origin': 'top left' } as React.CSSProperties}
         >
           {residents.length === 0 ? (
             <li className="px-3 py-2 text-xs text-muted">No residents available.</li>

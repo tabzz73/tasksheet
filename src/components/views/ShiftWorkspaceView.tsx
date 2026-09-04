@@ -853,7 +853,7 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
                   <div 
                     onClick={() => setAddMenuOpen(false)}
                     role="menu"
-                    className="absolute right-0 mt-1.5 w-48 bg-panel rounded-surface shadow-elevated border border-hairline-strong py-1.5 z-40 text-xs animate-in fade-in zoom-in-95 duration-100"
+                    className="absolute right-0 mt-1.5 w-48 bg-panel rounded-surface shadow-elevated border border-hairline-strong py-1.5 z-40 text-xs animate-popover-in"
                   >
                     <button
                       type="button"

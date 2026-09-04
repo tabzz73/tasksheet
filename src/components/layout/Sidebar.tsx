@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="min-w-0">
             <p className="font-heading font-bold text-white text-[14.5px] leading-tight tracking-[-0.01em] truncate">TaskSheet</p>
-            <p className="text-[9.5px] font-bold uppercase tracking-[0.06em] truncate" style={{ color: '#5f6b81' }}>SoftVibeSolutions</p>
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.06em] truncate" style={{ color: '#7c869a' }}>SoftVibeSolutions</p>
           </div>
         </div>
 
@@ -123,9 +123,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
           <div className="min-w-0">
             {isDemoMode ? (
-              <div className="text-[10px] font-bold uppercase tracking-[0.05em]" style={{ color: '#e8a23a' }}>DEMO MODE</div>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.05em]" style={{ color: '#e8a23a' }}>DEMO MODE</div>
             ) : (
-              <div className="text-[10px] font-bold uppercase tracking-[0.05em]" style={{ color: RAIL_TEXT_MUTED }}>{TASKSHEET_TAGLINE}</div>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.05em]" style={{ color: RAIL_TEXT_MUTED }}>{TASKSHEET_TAGLINE}</div>
             )}
             <div className="text-[11px] truncate" style={{ color: '#7c869a' }}>{facilityName || 'Facility Not Configured'}</div>
           </div>
@@ -144,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           style={{ color: currentTab === 'dashboard' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'dashboard' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <LayoutGrid className="w-[18px] h-[18px]" />
-          <span className="text-[9.5px] font-semibold">Dashboard</span>
+          <span className="text-[10.5px] font-semibold">Dashboard</span>
         </button>
 
         <button
@@ -154,7 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           style={{ color: currentTab === 'shifts' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'shifts' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <Clock className="w-[18px] h-[18px]" />
-          <span className="text-[9.5px] font-semibold">Shifts</span>
+          <span className="text-[10.5px] font-semibold">Shifts</span>
         </button>
 
         <button
@@ -164,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           style={{ color: currentTab === 'residents' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'residents' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <Users className="w-[18px] h-[18px]" />
-          <span className="text-[9.5px] font-semibold">Residents</span>
+          <span className="text-[10.5px] font-semibold">Residents</span>
         </button>
 
         <button
@@ -174,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           style={{ color: currentTab === 'fyi-binder' ? '#ffffff' : RAIL_TEXT_MUTED, background: currentTab === 'fyi-binder' ? RAIL_ACTIVE_TINT : 'transparent' }}
         >
           <BookOpen className="w-[18px] h-[18px]" />
-          <span className="text-[9.5px] font-semibold">FYI Binder</span>
+          <span className="text-[10.5px] font-semibold">FYI Binder</span>
         </button>
 
         <button
@@ -184,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           style={{ color: RAIL_TEXT_MUTED }}
         >
           <Menu className="w-[18px] h-[18px]" />
-          <span className="text-[9.5px] font-semibold">More</span>
+          <span className="text-[10.5px] font-semibold">More</span>
         </button>
       </div>
 
@@ -198,7 +198,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close menu"
-                className="p-1.5 rounded-control hover:bg-white/5"
+                className="p-1.5 rounded-control hover:bg-white/5 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -207,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => { onTabChange('reports-print'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5 hover:text-white"
+                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5 hover:text-white transition-colors"
               >
                 <Printer className="w-[18px] h-[18px]" />
                 <span>Print Center</span>
@@ -216,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => { onTabChange('settings'); setMobileMenuOpen(false); }}
-                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5 hover:text-white"
+                className="w-full flex items-center gap-3 px-3 h-11 rounded-control text-sm font-semibold hover:bg-white/5 hover:text-white transition-colors"
               >
                 <Settings className="w-[18px] h-[18px]" />
                 <span>Settings</span>

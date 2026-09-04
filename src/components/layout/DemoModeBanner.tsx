@@ -23,7 +23,7 @@ export const DemoModeBanner: React.FC<DemoModeBannerProps> = ({
             <Settings2 className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
               <p className="text-sm font-black uppercase tracking-wide">Facility setup required</p>
-              <p className="text-xs font-medium">Enter your facility details and create at least one HCA or LPN shift before operational use.</p>
+              <p className="text-xs font-medium max-w-[70ch]">Enter your facility details and create at least one HCA or LPN shift before operational use.</p>
             </div>
           </div>
           <button type="button" onClick={onConfigureFacility} className="btn btn-primary shrink-0">
@@ -44,7 +44,7 @@ export const DemoModeBanner: React.FC<DemoModeBannerProps> = ({
             <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
               <p className="text-sm font-black uppercase tracking-wide">Demo Mode - Sample Data</p>
-              <p className="text-xs font-semibold">Cedar Grove, its shifts, residents, and tasks are fictional examples. Do not use this configuration for resident care.</p>
+              <p className="text-xs font-semibold max-w-[70ch]">Cedar Grove, its shifts, residents, and tasks are fictional examples. Do not use this configuration for resident care.</p>
             </div>
           </div>
           <button type="button" onClick={onStartRealSetup} className="btn btn-primary shrink-0">
@@ -62,7 +62,7 @@ export const DemoModeBanner: React.FC<DemoModeBannerProps> = ({
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
             <p className="text-sm font-black uppercase tracking-wide">Demo Data Active</p>
-            <p className="text-xs font-medium">{state.demoRecordCount} fictional demo records are loaded alongside your manual setup. Manual records are preserved when demo data is cleared.</p>
+            <p className="text-xs font-medium max-w-[70ch]">{state.demoRecordCount} fictional demo records are loaded alongside your manual setup. Manual records are preserved when demo data is cleared.</p>
           </div>
         </div>
         <button type="button" onClick={onClearDemoData} className="btn btn-primary shrink-0">

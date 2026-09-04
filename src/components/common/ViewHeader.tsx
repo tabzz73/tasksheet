@@ -11,7 +11,7 @@ export const ViewHeader: React.FC<ViewHeaderProps> = ({ kicker, title, subtitle,
   <div className="flex flex-wrap items-start justify-between gap-3">
     <div className="min-w-0">
       <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-accent-strong">{kicker}</div>
-      <h1 className="mt-1.5 mb-1.5 font-heading font-extrabold text-[30px] tracking-[-0.015em] text-ink">{title}</h1>
+      <h1 className="mt-1.5 mb-1.5 font-heading font-bold text-[22px] tracking-[-0.01em] text-ink">{title}</h1>
       {subtitle && <p className="m-0 text-[13.5px] text-muted max-w-[560px] leading-relaxed">{subtitle}</p>}
     </div>
     {action && <div className="shrink-0">{action}</div>}

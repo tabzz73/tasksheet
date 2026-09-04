@@ -41,6 +41,7 @@ interface ResidentMenuPosition {
   bottom?: number;
   left: number;
   maxHeight: number;
+  transformOrigin: string;
 }
 
 interface ResidentsViewProps {
@@ -146,6 +147,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
       bottom: openUpwards ? window.innerHeight - rect.top + menuGap : undefined,
       left,
       maxHeight: availableHeight,
+      transformOrigin: `${openUpwards ? 'bottom' : 'top'} right`,
     });
     setActiveMenuResidentId(residentId);
   };
@@ -241,7 +243,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
     <div className="space-y-5 max-w-5xl mx-auto pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 bg-ink text-white rounded-surface shadow-elevated text-xs font-semibold flex items-center space-x-2 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 p-4 bg-ink text-white rounded-surface shadow-elevated text-xs font-semibold flex items-center space-x-2 animate-toast-in">
           <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -452,7 +454,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                       <button
                         type="button"
                         onClick={(e) => toggleResidentMenu(e, res.id)}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-control border border-hairline-strong text-ink-soft hover:bg-panel-sunken hover:text-ink transition-colors"
+                        className="hit-target-44 inline-flex items-center justify-center w-8 h-8 rounded-control border border-hairline-strong text-ink-soft hover:bg-panel-sunken hover:text-ink transition-colors"
                         aria-label={`Actions for ${res.firstName} ${res.lastName}`}
                         aria-expanded={activeMenuResidentId === res.id}
                         aria-haspopup="menu"
@@ -465,7 +467,7 @@ export const ResidentsView: React.FC<ResidentsViewProps> = ({
                           onClick={(e) => e.stopPropagation()}
                           role="menu"
                           aria-label={`Resident actions for ${res.firstName} ${res.lastName}`}
-                          className="fixed w-48 bg-panel rounded-surface shadow-elevated border border-hairline-strong py-1.5 z-[100] text-xs overflow-y-auto animate-in fade-in zoom-in-95 duration-100"
+                          className="fixed w-48 bg-panel rounded-surface shadow-elevated border border-hairline-strong py-1.5 z-[100] text-xs overflow-y-auto animate-popover-in"
                           style={residentMenuPosition}
                         >
                           <button

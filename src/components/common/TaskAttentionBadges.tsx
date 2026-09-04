@@ -109,7 +109,7 @@ export const TaskAttentionBadges: React.FC<TaskAttentionBadgesProps> = ({
               <div
                 role="tooltip"
                 style={{ left: activeTooltip.left, top: activeTooltip.top, bottom: activeTooltip.bottom }}
-                className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-ink text-white rounded-surface shadow-elevated text-xs z-[9999] pointer-events-none animate-in fade-in zoom-in-95 duration-100 border border-white/10"
+                className="fixed w-64 max-h-[calc(100vh-1rem)] overflow-y-auto p-2.5 bg-ink text-white rounded-surface shadow-elevated text-xs z-[9999] pointer-events-none animate-popover-in border border-white/10"
               >
                 <div className="flex items-center space-x-1.5 mb-1 pb-1 border-b border-white/10 font-bold">
                   {renderIcon(details.iconName, 'w-3.5 h-3.5 text-amber-400')}
