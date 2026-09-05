@@ -125,7 +125,7 @@ export const TaskDetailsDrawer: React.FC<TaskDetailsDrawerProps> = ({
             <span className="text-faint font-medium block">Scheduled Time:</span>
             <div className="flex items-center space-x-1 font-bold text-ink mt-0.5">
               <Clock className="w-3.5 h-3.5 text-accent" />
-              <span>{task.time ? `${task.time} (24h)` : 'Flexible / No Time'}</span>
+              <span>{task.time ? `${task.time} (24h)` : careTask?.trackingConfig?.scheduledTimes?.length ? careTask.trackingConfig.scheduledTimes.join(', ') : 'Flexible / No Time'}</span>
             </div>
           </div>
 

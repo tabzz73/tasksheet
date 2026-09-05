@@ -15,7 +15,8 @@ import {
   Plus,
   Edit3,
   Copy,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { ResidentCombobox } from '../common/ResidentCombobox';
@@ -57,6 +58,7 @@ import { filterCatalogTasks, getCommonCatalogTasks, getRoleCatalogTasks } from '
 import { DEFAULT_CARE_TIMING_PRESETS } from '../../data/defaultData';
 import { choosePreferredTimingPreset, getCareTimingPresetKind, getInShiftTimingPresets } from '../../services/careTiming';
 import { validateCareShiftSelection, validateTimedCareShift } from '../../services/scheduling/careShiftAssignment';
+import { isTimeWithinShift, parseMilitaryTime } from '../../services/scheduling/timeWindow';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 import { WoundSupplyPicker } from '../common/WoundSupplyPicker';
 import { createCoverageSnapshot, getCoverageDefinitions, normalizeCoverage } from '../../services/coverage';
@@ -147,6 +149,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskOccurrenceMode, setTaskOccurrenceMode] = useState(false);
   const [taskRequiredOccurrences, setTaskRequiredOccurrences] = useState('');
   const [taskOccurrenceResetPeriod, setTaskOccurrenceResetPeriod] = useState<'once' | 'daily'>('once');
+  // Medication Assistance (MAP1/2/3) frequency — a distinct dimension from
+  // assistance level. '1' keeps the exact legacy single-time behavior
+  // (no trackingConfig at all, matching every pre-existing MAP record).
+  // '2'/'3'/'4'/'custom' switch to scheduled-time occurrence mode: the
+  // count only determines how many time rows exist, never what times they
+  // hold — every row starts blank and is entered independently.
+  const [medFrequencyCount, setMedFrequencyCount] = useState<'1' | '2' | '3' | '4' | 'custom'>('1');
+  const [medScheduledTimes, setMedScheduledTimes] = useState<string[]>(['']);
   const [coverageType, setCoverageType] = useState('FUNDED');
   const [coverageStartDate, setCoverageStartDate] = useState('');
   const [coverageEndDate, setCoverageEndDate] = useState('');
@@ -256,6 +266,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskOccurrenceMode(Boolean(initialResidentTask.trackingConfig?.requiredOccurrences));
         setTaskRequiredOccurrences(initialResidentTask.trackingConfig?.requiredOccurrences ? String(initialResidentTask.trackingConfig.requiredOccurrences) : '');
         setTaskOccurrenceResetPeriod(initialResidentTask.trackingConfig?.occurrenceResetPeriod || 'once');
+        // Editing an existing Medication Assistance assignment: load every
+        // stored scheduled time back in and infer the frequency chip from
+        // the count (custom above 4, never collapsed into one row).
+        {
+          const existingScheduledTimes = initialResidentTask.trackingConfig?.scheduledTimes;
+          if (existingScheduledTimes && existingScheduledTimes.length > 0) {
+            setMedScheduledTimes(existingScheduledTimes);
+            setMedFrequencyCount(existingScheduledTimes.length <= 4 ? (String(existingScheduledTimes.length) as '1' | '2' | '3' | '4') : 'custom');
+          } else {
+            setMedFrequencyCount('1');
+            setMedScheduledTimes(['']);
+          }
+        }
         const coverage = normalizeCoverage(initialResidentTask.serviceCoverage);
         setCoverageType(coverage.type); setCoverageStartDate(coverage.startDate || ''); setCoverageEndDate(coverage.endDate || ''); setCoverageAdditional(Boolean(coverage.isAdditionalService)); setCoverageNote(coverage.note || '');
       } else if (initialUnitTask) {
@@ -342,6 +365,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskOccurrenceMode(false);
         setTaskRequiredOccurrences('');
         setTaskOccurrenceResetPeriod('once');
+        setMedFrequencyCount('1');
+        setMedScheduledTimes(['']);
         setCoverageType('FUNDED'); setCoverageStartDate(''); setCoverageEndDate(''); setCoverageAdditional(false); setCoverageNote('');
         setUnitTitle('');
         setUnitInstructions('');
@@ -402,6 +427,75 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const careTaskTimeError = taskTimingType !== 'fixed' || isNoSpecificTime
     ? validateCareShiftSelection({ shifts: state.shifts, roles, shiftId, roleId })
     : getShiftTimeError(taskTime);
+
+  // Medication Assistance scheduled-time mode (frequency 2×/3×/4×/Custom):
+  // resident/day-scoped, not shift-scoped, so it deliberately does NOT use
+  // careTaskTimeError's single-shift validation — roleId alone (no fixed
+  // shiftId) is what lets the generator route each time to whichever
+  // configured shift's window actually contains it.
+  const isMedScheduledMode = medFrequencyCount !== '1';
+  const medDuplicateTimes = (() => {
+    const seen = new Set<string>();
+    const dupes = new Set<string>();
+    for (const t of medScheduledTimes) {
+      const trimmed = t.trim();
+      if (!trimmed) continue;
+      if (seen.has(trimmed)) dupes.add(trimmed);
+      seen.add(trimmed);
+    }
+    return dupes;
+  })();
+  const medScheduleError = isMedScheduledMode ? (() => {
+    if (!roleId) return 'Choose the HCA role before saving this Medication Assistance schedule.';
+    if (medScheduledTimes.length === 0) return 'Add at least one time.';
+    const blankIndex = medScheduledTimes.findIndex(t => !t.trim());
+    if (blankIndex !== -1) return `Time ${blankIndex + 1} is required.`;
+    const invalid = medScheduledTimes.find(t => parseMilitaryTime(t) === null);
+    if (invalid) return `"${invalid}" is not a valid 24-hour time. Enter a time such as 1715.`;
+    if (medDuplicateTimes.size > 0) return `Duplicate time${medDuplicateTimes.size === 1 ? '' : 's'}: ${[...medDuplicateTimes].join(', ')}. Each occurrence needs a distinct time.`;
+    return null;
+  })() : null;
+
+  // Live routing summary labels — rendered as "Appears in: Day Shift 0800 ·
+  // Evening Shift 1700, 2100" via the shared RoutingSummary component.
+  // Purely a preview of the same isTimeWithinShift logic the generator
+  // itself uses for print routing; never a separate source of truth.
+  const medRoutingLabels: string[] = (() => {
+    if (!isMedScheduledMode) return [];
+    const validTimes = medScheduledTimes.filter(t => parseMilitaryTime(t) !== null);
+    if (validTimes.length === 0) return [];
+    const activeShifts = state.shifts
+      .filter(s => s.isActive !== false && (!roleId || s.roleId === roleId))
+      .sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99));
+    const byShift = activeShifts
+      .map(s => ({ shift: s, times: validTimes.filter(t => isTimeWithinShift(t, s.startTime, s.endTime)).sort() }))
+      .filter(entry => entry.times.length > 0);
+    if (byShift.length === 0) return ['No configured shift covers any of these times yet'];
+    const unmatched = validTimes.filter(t => !byShift.some(entry => entry.times.includes(t)));
+    const labels = byShift.map(entry => `${entry.shift.name} ${entry.times.join(', ')}`);
+    if (unmatched.length > 0) labels.push(`Unassigned: ${unmatched.join(', ')}`);
+    return labels;
+  })();
+
+  const setMedFrequencyCountAndResize = (count: '1' | '2' | '3' | '4' | 'custom') => {
+    setMedFrequencyCount(count);
+    if (count === '1') return;
+    const targetLength = count === 'custom' ? Math.max(medScheduledTimes.length, 1) : Number(count);
+    setMedScheduledTimes(prev => {
+      const next = prev.slice(0, targetLength);
+      while (next.length < targetLength) next.push('');
+      return next;
+    });
+    // Scheduled-time mode is resident/day-scoped, not tied to the shift the
+    // task happened to be created from — clear any fixed shift so the
+    // generator's role-based routing (see generator/index.ts) evaluates
+    // every configured shift for this role independently.
+    setShiftId('');
+    if (!roleId) {
+      const hcaRole = roles.find(r => r.code === 'HCA');
+      if (hcaRole) setRoleId(hcaRole.id);
+    }
+  };
   const unitTaskTimeError = unitTimingType === 'fixed' ? getShiftTimeError(unitTime) : null;
   const selectedWoundShift = clinicalShifts.find(shift => shift.id === woundShiftId);
   const woundShiftTimeError = clinicalShifts.length === 0
@@ -427,6 +521,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const commonTemplates = getCommonCatalogTasks(roleCatalogTasks);
   const selectedCatalogTemplate = catalogTemplates.find(t => t.slug === taskTemplateSlug);
   const timingPresetKind = getCareTimingPresetKind(selectedCatalogTemplate, taskCategory, taskTitle);
+  // Assistance Level options — specifically MAP1/MAP2/MAP3 (not every
+  // Medication Assistance category template — "Report Medication Refusal"
+  // and "Medication Assistance Follow-up" are different actions, not
+  // assistance levels). Switching level re-runs the normal template
+  // selection (title/instructions/attention config) but never touches
+  // frequency or the entered times — those are a separate, independent
+  // dimension.
+  const medAssistTemplates = timingPresetKind === 'medication'
+    ? catalogTemplates.filter(t => t.slug.startsWith('hca.medication.map')).sort((a, b) => a.slug.localeCompare(b.slug))
+    : [];
   const configuredTimingPresets = state.settings.careTimingPresets || DEFAULT_CARE_TIMING_PRESETS;
   const availableTimingPresets = getInShiftTimingPresets(
     timingPresetKind === 'medication'
@@ -480,20 +584,39 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
 
   const handleSaveCareTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskTitle.trim() || careTaskTimeError || pausedResidentNeedsAcknowledgement) return;
+    if (!taskTitle.trim() || pausedResidentNeedsAcknowledgement) return;
+    if (isMedScheduledMode ? medScheduleError : careTaskTimeError) return;
     if (!residentId) { setMutationConflict({ status: 'BLOCKED', code: 'MISSING_RESIDENT', title: 'Resident Required', message: 'Select a resident.' }); return; }
     setMutationConflict(null);
-    const resolvedTaskTime = taskTimingType === 'period' ? undefined : taskTimingType === 'start_of_shift' ? currentShiftObj?.startTime : taskTimingType === 'end_of_shift' ? currentShiftObj?.endTime : taskTime;
-    const resolvedNoSpecificTime = taskTimingType === 'period';
+    const resolvedTaskTime = isMedScheduledMode ? undefined : taskTimingType === 'period' ? undefined : taskTimingType === 'start_of_shift' ? currentShiftObj?.startTime : taskTimingType === 'end_of_shift' ? currentShiftObj?.endTime : taskTime;
+    const resolvedNoSpecificTime = isMedScheduledMode ? false : taskTimingType === 'period';
     const coverageDefinition = getCoverageDefinitions(state.settings.serviceCoverageDefinitions).find(item => item.code === coverageType);
     if (!coverageDefinition) { setMutationConflict({ status: 'BLOCKED', title: 'Service Coverage Is Unavailable', message: 'Select an active Service Coverage classification before saving.' }); return; }
     const serviceCoverage: TaskServiceCoverage = createCoverageSnapshot(coverageDefinition, { startDate: coverageStartDate, endDate: coverageEndDate, isAdditionalService: coverageAdditional, note: coverageNote });
     if (serviceCoverage.startDate && serviceCoverage.endDate && serviceCoverage.endDate < serviceCoverage.startDate) { setMutationConflict({ status: 'BLOCKED', code: 'INVALID_DATE_RANGE', title: 'Invalid Coverage Period', message: 'Coverage end date must be on or after the start date.' }); return; }
     if (mode === 'edit' && initialResidentTask && normalizeCoverage(initialResidentTask.serviceCoverage).type !== serviceCoverage.type && !coverageChangeConfirmed) { setMutationConflict({ status: 'WARNING', code: 'COVERAGE_CHANGE_IMPACT', title: 'Change Service Coverage?', message: `You are changing this task from ${normalizeCoverage(initialResidentTask.serviceCoverage).labelSnapshot} to ${serviceCoverage.labelSnapshot}. This changes how it appears on TaskSheets, bathing grids, resident summaries, filters, and reports.`, recommendedActions: [{ id: 'confirm_coverage', label: 'Change Coverage', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] }); return; }
+    // Medication Assistance scheduled-time mode builds its own
+    // trackingConfig independently of the generic occurrence-mode toggle
+    // above (MAP templates carry no trackingConfig of their own to extend).
+    // Times are sorted chronologically here — the one point "save" commits
+    // the final order — and existing completion history is always
+    // preserved across an edit, exactly like every other occurrence task.
+    const medTrackingConfig = isMedScheduledMode ? (() => {
+      const sortedTimes = [...medScheduledTimes].sort();
+      return {
+        kind: 'observation' as const,
+        requiredOccurrences: sortedTimes.length,
+        completedOccurrences: initialResidentTask?.trackingConfig?.completedOccurrences,
+        occurrenceResetPeriod: 'daily' as const,
+        occurrences: initialResidentTask?.trackingConfig?.occurrences,
+        scheduledTimes: sortedTimes,
+      };
+    })() : undefined;
+
     // Occurrence progress (and its full per-occurrence history) is never
     // reset by a re-save/edit — only the target count, reset period, and
     // tracking kind/prompt are editable here.
-    const resolvedTrackingConfig = taskTrackingConfig && (
+    const resolvedTrackingConfig = medTrackingConfig || (taskTrackingConfig && (
       taskOccurrenceMode && taskRequiredOccurrences
         ? {
             ...taskTrackingConfig,
@@ -503,7 +626,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             occurrences: initialResidentTask?.trackingConfig?.occurrences,
           }
         : { ...taskTrackingConfig, requiredOccurrences: undefined, completedOccurrences: undefined, occurrenceResetPeriod: undefined, occurrences: undefined }
-    );
+    ));
     try {
     if (mode === 'edit' && initialResidentTask) {
       db.updateResidentTask(initialResidentTask.id, {
@@ -771,7 +894,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     <>
       <button type="button" onClick={requestClose} className="btn btn-secondary">Cancel</button>
       {selectedType === 'care_task' && (
-        <button type="submit" form="care-task-form" disabled={!!careTaskTimeError || pausedResidentNeedsAcknowledgement} className="btn btn-accent px-6">
+        <button type="submit" form="care-task-form" disabled={!!(isMedScheduledMode ? medScheduleError : careTaskTimeError) || pausedResidentNeedsAcknowledgement} className="btn btn-accent px-6">
           {mode === 'edit' ? 'Save Changes' : mode === 'duplicate' ? 'Create Duplicate' : 'Add Task'}
         </button>
       )}
@@ -1079,7 +1202,61 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           </FormSection>
 
           <FormSection title="When">
+          {/* Medication Assistance: Assistance Level and Frequency are two
+              independent dimensions (how much help vs. how often) — shown
+              together, ahead of timing, whenever a Medication Assistance
+              template is the active selection. */}
+          {timingPresetKind === 'medication' && medAssistTemplates.length > 0 && (
+            <div className="space-y-3 rounded-control border border-hairline-strong bg-panel-sunken p-3">
+              <div>
+                <span className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Assistance Level</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {medAssistTemplates.map(t => (
+                    <button
+                      key={t.slug}
+                      type="button"
+                      onClick={() => selectCatalogTemplate(t)}
+                      aria-pressed={taskTemplateSlug === t.slug}
+                      className={`px-3 py-1.5 rounded-control border text-[11px] font-bold transition-colors ${
+                        taskTemplateSlug === t.slug
+                          ? 'border-accent bg-accent-soft text-accent-strong ring-1 ring-accent'
+                          : 'border-hairline-strong bg-panel text-ink-soft hover:border-accent hover:bg-accent-soft'
+                      }`}
+                    >
+                      {t.title.split(' — ')[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Frequency</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(['1', '2', '3', '4', 'custom'] as const).map(count => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setMedFrequencyCountAndResize(count)}
+                      aria-pressed={medFrequencyCount === count}
+                      className={`px-3 py-1.5 rounded-control border text-[11px] font-bold transition-colors ${
+                        medFrequencyCount === count
+                          ? 'border-accent bg-accent-soft text-accent-strong ring-1 ring-accent'
+                          : 'border-hairline-strong bg-panel text-ink-soft hover:border-accent hover:bg-accent-soft'
+                      }`}
+                    >
+                      {count === '1' ? 'Once daily' : count === 'custom' ? 'Custom' : `${count}×`}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] text-muted">
+                  {isMedScheduledMode
+                    ? 'Sets how many time entries are required — nothing is pre-filled. Enter every time independently below.'
+                    : 'A single scheduled time, same as any other task.'}
+                </p>
+              </div>
+            </div>
+          )}
           {/* Time Field */}
+          {!isMedScheduledMode && (
           <div>
             <label htmlFor="care-task-timing-type" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label>
             <select id="care-task-timing-type" value={taskTimingType} onChange={event => { const value = event.target.value as TaskTimingType; setTaskTimingType(value); setIsNoSpecificTime(value === 'period'); }} className="mb-2 w-full rounded-control border border-hairline-strong bg-panel px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-accent">
@@ -1130,6 +1307,70 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               </p>
             )}
           </div>
+          )}
+
+          {/* Medication Assistance scheduled times — one blank row per
+              Frequency count. Nothing is pre-filled; the user enters every
+              clock time independently, then times are sorted chronologically
+              on save. Each entered time is checked live against configured
+              shift windows so staff see exactly where this will print
+              before saving — the same isTimeWithinShift logic the generator
+              uses, never a separate source of truth. */}
+          {isMedScheduledMode && (
+            <div className="space-y-2">
+              <span className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider">
+                {medScheduledTimes.length} Time{medScheduledTimes.length === 1 ? '' : 's'} (24-Hour Format)
+              </span>
+              {medScheduledTimes.map((time, index) => {
+                const trimmed = time.trim();
+                const invalidFormat = Boolean(trimmed) && parseMilitaryTime(time) === null;
+                const isDuplicate = medDuplicateTimes.has(trimmed);
+                return (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="w-14 shrink-0 text-[11px] font-semibold text-ink-soft">Time {index + 1}</span>
+                    <input
+                      type="text"
+                      value={time}
+                      onChange={(e) => setMedScheduledTimes(prev => prev.map((t, i) => i === index ? e.target.value : t))}
+                      placeholder="e.g. 0800"
+                      aria-label={`Time ${index + 1}`}
+                      aria-invalid={invalidFormat || isDuplicate}
+                      className={`w-28 px-3 py-2 bg-panel border rounded-control text-sm tabular-nums font-mono font-bold focus:ring-2 focus:ring-accent ${
+                        invalidFormat || isDuplicate ? 'border-danger' : 'border-hairline-strong'
+                      }`}
+                    />
+                    {medFrequencyCount === 'custom' && medScheduledTimes.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setMedScheduledTimes(prev => prev.filter((_, i) => i !== index))}
+                        aria-label={`Remove time ${index + 1}`}
+                        className="p-1.5 text-muted hover:text-danger rounded-control transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              {medFrequencyCount === 'custom' && (
+                <button
+                  type="button"
+                  onClick={() => setMedScheduledTimes(prev => [...prev, ''])}
+                  className="text-[11px] font-semibold text-accent-strong hover:text-accent underline decoration-dotted underline-offset-2"
+                >
+                  + Add time
+                </button>
+              )}
+              {medScheduleError ? (
+                <p className="flex items-start space-x-1.5 text-xs font-semibold text-danger" role="alert">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>{medScheduleError}</span>
+                </p>
+              ) : medRoutingLabels.length > 0 && (
+                <RoutingSummary labels={medRoutingLabels} />
+              )}
+            </div>
+          )}
 
           {/* Recurrence & Frequency Selector */}
           <div className="pt-2 border-t border-hairline">

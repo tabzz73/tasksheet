@@ -75,6 +75,12 @@ export interface TaskAssignmentCandidate {
   title: string; category?: string; time?: string; timingType?: TaskTimingType; isNoSpecificTime?: boolean;
   frequency: RecurrenceFrequency; recurrenceRule?: RecurrenceRule; createdAt?: string; templateSlug?: string;
   serviceCoverage?: TaskServiceCoverage;
+  /** Scheduled-time occurrence mode (e.g. Medication Assistance at 0800,
+   *  1700, 2100). When set, the task is not pinned to one `shiftId` — each
+   *  time is routed at print time to whichever active shift's window
+   *  contains it — so validation checks shift coverage per time instead of
+   *  the single-shift checks below. */
+  scheduledTimes?: string[];
 }
 
 export function validateBathingAssignment(state: AppDatabaseState, candidate: TaskAssignmentCandidate): ValidationResult {
@@ -109,10 +115,30 @@ export function validateBathingAssignment(state: AppDatabaseState, candidate: Ta
   return validResult();
 }
 
+function validateScheduledTimesAssignment(state: AppDatabaseState, candidate: TaskAssignmentCandidate): ValidationResult {
+  const times = candidate.scheduledTimes || [];
+  for (const time of times) {
+    const format = validateMilitaryTime(time); if (isBlocked(format)) return format;
+  }
+  const activeShifts = state.shifts.filter(item => item.isActive !== false);
+  const uncovered = times.filter(time => !activeShifts.some(shift => isTimeWithinShift(time, shift.startTime, shift.endTime)));
+  if (uncovered.length > 0) return { status: 'BLOCKED', code: 'TASK_OUTSIDE_SHIFT', title: 'Time Not Covered By Any Active Shift', message: `${uncovered.join(', ')} ${uncovered.length === 1 ? 'does' : 'do'} not fall within any active shift's hours. Add or adjust a shift to cover ${uncovered.length === 1 ? 'this time' : 'these times'}, or change the entered time.`, recommendedActions: [{ id: 'change_time', label: 'Change Time', kind: 'primary' }, { id: 'shift_settings', label: 'Open Shift Settings', kind: 'secondary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] };
+  if (candidate.residentId) {
+    const resident = state.residents.find(item => item.id === candidate.residentId);
+    if (!resident || ['discharged', 'deceased', 'inactive'].includes(resident.status)) return { status: 'BLOCKED', code: 'RESIDENT_NOT_OPERATIONAL', title: 'Resident Is Not Operationally Active', message: `“${candidate.title}” cannot be scheduled because ${resident ? `${resident.firstName} ${resident.lastName}` : 'the selected resident'} is ${resident?.status || 'missing'}. Restore the resident to a current status or cancel this assignment.`, context: { residentId: candidate.residentId }, recommendedActions: [{ id: 'review_resident', label: 'Review Resident Status', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] };
+  }
+  if (candidate.templateSlug && state.catalogTaskTemplates.find(template => template.slug === candidate.templateSlug)?.isActive === false) return { status: 'BLOCKED', code: 'CATALOG_ITEM_INACTIVE', title: 'Catalog Item Is Inactive', message: `“${candidate.title}” is inactive in the Care Task Catalog. Reactivate the catalog item or choose another task.`, recommendedActions: [{ id: 'catalog', label: 'Open Care Task Catalog', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] };
+  const collection = candidate.kind === 'unit_task' ? state.unitTasks : state.residentTasks;
+  const duplicate = collection.find(task => task.id !== candidate.id && task.isActive !== false && ('residentId' in task ? task.residentId === candidate.residentId : true) && task.title.trim().toLowerCase() === candidate.title.trim().toLowerCase());
+  if (duplicate) return { status: 'BLOCKED', code: 'DUPLICATE_TASK', title: 'Duplicate Task Assignment', message: `“${candidate.title}” is already scheduled for this resident. Edit the existing assignment instead of creating another copy.`, affectedRecords: [{ id: duplicate.id, type: candidate.kind === 'unit_task' ? 'unit_task' : 'resident_task', label: duplicate.title, time: duplicate.time }], recommendedActions: [{ id: 'edit_existing', label: 'Edit Existing Assignment', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] };
+  return validResult();
+}
+
 export function validateTaskAssignment(state: AppDatabaseState, candidate: TaskAssignmentCandidate): ValidationResult {
   const coverage = normalizeCoverage(candidate.serviceCoverage);
   const coveragePeriodError = validateCoveragePeriod(coverage);
   if (coveragePeriodError) return { status: 'BLOCKED', code: 'INVALID_DATE_RANGE', title: 'Invalid Coverage Period', message: coveragePeriodError, recommendedActions: [{ id: 'change_dates', label: 'Change Coverage Dates', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] };
+  if (candidate.scheduledTimes && candidate.scheduledTimes.length > 0) return validateScheduledTimesAssignment(state, candidate);
   const shift = state.shifts.find(item => item.id === candidate.shiftId);
   if (!shift) return { status: 'BLOCKED', code: 'SHIFT_NOT_FOUND', title: 'Shift Not Found', message: `The assigned shift for “${candidate.title}” no longer exists. Choose an active shift before saving.`, recommendedActions: [{ id: 'choose_shift', label: 'Choose Active Shift', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] };
   if (shift.isActive === false) return { status: 'BLOCKED', code: 'SHIFT_INACTIVE', title: 'Shift Is Inactive', message: `${shift.shortCode || shift.name} is inactive and cannot receive “${candidate.title}”. Select another shift or reactivate it in Settings.`, context: { shiftId: shift.id }, recommendedActions: [{ id: 'choose_shift', label: 'Select Another Shift', kind: 'primary' }, { id: 'shift_settings', label: 'Open Shift Settings', kind: 'secondary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] };

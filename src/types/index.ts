@@ -250,6 +250,18 @@ export interface ResidentTrackingConfig {
    *  see `TaskOccurrenceRecord`. Absent/empty on tasks that predate this
    *  field or have no occurrences recorded yet. */
   occurrences?: TaskOccurrenceRecord[];
+  /** Scheduled-time occurrence mode (e.g. medication assistance at 0800,
+   *  1700, 2100) — distinct from plain count-based occurrence mode (e.g.
+   *  "3 urine samples," any time). When set, each entry is one planned
+   *  24-hour clock time; `requiredOccurrences` equals `scheduledTimes.length`
+   *  and is kept in sync with it. Always stored sorted chronologically.
+   *  Frequency (how many) and these clock times (when) are independent —
+   *  choosing "3 times daily" only determines how many entries this array
+   *  needs; nothing here is ever inferred or pre-filled from the count.
+   *  Absent for plain count-based occurrence tasks and for ordinary
+   *  single-`time` tasks (including every pre-existing Medication
+   *  Assistance record, which stays a valid "once daily" task unchanged). */
+  scheduledTimes?: string[];
 }
 
 export interface FacilityAttentionRule {

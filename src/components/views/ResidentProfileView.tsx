@@ -726,6 +726,9 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                          </span>
                         {coverageIndicator(t.serviceCoverage) && <span className="rounded border border-warning bg-warning-soft px-1.5 py-0.5 text-[10px] font-black text-warning" title={normalizeCoverage(t.serviceCoverage).labelSnapshot}>{coverageIndicator(t.serviceCoverage)} {normalizeCoverage(t.serviceCoverage).labelSnapshot}</span>}
                         {t.time && <span className="font-mono text-xs bg-panel-sunken px-2 py-0.5 rounded text-ink-soft">{t.time}</span>}
+                        {!t.time && t.trackingConfig?.scheduledTimes && t.trackingConfig.scheduledTimes.length > 0 && (
+                          <span className="font-mono text-xs bg-panel-sunken px-2 py-0.5 rounded text-ink-soft" title="Scheduled Medication Assistance times">{t.trackingConfig.scheduledTimes.join(', ')}</span>
+                        )}
                         <span className="text-xs text-accent-strong font-semibold bg-accent-soft px-2 py-0.5 rounded">
                           {formatRecurrenceHuman(t.recurrenceRule, t.frequency)}
                         </span>

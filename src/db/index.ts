@@ -644,7 +644,7 @@ export class DatabaseService {
     this.assertExpectedRevision(options.expectedRevision);
     const createdAt = new Date().toISOString();
     const timingType = task.timingType || (task.isNoSpecificTime || !task.time ? 'period' : 'fixed');
-    assertValid(validateTaskAssignment(this.state, { ...task, kind: 'resident_task', title: task.title, frequency: task.frequency, createdAt, timingType }));
+    assertValid(validateTaskAssignment(this.state, { ...task, kind: 'resident_task', title: task.title, frequency: task.frequency, createdAt, timingType, scheduledTimes: task.trackingConfig?.scheduledTimes }));
     const newTask: ResidentTask = {
       ...task,
       timingType,
@@ -680,7 +680,7 @@ export class DatabaseService {
     this.assertExpectedRevision(options.expectedRevision);
     const current = this.state.residentTasks.find(task => task.id === id); if (!current) throw new Error('Resident task not found.');
     const next = { ...current, ...updates, timingType: updates.timingType || current.timingType || ((updates.isNoSpecificTime ?? current.isNoSpecificTime) || !(updates.time ?? current.time) ? 'period' : 'fixed') };
-    if (next.isActive !== false) assertValid(validateTaskAssignment(this.state, { ...next, kind: 'resident_task' }));
+    if (next.isActive !== false) assertValid(validateTaskAssignment(this.state, { ...next, kind: 'resident_task', scheduledTimes: next.trackingConfig?.scheduledTimes }));
     const taskChanges: string[] = [];
     if (updates.followUpDueDate !== undefined && updates.followUpDueDate !== current.followUpDueDate) taskChanges.push(`Due date: ${current.followUpDueDate || '(none)'} → ${updates.followUpDueDate || '(none)'}`);
     if (updates.mustNotMiss !== undefined && updates.mustNotMiss !== current.mustNotMiss) taskChanges.push(`Must not be missed: ${updates.mustNotMiss ? 'On' : 'Off'}`);
@@ -901,7 +901,7 @@ export class DatabaseService {
 
   public reactivateResidentTask(id: string): void {
     const current = this.state.residentTasks.find(task => task.id === id); if (!current) throw new Error('Resident task not found.');
-    assertValid(validateTaskAssignment(this.state, { ...current, isActive: true, kind: 'resident_task' }));
+    assertValid(validateTaskAssignment(this.state, { ...current, isActive: true, kind: 'resident_task', scheduledTimes: current.trackingConfig?.scheduledTimes }));
     this.saveToStorage({
       ...this.state,
       residentTasks: this.state.residentTasks.map(t => t.id === id ? { 
@@ -925,7 +925,7 @@ export class DatabaseService {
       createdAt: new Date().toISOString(),
       updatedAt: undefined
     };
-    assertValid(validateTaskAssignment(this.state, { ...newTask, kind: 'resident_task' }));
+    assertValid(validateTaskAssignment(this.state, { ...newTask, kind: 'resident_task', scheduledTimes: newTask.trackingConfig?.scheduledTimes }));
     this.saveToStorage({
       ...this.state,
       residentTasks: [...this.state.residentTasks, newTask]

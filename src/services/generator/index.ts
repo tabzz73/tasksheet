@@ -200,8 +200,39 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
       .filter(t => isCoverageActiveOnDate(t.serviceCoverage, dateStr))
       .sort((a, b) => (a.time || '9999').localeCompare(b.time || '9999'));
 
-    const allMatchingTasks = candidateTasks.filter(t => {
-      if (t.timingType === 'start_of_shift' || t.timingType === 'end_of_shift' || t.timingType === 'period' || !t.time || isTimeWithinShift(t.time, shift.startTime, shift.endTime)) return true;
+    const allMatchingTasks = candidateTasks.flatMap(t => {
+      // Scheduled-time occurrence tasks (e.g. Medication Assistance at
+      // 0800/1700/2100) are resident/day-scoped, not shift-scoped: each
+      // planned clock time is checked independently against this shift's
+      // window, and every time that falls inside it becomes its own print
+      // row (a shallow clone with `time` set to that one occurrence). One
+      // task can therefore legitimately produce rows on more than one
+      // shift's sheet on the same day — that is correct, not a duplicate.
+      const scheduledTimes = t.trackingConfig?.scheduledTimes;
+      if (scheduledTimes && scheduledTimes.length > 0) {
+        const matches = scheduledTimes.filter(time => isTimeWithinShift(time, shift.startTime, shift.endTime));
+        if (matches.length === 0) {
+          exceptions.push({
+            taskId: t.id,
+            taskType: 'resident_task',
+            title: t.title,
+            time: scheduledTimes.join(', '),
+            reason: exceptionReason(scheduledTimes[0]),
+            shiftId: shift.id,
+            shiftCode: shift.shortCode || shift.name,
+            shiftStart: shift.startTime,
+            shiftEnd: shift.endTime,
+            residentId: res.id,
+            residentName: `${res.firstName} ${res.lastName}`,
+            roomNumber: res.roomNumber,
+            source: t.source,
+          });
+          return [];
+        }
+        return matches.map(time => ({ ...t, id: `${t.id}::${time}`, time }));
+      }
+
+      if (t.timingType === 'start_of_shift' || t.timingType === 'end_of_shift' || t.timingType === 'period' || !t.time || isTimeWithinShift(t.time, shift.startTime, shift.endTime)) return [t];
       exceptions.push({
         taskId: t.id,
         taskType: 'resident_task',
@@ -217,7 +248,7 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
         roomNumber: res.roomNumber,
         source: t.source,
       });
-      return false;
+      return [];
     });
 
     // Separate PRN from regular scheduled tasks

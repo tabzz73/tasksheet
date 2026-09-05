@@ -177,6 +177,22 @@ export function formatOccurrenceProgressLabel(completed: number, required: numbe
   return `${clamped}/${required} completed · ${remaining} remaining`;
 }
 
+/** Same shape as `formatOccurrenceProgressLabel`, but for scheduled-time
+ *  occurrence tasks (e.g. Medication Assistance at 0800/1700/2100) — names
+ *  the actual remaining clock times instead of just a count, so the
+ *  incoming shift knows exactly what's left without opening the task.
+ *  Occurrences are expected to be recorded in scheduled-time order (the
+ *  same order care naturally progresses through a shift), so the next
+ *  `required - completed` entries of `scheduledTimes` are what remain. */
+export function formatScheduledOccurrenceProgressLabel(completed: number, scheduledTimes: string[]): string {
+  const required = scheduledTimes.length;
+  const clamped = Math.min(Math.max(completed, 0), required);
+  if (clamped >= required) return `${clamped}/${required} complete`;
+  const remainingTimes = scheduledTimes.slice(clamped);
+  if (clamped === 0) return `${clamped}/${required} (${remainingTimes.join(', ')})`;
+  return `${clamped}/${required} completed · ${remainingTimes.length} remaining (${remainingTimes.join(', ')})`;
+}
+
 export type ResidentFollowUpBucket =
   | 'needs_review' | 'overdue' | 'due_today' | 'carry_forward'
   | 'tracking_active' | 'tracking_open_ended';
@@ -247,7 +263,10 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
         const required = task.trackingConfig.requiredOccurrences;
         const completedOcc = getEffectiveOccurrenceCount(task, today);
         if (completedOcc >= required) continue; // this period's target is met — nothing to follow up on
-        const label = formatOccurrenceProgressLabel(completedOcc, required);
+        const scheduledTimes = task.trackingConfig.scheduledTimes;
+        const label = scheduledTimes && scheduledTimes.length === required
+          ? formatScheduledOccurrenceProgressLabel(completedOcc, scheduledTimes)
+          : formatOccurrenceProgressLabel(completedOcc, required);
         const escalated = status === 'needs_review';
         const bucket: ResidentFollowUpBucket = escalated ? 'needs_review' : 'tracking_active';
         entries.push({
