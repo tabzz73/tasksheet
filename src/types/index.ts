@@ -896,7 +896,7 @@ export interface AppUser {
 }
 
 export type AuditAction =
-  | 'created' | 'updated' | 'status_changed' | 'ended' | 'deactivated' | 'reactivated'
+  | 'created' | 'updated' | 'deleted' | 'status_changed' | 'ended' | 'deactivated' | 'reactivated' | 'duplicated' | 'stopped'
   | 'follow_up_status_changed' | 'occurrence_recorded' | 'occurrence_reversed' | 'tracking_extended'
   | 'print_preview_opened'
   | 'backup_exported' | 'backup_restored'
@@ -905,7 +905,7 @@ export type AuditAction =
   | 'login' | 'login_failed' | 'logout';
 
 export type AuditEntityType =
-  | 'resident' | 'resident_task' | 'attention_item' | 'fyi' | 'wound'
+  | 'resident' | 'resident_task' | 'unit_task' | 'attention_item' | 'fyi' | 'wound'
   | 'shift' | 'facility_settings' | 'print' | 'backup' | 'demo' | 'user' | 'session';
 
 /** Append-only. No update/delete method is ever exposed for this collection —

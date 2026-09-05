@@ -628,7 +628,8 @@ export class DatabaseService {
   }
 
   public deleteResident(id: string): void {
-    this.saveToStorage({
+    const current = this.state.residents.find(r => r.id === id);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residents: this.state.residents.filter(r => r.id !== id),
       residentTasks: this.state.residentTasks.filter(t => t.residentId !== id),
@@ -636,7 +637,7 @@ export class DatabaseService {
       fyis: this.state.fyis.filter(f => f.residentId !== id),
       attentionItems: this.state.attentionItems.filter(a => a.residentId !== id),
       residentPlacementHistory: this.state.residentPlacementHistory.filter(item => item.residentId !== id)
-    });
+    }, { action: 'deleted', entityType: 'resident', entityId: id, residentId: id, summary: `Resident deleted: ${current ? `${current.firstName} ${current.lastName}` : id}` }));
   }
 
   // Resident Tasks
@@ -664,7 +665,7 @@ export class DatabaseService {
     let simulated = this.state;
     const newTasks: ResidentTask[] = tasks.map(t => {
       const createdAt = new Date().toISOString(); const timingType = t.timingType || (t.isNoSpecificTime || !t.time ? 'period' : 'fixed');
-      assertValid(validateTaskAssignment(simulated, { ...t, kind: 'resident_task', title: t.title, frequency: t.frequency, createdAt, timingType }));
+      assertValid(validateTaskAssignment(simulated, { ...t, kind: 'resident_task', title: t.title, frequency: t.frequency, createdAt, timingType, scheduledTimes: t.trackingConfig?.scheduledTimes }));
       const created: ResidentTask = { ...t, timingType, id: generateUUID(), isActive: true, createdAt, source: t.source || 'manual' };
       simulated = { ...simulated, residentTasks: [...simulated.residentTasks, created] };
       return created;
@@ -837,6 +838,13 @@ export class DatabaseService {
     if (record.reversedAt) throw new Error('This occurrence has already been reversed.');
     const now = new Date().toISOString();
     const actor = this.currentActor;
+    const nextCompleted = getEffectiveOccurrenceCount({ ...current, trackingConfig: { ...tracking!, occurrences: tracking!.occurrences!.map(o => o.id === occurrenceId ? { ...o, reversedAt: now } : o) } }, getTodayLocalDateString());
+    const isDaily = tracking!.occurrenceResetPeriod === 'daily';
+    // Reversing an occurrence that had reached the once-mode target (which
+    // auto-set followUpStatus to 'done' in recordResidentTaskOccurrence)
+    // must un-resolve the follow-up — otherwise it stays stuck showing
+    // 'done' while genuinely below its required count again.
+    const shouldReopen = !isDaily && current.followUpStatus === 'done' && nextCompleted < (tracking!.requiredOccurrences ?? 0);
     const updated: ResidentTask = {
       ...current,
       trackingConfig: {
@@ -848,8 +856,10 @@ export class DatabaseService {
           reversedByDisplayName: actor?.displayName ?? 'Unknown User',
           reversalReason: reason,
         } : o),
-        completedOccurrences: getEffectiveOccurrenceCount({ ...current, trackingConfig: { ...tracking!, occurrences: tracking!.occurrences!.map(o => o.id === occurrenceId ? { ...o, reversedAt: now } : o) } }, getTodayLocalDateString()),
+        completedOccurrences: nextCompleted,
       },
+      followUpStatus: shouldReopen ? 'due' : current.followUpStatus,
+      followUpUpdatedAt: shouldReopen ? now : current.followUpUpdatedAt,
       updatedAt: now,
     };
     this.saveToStorage(this.appendAudit({
@@ -888,29 +898,30 @@ export class DatabaseService {
   }
 
   public stopResidentTask(id: string): void {
-    this.saveToStorage({
+    const current = this.state.residentTasks.find(t => t.id === id);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
-      residentTasks: this.state.residentTasks.map(t => t.id === id ? { 
-        ...t, 
-        isActive: false, 
+      residentTasks: this.state.residentTasks.map(t => t.id === id ? {
+        ...t,
+        isActive: false,
         stoppedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString()
       } : t)
-    });
+    }, { action: 'stopped', entityType: 'resident_task', entityId: id, residentId: current?.residentId, summary: `Resident task stopped: ${current?.title || id}` }));
   }
 
   public reactivateResidentTask(id: string): void {
     const current = this.state.residentTasks.find(task => task.id === id); if (!current) throw new Error('Resident task not found.');
     assertValid(validateTaskAssignment(this.state, { ...current, isActive: true, kind: 'resident_task', scheduledTimes: current.trackingConfig?.scheduledTimes }));
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
-      residentTasks: this.state.residentTasks.map(t => t.id === id ? { 
-        ...t, 
-        isActive: true, 
+      residentTasks: this.state.residentTasks.map(t => t.id === id ? {
+        ...t,
+        isActive: true,
         stoppedAt: undefined,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString()
       } : t)
-    });
+    }, { action: 'reactivated', entityType: 'resident_task', entityId: id, residentId: current.residentId, summary: `Resident task reactivated: ${current.title}` }));
   }
 
   public duplicateResidentTask(id: string, overrides: Partial<ResidentTask> = {}): ResidentTask | null {
@@ -926,18 +937,19 @@ export class DatabaseService {
       updatedAt: undefined
     };
     assertValid(validateTaskAssignment(this.state, { ...newTask, kind: 'resident_task', scheduledTimes: newTask.trackingConfig?.scheduledTimes }));
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residentTasks: [...this.state.residentTasks, newTask]
-    });
+    }, { action: 'duplicated', entityType: 'resident_task', entityId: newTask.id, residentId: newTask.residentId, summary: `Resident task duplicated: ${newTask.title}` }));
     return newTask;
   }
 
   public deleteResidentTask(id: string): void {
-    this.saveToStorage({
+    const current = this.state.residentTasks.find(t => t.id === id);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residentTasks: this.state.residentTasks.filter(t => t.id !== id)
-    });
+    }, { action: 'deleted', entityType: 'resident_task', entityId: id, residentId: current?.residentId, summary: `Resident task deleted: ${current?.title || id}` }));
   }
 
   // Unit Tasks
@@ -953,10 +965,10 @@ export class DatabaseService {
       createdAt,
       source: task.source || 'manual'
     };
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       unitTasks: [...this.state.unitTasks, newTask]
-    });
+    }, { action: 'created', entityType: 'unit_task', entityId: newTask.id, summary: `Unit task created: ${newTask.title}` }));
     return newTask;
   }
 
@@ -965,36 +977,37 @@ export class DatabaseService {
     const current = this.state.unitTasks.find(task => task.id === id); if (!current) throw new Error('Unit task not found.');
     const next = { ...current, ...updates, timingType: updates.timingType || current.timingType || (!(updates.time ?? current.time) ? 'period' : 'fixed') };
     if (next.isActive !== false) assertValid(validateTaskAssignment(this.state, { ...next, kind: 'unit_task' }));
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       unitTasks: this.state.unitTasks.map(u => u.id === id ? { ...next, updatedAt: new Date().toISOString() } : u)
-    });
+    }, { action: 'updated', entityType: 'unit_task', entityId: id, summary: `Unit task updated: ${current.title}` }));
   }
 
   public stopUnitTask(id: string): void {
-    this.saveToStorage({
+    const current = this.state.unitTasks.find(u => u.id === id);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
-      unitTasks: this.state.unitTasks.map(u => u.id === id ? { 
-        ...u, 
-        isActive: false, 
+      unitTasks: this.state.unitTasks.map(u => u.id === id ? {
+        ...u,
+        isActive: false,
         stoppedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString()
       } : u)
-    });
+    }, { action: 'stopped', entityType: 'unit_task', entityId: id, summary: `Unit task stopped: ${current?.title || id}` }));
   }
 
   public reactivateUnitTask(id: string): void {
     const current = this.state.unitTasks.find(task => task.id === id); if (!current) throw new Error('Unit task not found.');
     assertValid(validateTaskAssignment(this.state, { ...current, isActive: true, kind: 'unit_task' }));
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
-      unitTasks: this.state.unitTasks.map(u => u.id === id ? { 
-        ...u, 
-        isActive: true, 
+      unitTasks: this.state.unitTasks.map(u => u.id === id ? {
+        ...u,
+        isActive: true,
         stoppedAt: undefined,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString()
       } : u)
-    });
+    }, { action: 'reactivated', entityType: 'unit_task', entityId: id, summary: `Unit task reactivated: ${current.title}` }));
   }
 
   public duplicateUnitTask(id: string, overrides: Partial<UnitTask> = {}): UnitTask | null {
@@ -1010,18 +1023,19 @@ export class DatabaseService {
       updatedAt: undefined
     };
     assertValid(validateTaskAssignment(this.state, { ...newTask, kind: 'unit_task' }));
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       unitTasks: [...this.state.unitTasks, newTask]
-    });
+    }, { action: 'duplicated', entityType: 'unit_task', entityId: newTask.id, summary: `Unit task duplicated: ${newTask.title}` }));
     return newTask;
   }
 
   public deleteUnitTask(id: string): void {
-    this.saveToStorage({
+    const current = this.state.unitTasks.find(u => u.id === id);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       unitTasks: this.state.unitTasks.filter(u => u.id !== id)
-    });
+    }, { action: 'deleted', entityType: 'unit_task', entityId: id, summary: `Unit task deleted: ${current?.title || id}` }));
   }
 
 

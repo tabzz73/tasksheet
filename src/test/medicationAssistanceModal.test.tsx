@@ -157,6 +157,34 @@ describe('GlobalAddModal — Medication Assistance frequency & scheduled times',
     expect(saved!.trackingConfig?.scheduledTimes).toEqual(['0800', '1700']);
   });
 
+  it('switching to "+ Custom Task" after choosing 3x clears scheduled-time mode — even though the Medication Assistance category is left set', () => {
+    openModalForActiveResident();
+    selectMap3();
+    fireEvent.click(screen.getByRole('button', { name: '3×' }));
+    expect(screen.getByLabelText('Time 1')).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Custom Task' }));
+    fireEvent.change(screen.getByPlaceholderText(/Search .* catalog/i), { target: { value: 'Reposition q2h' } });
+
+    // The scheduled-time UI must disappear for this now-unrelated task.
+    expect(screen.queryByLabelText('Time 1')).toBeNull();
+    expect(screen.queryByText('Assistance Level')).toBeNull();
+
+    // Leaving scheduled-time mode clears the shift (it was intentionally
+    // unset for resident/day-scoped MAP routing) — this ordinary task needs
+    // one re-selected, same as any other task with no shift chosen yet.
+    const shiftInput = document.getElementById('care-task-shift')!;
+    fireEvent.click(shiftInput);
+    fireEvent.keyDown(shiftInput, { key: 'ArrowDown' });
+    fireEvent.keyDown(shiftInput, { key: 'Enter' });
+    fireEvent.change(document.getElementById('care-task-timing-type')!, { target: { value: 'period' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Task' }));
+    const saved = db.getState().residentTasks.find(t => t.title === 'Reposition q2h');
+    expect(saved).toBeDefined();
+    expect(saved!.trackingConfig?.scheduledTimes).toBeUndefined();
+  });
+
   it('editing an existing multi-time MAP assignment restores the level, frequency, and every time without collapsing them', () => {
     const resident = db.getState().residents.find(r => r.status === 'active')!;
     const task = db.addResidentTask({

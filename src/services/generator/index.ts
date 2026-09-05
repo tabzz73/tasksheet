@@ -217,7 +217,7 @@ export function generateShiftSheet(dateStr: string, shiftId: string): GeneratedS
             taskType: 'resident_task',
             title: t.title,
             time: scheduledTimes.join(', '),
-            reason: exceptionReason(scheduledTimes[0]),
+            reason: exceptionReason(scheduledTimes.find(time => parseMilitaryTime(time) === null) || scheduledTimes[0]),
             shiftId: shift.id,
             shiftCode: shift.shortCode || shift.name,
             shiftStart: shift.startTime,

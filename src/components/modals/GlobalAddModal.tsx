@@ -420,6 +420,9 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     </div>
   );
 
+  const selectedCatalogTemplate = catalogTemplates.find(t => t.slug === taskTemplateSlug);
+  const timingPresetKind = getCareTimingPresetKind(selectedCatalogTemplate, taskCategory, taskTitle);
+
   const getShiftTimeError = (time: string): string | null => {
     return validateTimedCareShift({ shifts: state.shifts, roles, shiftId, roleId, time });
   };
@@ -433,7 +436,14 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   // careTaskTimeError's single-shift validation — roleId alone (no fixed
   // shiftId) is what lets the generator route each time to whichever
   // configured shift's window actually contains it.
-  const isMedScheduledMode = medFrequencyCount !== '1';
+  // Also requires a MAP1/2/3 template to still be the actual selection —
+  // deliberately checked against `taskTemplateSlug` itself, not just
+  // `timingPresetKind === 'medication'`: that classification also matches
+  // on `taskCategory` text alone (see getCareTimingPresetKind), and
+  // `taskCategory` is NOT reset when switching to "+ Custom Task" or typing
+  // a new title, so it would otherwise still read 'medication' and leak the
+  // scheduled-time UI (and its trackingConfig) onto an unrelated task.
+  const isMedScheduledMode = medFrequencyCount !== '1' && !!taskTemplateSlug?.startsWith('hca.medication.map');
   const medDuplicateTimes = (() => {
     const seen = new Set<string>();
     const dupes = new Set<string>();
@@ -519,8 +529,6 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     selectedCategoryFilter,
   );
   const commonTemplates = getCommonCatalogTasks(roleCatalogTasks);
-  const selectedCatalogTemplate = catalogTemplates.find(t => t.slug === taskTemplateSlug);
-  const timingPresetKind = getCareTimingPresetKind(selectedCatalogTemplate, taskCategory, taskTitle);
   // Assistance Level options — specifically MAP1/MAP2/MAP3 (not every
   // Medication Assistance category template — "Report Medication Refusal"
   // and "Medication Assistance Follow-up" are different actions, not
@@ -912,7 +920,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         </button>
       )}
       {selectedType === 'wound' && (
-        <button type="submit" form="wound-form" className="btn btn-accent px-6">
+        <button type="submit" form="wound-form" disabled={!woundSiteLocation.trim() || !woundShiftId || !!woundShiftTimeError} className="btn btn-accent px-6">
           {mode === 'edit' ? 'Save Changes' : 'Add Wound Protocol'}
         </button>
       )}
@@ -1206,7 +1214,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               independent dimensions (how much help vs. how often) — shown
               together, ahead of timing, whenever a Medication Assistance
               template is the active selection. */}
-          {timingPresetKind === 'medication' && medAssistTemplates.length > 0 && (
+          {!!taskTemplateSlug?.startsWith('hca.medication.map') && medAssistTemplates.length > 0 && (
             <div className="space-y-3 rounded-control border border-hairline-strong bg-panel-sunken p-3">
               <div>
                 <span className="block text-[11px] font-bold text-ink-soft uppercase tracking-wider mb-1">Assistance Level</span>

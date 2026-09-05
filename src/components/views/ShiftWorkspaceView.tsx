@@ -184,13 +184,27 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
   const changes = detectChanges(shift.id, currentDate, structuredTasks);
 
   // ── Care Task Actions ──────────────────────────────────────────────────────
+  // A scheduled-time occurrence task (e.g. Medication Assistance at
+  // 0800/1700/2100) is expanded by the generator into one synthetic row per
+  // matching time, with a synthetic id of `${realId}::${time}` — that row
+  // exists only for print/display and is never a real record in
+  // `state.residentTasks`. Every action here must resolve back to the real
+  // task first, or an id-based db lookup silently fails (edit/reactivate
+  // throw, stop/delete no-op, hasTaskHistory falsely reports none).
+  const resolveRealResidentTask = (task: ResidentTask): ResidentTask => {
+    if (!task.id.includes('::')) return task;
+    const realId = task.id.split('::')[0];
+    return db.getState().residentTasks.find(t => t.id === realId) || task;
+  };
+
   const handleEditCareTask = (task: ResidentTask) =>
-    setEditTaskState({ isOpen: true, mode: 'edit', careTask: task, unitTask: null });
+    setEditTaskState({ isOpen: true, mode: 'edit', careTask: resolveRealResidentTask(task), unitTask: null });
 
   const handleDuplicateCareTask = (task: ResidentTask) =>
-    setEditTaskState({ isOpen: true, mode: 'duplicate', careTask: task, unitTask: null });
+    setEditTaskState({ isOpen: true, mode: 'duplicate', careTask: resolveRealResidentTask(task), unitTask: null });
 
-  const handleStopCareTask = (task: ResidentTask) => {
+  const handleStopCareTask = (rawTask: ResidentTask) => {
+    const task = resolveRealResidentTask(rawTask);
     const res = db.getState().residents.find(r => r.id === task.residentId);
     setConfirmModalState({
       isOpen: true,
@@ -206,7 +220,8 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     });
   };
 
-  const handleRestartCareTask = (task: ResidentTask) => {
+  const handleRestartCareTask = (rawTask: ResidentTask) => {
+    const task = resolveRealResidentTask(rawTask);
     if (!task.recurrenceRule) return;
     setConfirmRequest({
       title: 'Restart Care Task?',
@@ -223,7 +238,8 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
     });
   };
 
-  const handleDeleteCareTask = (task: ResidentTask) => {
+  const handleDeleteCareTask = (rawTask: ResidentTask) => {
+    const task = resolveRealResidentTask(rawTask);
     const res = db.getState().residents.find(r => r.id === task.residentId);
     const hasHistory = db.hasTaskHistory(task.id);
     setConfirmModalState({
@@ -395,12 +411,12 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
         </div>
       </div>
       <TaskActionMenu
-        onViewDetails={() => setDrawerTask({ careTask: task })}
+        onViewDetails={() => setDrawerTask({ careTask: resolveRealResidentTask(task) })}
         onEdit={() => handleEditCareTask(task)}
         onDuplicate={() => handleDuplicateCareTask(task)}
         onStop={() => handleStopCareTask(task)}
         onDelete={() => handleDeleteCareTask(task)}
-        hasHistory={db.hasTaskHistory(task.id)}
+        hasHistory={db.hasTaskHistory(resolveRealResidentTask(task).id)}
         itemType="care_task"
         ariaLabel={`Actions for ${task.title}`}
       />
@@ -557,12 +573,12 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
                       </div>
                     </div>
                     <TaskActionMenu
-                      onViewDetails={() => setDrawerTask({ careTask: task })}
+                      onViewDetails={() => setDrawerTask({ careTask: resolveRealResidentTask(task) })}
                       onEdit={() => handleEditCareTask(task)}
                       onDuplicate={() => handleDuplicateCareTask(task)}
                       onStop={() => handleStopCareTask(task)}
                       onDelete={() => handleDeleteCareTask(task)}
-                      hasHistory={db.hasTaskHistory(task.id)}
+                      hasHistory={db.hasTaskHistory(resolveRealResidentTask(task).id)}
                       itemType="care_task"
                       ariaLabel={`Actions for ${task.title}`}
                     />
@@ -615,12 +631,12 @@ export const ShiftWorkspaceView: React.FC<ShiftWorkspaceViewProps> = ({
                       </div>
                     </div>
                     <TaskActionMenu
-                      onViewDetails={() => setDrawerTask({ careTask: task })}
+                      onViewDetails={() => setDrawerTask({ careTask: resolveRealResidentTask(task) })}
                       onEdit={() => handleEditCareTask(task)}
                       onDuplicate={() => handleDuplicateCareTask(task)}
                       onStop={() => handleStopCareTask(task)}
                       onDelete={() => handleDeleteCareTask(task)}
-                      hasHistory={db.hasTaskHistory(task.id)}
+                      hasHistory={db.hasTaskHistory(resolveRealResidentTask(task).id)}
                       itemType="care_task"
                       ariaLabel={`Actions for PRN ${task.title}`}
                     />
