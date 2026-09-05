@@ -17,9 +17,11 @@ describe('GlobalAddModal — FYI scope, dates, and routing preview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Unit-wide / Shared' }));
 
     // With scope set to Shared, the resident picker is hidden, so combobox
-    // order is: Category, Importance, Shift, Role.
+    // order is: Shift, Role, Category, Importance. No shift is pre-selected
+    // by default — the placeholder ("Any shift") is the real starting
+    // state, so the test must explicitly choose one, same as a real user.
     const comboboxes = screen.getAllByRole('combobox');
-    const shiftSelect = comboboxes[2];
+    const shiftSelect = comboboxes[0];
     fireEvent.change(shiftSelect, { target: { value: SHIFT_HCA_DAY_ID } });
 
     const shift = db.getState().shifts.find(s => s.id === SHIFT_HCA_DAY_ID)!;

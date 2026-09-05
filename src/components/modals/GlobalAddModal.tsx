@@ -307,7 +307,13 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         }
 
         setResidentId(contextResidentId || '');
-        const defaultShift = contextShiftId || (shifts.length > 0 ? shifts[0].id : '');
+        // Only pre-fill when the modal was opened from a specific shift's
+        // context (e.g. Shift Workspace's "+ Care Task"). Otherwise leave
+        // it unset so the placeholder ("Select active shift...") is the
+        // real default — silently picking the first shift in the list
+        // (array order, not anything meaningful) risks assigning a task to
+        // the wrong shift without the user ever making a choice.
+        const defaultShift = contextShiftId || '';
         setShiftId(defaultShift);
         if (defaultShift) {
           const s = shifts.find(item => item.id === defaultShift);
