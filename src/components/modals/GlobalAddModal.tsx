@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { ResidentCombobox } from '../common/ResidentCombobox';
+import { ShiftCombobox } from '../common/ShiftCombobox';
 import { FormSection } from '../common/FormSection';
 import { AdvancedOptionsToggle } from '../common/AdvancedOptionsToggle';
 import { RoutingSummary } from '../common/RoutingSummary';
@@ -931,22 +932,16 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
               <label htmlFor="care-task-shift" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Shift
               </label>
-              <select
+              <ShiftCombobox
                 id="care-task-shift"
+                shifts={shifts}
                 value={shiftId}
-                onChange={(e) => setShiftId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
-              >
-                <option value="">Select active shift...</option>
-                {shifts.map(s => {
+                onChange={setShiftId}
+                formatOption={s => {
                   const r = roles.find(role => role.id === s.roleId);
-                  return (
-                    <option key={s.id} value={s.id}>
-                      {s.shortCode ? `${s.shortCode} — ` : ''}{s.name} ({s.startTime}–{s.endTime} · {r?.name})
-                    </option>
-                  );
-                })}
-              </select>
+                  return `${s.shortCode ? `${s.shortCode} — ` : ''}${s.name} (${s.startTime}–${s.endTime} · ${r?.name})`;
+                }}
+              />
               {mode === 'edit' && shiftId !== initialResidentTask?.shiftId && (
                 <p className="text-[11px] text-warning font-medium mt-1">
                   Notice: Moving to another shift will apply to future generated assignments.

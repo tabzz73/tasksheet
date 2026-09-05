@@ -29,7 +29,9 @@ test.describe('Audit trail journey', () => {
     await page.getByRole('button', { name: '+ Care Task' }).click();
     await expect(page.getByRole('heading', { name: 'Add Care Task' })).toBeVisible();
 
-    await page.locator('#care-task-shift').selectOption({ index: 1 });
+    await page.locator('#care-task-shift').click();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
     await page.getByRole('button', { name: '+ Custom Task' }).click();
     await page.getByPlaceholder(/Search .* catalog/i).fill(TASK_TITLE);
     await page.locator('#care-task-timing-type').selectOption('period');

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { db } from '../db';
 import { SHIFT_HCA_DAY_ID } from '../data/defaultData';
@@ -8,12 +8,19 @@ import { ResidentActivityHistoryTab } from '../components/views/ResidentActivity
 
 describe('ResidentActivityHistoryTab', () => {
   beforeEach(() => { db.resetToDemoState(); db.clearAllOperationalData(); });
-  afterEach(() => cleanup());
+  afterEach(() => { cleanup(); vi.useRealTimers(); });
 
   function setup() {
+    // Fake timers with an explicit advance between mutations guarantee
+    // distinct occurredAt timestamps — without this, two audit events
+    // written in the same real-clock millisecond tie, and a stable sort
+    // silently falls back to insertion order instead of true newest-first.
+    vi.useFakeTimers({ now: new Date('2026-09-04T10:00:00.000Z') });
     const resident = db.addResident({ firstName: 'F', lastName: 'History', roomNumber: '260', status: 'active' });
     const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urine Sample Collection', category: 'General', frequency: 'once', timingType: 'period', showOnDashboard: true, followUpDueDate: '2026-09-01' });
+    vi.advanceTimersByTime(60_000);
     db.setResidentTaskFollowUpStatus(task.id, 'carry_forward');
+    vi.advanceTimersByTime(60_000);
     db.setResidentTaskFollowUpStatus(task.id, 'done');
     return { resident, task };
   }
