@@ -1,8 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const authFile = path.join(dirname, 'test', '.auth', 'admin.json');
 
 export default defineConfig({
   testDir: './test',
-  testMatch: /.*\.e2e\.spec\.ts/,
   fullyParallel: false,
   retries: 0,
   workers: 1,
@@ -18,8 +22,14 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
+    {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      testMatch: /.*\.e2e\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: authFile },
+      dependencies: ['setup'],
     },
   ],
 });

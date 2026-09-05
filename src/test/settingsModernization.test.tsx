@@ -8,10 +8,12 @@ import { CareTimingSettingsTab } from '../components/views/CareTimingSettingsTab
 import { Sidebar } from '../components/layout/Sidebar';
 import packageJson from '../../package.json';
 import { TASKSHEET_TAGLINE } from '../constants/branding';
+import { createFirstAdmin } from '../services/auth';
 
 describe('modern Settings navigation and smart facility entry', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     db.resetToDemoState();
+    await createFirstAdmin({ displayName: 'Test Admin', username: 'test-admin', password: 'test-password-123' });
   });
 
   afterEach(() => {
@@ -19,7 +21,7 @@ describe('modern Settings navigation and smart facility entry', () => {
   });
 
   it('shows a grouped landing menu and drills into a section with no persistent rail', () => {
-    const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    const view = render(<SettingsView currentUser={db.getState().users[0]} onNavigateToWelcome={() => undefined} />);
 
     // The old always-visible control-center rail and mobile <select> are gone —
     // the landing menu itself is the only place a section is chosen.
@@ -62,7 +64,7 @@ describe('modern Settings navigation and smart facility entry', () => {
     expect(sidebar.getByText(TASKSHEET_TAGLINE)).not.toBeNull();
     sidebar.unmount();
 
-    const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    const view = render(<SettingsView currentUser={db.getState().users[0]} onNavigateToWelcome={() => undefined} />);
     fireEvent.click(view.getByRole('button', { name: /App Information/ }));
     expect(view.getByRole('button', { name: /Open Welcome & Overview/ })).not.toBeNull();
     expect(view.getByText(packageJson.version)).not.toBeNull();
@@ -75,7 +77,7 @@ describe('modern Settings navigation and smart facility entry', () => {
   });
 
   it('formats contact and postal fields and provides province-aware city suggestions with free entry', () => {
-    const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    const view = render(<SettingsView currentUser={db.getState().users[0]} onNavigateToWelcome={() => undefined} />);
     fireEvent.click(view.getByRole('button', { name: /Facility Setup/ }));
     const phone = view.getByLabelText('Main phone') as HTMLInputElement;
     const postalCode = view.getByLabelText('Postal code') as HTMLInputElement;

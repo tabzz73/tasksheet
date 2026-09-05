@@ -1,18 +1,25 @@
 # TaskSheet
 
-**TaskSheet** is a local-first operational planning and print-support application for long-term care and assisted living teams.
+**TaskSheet reduces the mental burden of running a shift.**
 
-It is designed to complement systems such as PointClickCare, Yardi, eMAR, and other facility-approved clinical or resident-management platforms — not replace them.
+Facilities running PointClickCare, Yardi, eMAR, or similar systems already have a comprehensive system of record. What they often don't have is a fast answer to *"what do I actually need to do right now?"* — especially for float staff, new hires, and the LPN/RN trying to run the whole floor. Comprehensive is not the same as clear, and figuring out where information lives can eat the first part of a shift before any care happens.
+
+TaskSheet is a local-first shift-navigation layer, not a system-of-record replacement:
 
 > **The clinical system documents the care. TaskSheet helps you run the shift.**
 
-TaskSheet brings the operational picture of the unit into one place: shift assignments, resident follow-up, FYIs, attention items, bathing, wounds, huddle information, and purpose-built printouts for frontline staff.
+**For the HCA**, it answers: *Who do I have, what do I need to do, what's different today, and what should I watch for?*
+
+**For the LPN/RN running the floor**, it answers: *What's happening on the unit, what must not be missed, what needs follow-up, what changed, and what do I need to tell the team?* Stop carrying the whole unit in your head — TaskSheet brings the shift into one operational view.
 
 ## Why TaskSheet
 
-A facility may already have a strong clinical system and still rely on handwritten assignment sheets, whiteboards, verbal reminders, bathing grids, wound lists, temporary tracking notes, and manually prepared shift paperwork.
+A facility may already have a strong clinical system and still rely on handwritten assignment sheets, whiteboards, verbal reminders, bathing grids, wound lists, temporary tracking notes, and manually prepared shift paperwork. TaskSheet fills that operational gap — less figuring out, more getting through the shift with confidence — around four things:
 
-TaskSheet fills that operational gap.
+- **Clarity** — what matters right now, not everything that could matter.
+- **Continuity** — what can't be missed between shifts (carried-forward follow-up, active tracking, what's still outstanding).
+- **Confidence** — a clear starting point for casual, float, or unfamiliar staff without replacing orientation, facility policy, or the official record.
+- **Coordination** — helping the LPN/RN run the floor and brief the team without juggling it all mentally (huddle, what-changed, print handoff).
 
 It helps the LPN/RN or Team Lead quickly answer questions such as:
 
@@ -30,7 +37,7 @@ For casual, float, or unfamiliar staff, the generated TaskSheet becomes a practi
 
 **ORGANIZE → GENERATE → PRINT**
 
-TaskSheet is intentionally focused on operational clarity and working-sheet generation rather than becoming another full clinical charting system.
+TaskSheet is intentionally focused on operational clarity and shift-navigation rather than becoming another full clinical charting system.
 
 ## Key capabilities
 

@@ -1,1 +1,1 @@
-export const TASKSHEET_TAGLINE = 'The Smartest Workflow for Modern Healthcare';
+export const TASKSHEET_TAGLINE = 'Less figuring out. More getting through the shift.';

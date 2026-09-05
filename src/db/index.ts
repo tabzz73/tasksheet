@@ -1,9 +1,11 @@
-import { AppDatabaseState, AttentionItem, Resident, ResidentTask, ResidentTaskFollowUpStatus, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition } from '../types';
+import { AppDatabaseState, AttentionItem, Resident, ResidentTask, ResidentTaskFollowUpStatus, UnitTask, FYI, Wound, Completion, LegacyCompletion, Role, Shift, Facility, FacilitySettings, BinderState, CatalogCategory, CatalogTaskTemplate, UnitTaskTemplate, FacilityQuickAddPreset, FacilityAttentionRule, WoundSupplyProduct, FacilityRoom, OccupancyPosition, AppUser, AuditEvent, TaskOccurrenceRecord } from '../types';
 import { DEFAULT_CARE_TIMING_PRESETS, DEFAULT_FACILITY, EMPTY_FACILITY, DEFAULT_SETTINGS, DEFAULT_SHIFTS, DEFAULT_HCA_QUICK_ADD_PRESETS } from '../data/defaultData';
 import { DEFAULT_ATTENTION_RULES } from '../services/attention';
 import { ALBERTA_STARTER_CATEGORIES, ALBERTA_TASK_TEMPLATES, STANDARD_UNIT_TASK_TEMPLATES } from '../data/albertaCatalog';
 import { generateDemoData } from '../data/demoSeed';
 import { analyzeShiftChange, analyzeShiftDeactivation, analyzeShiftDeletion, assertValid, DomainConflictError, validateBathingCapacityChange, validateFixedTimeForShift, validateMilitaryTime, validateTaskAssignment } from '../services/validation';
+import { getTodayLocalDateString, getDaysDifference } from '../services/recurrence';
+import { deriveCurrentShiftId, getEffectiveOccurrenceCount } from '../services/occurrenceTracking';
 import {
   CURRENT_SCHEMA_VERSION,
   CURRENT_OCCUPANCY_STATUSES,
@@ -167,6 +169,39 @@ export class DatabaseService {
     });
   }
 
+  // ─── Audit: current actor + append-only event log ─────────────────────────
+  // The signed-in user is known synchronously here (AuthService calls
+  // setCurrentActor on login/logout/session-restore) so every mutation method
+  // below can attribute its own audit event without any async plumbing.
+  private currentActor: { id: string; displayName: string } | null = null;
+
+  public setCurrentActor(actor: { id: string; displayName: string } | null): void {
+    this.currentActor = actor;
+  }
+
+  public getCurrentActor(): { id: string; displayName: string } | null {
+    return this.currentActor;
+  }
+
+  /** Appends one AuditEvent to `state.auditEvents` and returns the new state
+   *  object. Never mutates `state` in place. There is deliberately no
+   *  corresponding update/delete method for auditEvents — a correction is a
+   *  new event, never an edit to an old one. */
+  private appendAudit(
+    state: AppDatabaseState,
+    entry: Pick<AuditEvent, 'action' | 'entityType' | 'summary'> & Partial<Pick<AuditEvent, 'entityId' | 'residentId' | 'roomSnapshot' | 'shiftSnapshot' | 'changes'>>
+  ): AppDatabaseState {
+    const event: AuditEvent = {
+      id: generateUUID(),
+      occurredAt: new Date().toISOString(),
+      userId: this.currentActor?.id,
+      userDisplayName: this.currentActor?.displayName ?? 'Unknown User',
+      sourceMode: state.settings.dataMode === 'demo' ? 'demo' : 'manual',
+      ...entry,
+    };
+    return { ...state, auditEvents: [...state.auditEvents, event] };
+  }
+
   // Facility & Settings
   public updateFacility(facility: Partial<Facility>): void {
     const updatedFacility = { ...this.state.facility, ...facility };
@@ -178,23 +213,23 @@ export class DatabaseService {
       updatedFacility.postalCode.trim() !== '' &&
       updatedFacility.mainPhone.trim() !== '' &&
       this.state.shifts.some(shift => shift.source !== 'demo');
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       facility: updatedFacility,
       settings: completesRealSetup
         ? { ...this.state.settings, dataMode: 'operational', firstRunCompleted: true }
         : this.state.settings,
-    });
+    }, { action: 'updated', entityType: 'facility_settings', summary: 'Facility profile updated' }));
   }
 
   public updateSettings(settings: Partial<FacilitySettings>): void {
     if (settings.bathingCapacityPerShiftLine !== undefined && settings.bathingCapacityPerShiftLine !== this.state.settings.bathingCapacityPerShiftLine) {
       assertValid(validateBathingCapacityChange(this.state, settings.bathingCapacityPerShiftLine));
     }
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       settings: { ...this.state.settings, ...settings }
-    });
+    }, { action: 'updated', entityType: 'facility_settings', summary: `Facility settings updated: ${Object.keys(settings).join(', ') || 'no fields'}` }));
   }
 
   public updateFacilitySettings(settings: Partial<FacilitySettings>): void {
@@ -300,13 +335,13 @@ export class DatabaseService {
       this.state.facility.city.trim() !== '' &&
       this.state.facility.postalCode.trim() !== '' &&
       this.state.facility.mainPhone.trim() !== '';
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       shifts: [...this.state.shifts, newShift],
       settings: completesRealSetup
         ? { ...this.state.settings, dataMode: 'operational', firstRunCompleted: true }
         : this.state.settings,
-    });
+    }, { action: 'created', entityType: 'shift', entityId: newShift.id, summary: `Shift created: ${newShift.name} (${newShift.shortCode})` }));
     return newShift;
   }
 
@@ -346,12 +381,16 @@ export class DatabaseService {
     };
 
     const timesChanged = proposedStart !== current.startTime || proposedEnd !== current.endTime;
-    this.saveToStorage({
+    const activeChanged = current.isActive !== false !== targetIsActive;
+    const shiftChanges: string[] = [];
+    if (timesChanged) shiftChanges.push(`Time: ${current.startTime}-${current.endTime} → ${proposedStart}-${proposedEnd}`);
+    if (activeChanged) shiftChanges.push(targetIsActive ? 'Reactivated' : 'Deactivated');
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       shifts: this.state.shifts.map(s => s.id === id ? updatedShift : s),
       residentTasks: timesChanged ? this.state.residentTasks.map(task => task.shiftId !== id ? task : task.timingType === 'start_of_shift' ? { ...task, time: proposedStart, updatedAt: new Date().toISOString() } : task.timingType === 'end_of_shift' ? { ...task, time: proposedEnd, updatedAt: new Date().toISOString() } : task.timingType === 'period' ? { ...task, time: undefined, isNoSpecificTime: true, updatedAt: new Date().toISOString() } : task) : this.state.residentTasks,
       unitTasks: timesChanged ? this.state.unitTasks.map(task => task.shiftId !== id ? task : task.timingType === 'start_of_shift' ? { ...task, time: proposedStart, updatedAt: new Date().toISOString() } : task.timingType === 'end_of_shift' ? { ...task, time: proposedEnd, updatedAt: new Date().toISOString() } : task.timingType === 'period' ? { ...task, time: undefined, updatedAt: new Date().toISOString() } : task) : this.state.unitTasks,
-    });
+    }, { action: activeChanged ? (targetIsActive ? 'reactivated' : 'deactivated') : 'updated', entityType: 'shift', entityId: id, summary: `Shift updated: ${updatedShift.name} (${updatedShift.shortCode})`, changes: shiftChanges.length ? shiftChanges.join('\n') : undefined }));
     return updatedShift;
   }
 
@@ -407,10 +446,11 @@ export class DatabaseService {
       };
     }
 
-    this.saveToStorage({
+    const deletedShift = this.state.shifts.find(s => s.id === id);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       shifts: this.state.shifts.filter(s => s.id !== id)
-    });
+    }, { action: 'ended', entityType: 'shift', entityId: id, summary: `Shift deleted: ${deletedShift?.name || id}` }));
     return { success: true };
   }
 
@@ -459,10 +499,10 @@ export class DatabaseService {
     const history = position && CURRENT_OCCUPANCY_STATUSES.has(resident.status)
       ? [...this.state.residentPlacementHistory, { id: generateUUID(), residentId: id, occupancyPositionId: position.id, displayLabel: position.displayLabel, startedAt: resident.admittedAt || now }]
       : this.state.residentPlacementHistory;
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residents: [...this.state.residents, newResident], rooms, occupancyPositions: positions, residentPlacementHistory: history,
-    });
+    }, { action: 'created', entityType: 'resident', entityId: id, residentId: id, roomSnapshot: newResident.roomNumber, summary: `Resident created: ${newResident.firstName} ${newResident.lastName}` }));
     return newResident;
   }
 
@@ -495,7 +535,11 @@ export class DatabaseService {
     if (nextIsCurrent && target && (!currentIsCurrent || changingPosition)) {
       history = [...history, { id: generateUUID(), residentId: id, occupancyPositionId: target.id, displayLabel: target.displayLabel, startedAt: new Date().toISOString() }];
     }
-    this.saveToStorage({
+    const residentChanges: string[] = [];
+    if (updates.status !== undefined && updates.status !== current.status) residentChanges.push(`Status: ${current.status} → ${updates.status}`);
+    const nextRoomLabel = target?.displayLabel || requestedLabel;
+    if (nextRoomLabel !== current.roomNumber) residentChanges.push(`Room: ${current.roomNumber || '(none)'} → ${nextRoomLabel || '(none)'}`);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       rooms, occupancyPositions: positions, residentPlacementHistory: history,
       residents: this.state.residents.map(r => r.id === id ? {
@@ -504,7 +548,7 @@ export class DatabaseService {
         occupancyPositionId: nextIsCurrent ? target?.id : undefined,
         roomAssignmentNeedsReview: false,
       } : r)
-    });
+    }, { action: residentChanges.some(c => c.startsWith('Status')) ? 'status_changed' : 'updated', entityType: 'resident', entityId: id, residentId: id, roomSnapshot: nextRoomLabel, summary: `Resident updated: ${current.firstName} ${current.lastName}`, changes: residentChanges.length ? residentChanges.join('\n') : undefined }));
   }
 
   // Attention Items — lightweight, non-clinical, date-bounded awareness of a
@@ -525,19 +569,20 @@ export class DatabaseService {
       createdAt: new Date().toISOString(),
       source: item.source || 'manual',
     };
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       attentionItems: [...this.state.attentionItems, newItem],
-    });
+    }, { action: 'created', entityType: 'attention_item', entityId: newItem.id, residentId: newItem.residentId, summary: `Attention item created: ${newItem.title}` }));
     return newItem;
   }
 
   /** Ends an attention item early (does not delete it — historical items are kept). */
   public endAttentionItem(itemId: string): void {
-    this.saveToStorage({
+    const current = this.state.attentionItems.find(a => a.id === itemId);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       attentionItems: this.state.attentionItems.map(a => a.id === itemId ? { ...a, active: false, updatedAt: new Date().toISOString() } : a),
-    });
+    }, { action: 'ended', entityType: 'attention_item', entityId: itemId, residentId: current?.residentId, summary: `Attention item ended: ${current?.title || itemId}` }));
   }
 
   public addRoom(displayLabel: string, options: { physicalRoomLabel?: string; positionLabel?: string; wing?: string; floor?: string; source?: FacilityRoom['source'] } = {}): OccupancyPosition {
@@ -608,10 +653,10 @@ export class DatabaseService {
       createdAt,
       source: task.source || 'manual'
     };
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residentTasks: [...this.state.residentTasks, newTask]
-    });
+    }, { action: 'created', entityType: 'resident_task', entityId: newTask.id, residentId: newTask.residentId, summary: `Resident task created: ${newTask.title}` }));
     return newTask;
   }
 
@@ -636,60 +681,185 @@ export class DatabaseService {
     const current = this.state.residentTasks.find(task => task.id === id); if (!current) throw new Error('Resident task not found.');
     const next = { ...current, ...updates, timingType: updates.timingType || current.timingType || ((updates.isNoSpecificTime ?? current.isNoSpecificTime) || !(updates.time ?? current.time) ? 'period' : 'fixed') };
     if (next.isActive !== false) assertValid(validateTaskAssignment(this.state, { ...next, kind: 'resident_task' }));
-    this.saveToStorage({
+    const taskChanges: string[] = [];
+    if (updates.followUpDueDate !== undefined && updates.followUpDueDate !== current.followUpDueDate) taskChanges.push(`Due date: ${current.followUpDueDate || '(none)'} → ${updates.followUpDueDate || '(none)'}`);
+    if (updates.mustNotMiss !== undefined && updates.mustNotMiss !== current.mustNotMiss) taskChanges.push(`Must not be missed: ${updates.mustNotMiss ? 'On' : 'Off'}`);
+    if (updates.showOnDashboard !== undefined && updates.showOnDashboard !== current.showOnDashboard) taskChanges.push(`Show on Dashboard: ${updates.showOnDashboard ? 'On' : 'Off'}`);
+    if (updates.showInHuddle !== undefined && updates.showInHuddle !== current.showInHuddle) taskChanges.push(`Show in Huddle: ${updates.showInHuddle ? 'On' : 'Off'}`);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residentTasks: this.state.residentTasks.map(t => t.id === id ? { ...next, updatedAt: new Date().toISOString() } : t)
-    });
+    }, { action: 'updated', entityType: 'resident_task', entityId: id, residentId: current.residentId, summary: `Resident task updated: ${current.title}`, changes: taskChanges.length ? taskChanges.join('\n') : undefined }));
   }
 
   /** Resident Follow-up continuity status transition. `followUpDueDate` is
    *  intentionally never touched here — the original due date must survive
    *  every carry-forward so overdue age stays measured from when the task
-   *  was actually first due, not from the latest review. */
-  public setResidentTaskFollowUpStatus(id: string, status: ResidentTaskFollowUpStatus): ResidentTask {
+   *  was actually first due, not from the latest review.
+   *
+   *  The audit event this writes is the durable outcome-history record for
+   *  the transition (see `services/residentHistory`) — it captures the due
+   *  date, overdue age, and carry-forward count *as they stood at that
+   *  moment*, so a later change to the task never rewrites what a past
+   *  event meant. `reason` is optional free text, currently only offered by
+   *  the UI for `no_longer_needed`. */
+  public setResidentTaskFollowUpStatus(id: string, status: ResidentTaskFollowUpStatus, reason?: string): ResidentTask {
     const current = this.state.residentTasks.find(task => task.id === id);
     if (!current) throw new Error('Resident task not found.');
     const now = new Date().toISOString();
+    const today = getTodayLocalDateString();
+    const nextCarryForwardCount = status === 'carry_forward' ? (current.followUpCarryForwardCount || 0) + 1 : (current.followUpCarryForwardCount || 0);
     const updated: ResidentTask = {
       ...current,
       followUpStatus: status,
-      followUpCarryForwardCount: status === 'carry_forward' ? (current.followUpCarryForwardCount || 0) + 1 : (current.followUpCarryForwardCount || 0),
+      followUpCarryForwardCount: nextCarryForwardCount,
       followUpUpdatedAt: now,
       updatedAt: now,
     };
-    this.saveToStorage({
+
+    const dueDate = current.followUpDueDate || current.recurrenceRule?.startDate;
+    const overdueDays = dueDate ? Math.max(0, getDaysDifference(dueDate, today)) : undefined;
+    const changeLines: string[] = [];
+    let summary: string;
+    switch (status) {
+      case 'done':
+        summary = `${current.title} marked Done`;
+        if (dueDate) changeLines.push(`Originally due: ${dueDate}`);
+        if (overdueDays) changeLines.push(`${overdueDays} day${overdueDays === 1 ? '' : 's'} overdue`);
+        if (nextCarryForwardCount > 0) changeLines.push(`Carried forward ${nextCarryForwardCount}×`);
+        break;
+      case 'carry_forward':
+        summary = `${current.title} carried forward`;
+        changeLines.push(`Carry-forward count: ${nextCarryForwardCount}`);
+        if (dueDate) changeLines.push(`Original due date: ${dueDate}`);
+        break;
+      case 'needs_review':
+        summary = `${current.title} marked Needs Review`;
+        changeLines.push('Manually flagged for review');
+        break;
+      case 'no_longer_needed':
+        summary = `${current.title} marked No Longer Required`;
+        if (reason) changeLines.push(`Reason: ${reason}`);
+        break;
+      default:
+        summary = `Follow-up status changed: ${current.title}`;
+        changeLines.push(`Status: ${current.followUpStatus || '(none)'} → ${status}`);
+    }
+
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residentTasks: this.state.residentTasks.map(t => t.id === id ? updated : t)
-    });
+    }, { action: 'follow_up_status_changed', entityType: 'resident_task', entityId: id, residentId: current.residentId, summary, changes: changeLines.length ? changeLines.join('\n') : undefined }));
     return updated;
   }
 
   /** Records one occurrence toward an occurrence-mode tracking task's target
-   *  (e.g. "1/3 collections" → "2/3"). An operational reminder counter only —
-   *  not a record of clinical collection/assessment completion. Clamps at
-   *  `requiredOccurrences` and, once reached, resolves the follow-up the same
-   *  way any other completed task does (`followUpStatus: 'done'`) so it
-   *  disappears from the active Dashboard/Huddle lists through the existing
-   *  done-hides-from-list logic — no separate "occurrence complete" bucket. */
+   *  for the *current period* (e.g. "1/3 today" → "2/3 today"). Backed by a
+   *  real per-occurrence record (`TaskOccurrenceRecord`) — who, when, and
+   *  which shift, if determinable — not just an incremented tally, so the
+   *  question "who recorded this and when" is always answerable and a later
+   *  shift can see exactly what an earlier one already did. An operational
+   *  reminder only — not a record of clinical collection/assessment
+   *  completion or any clinical result value.
+   *
+   *  Clamps at `requiredOccurrences` *for the current period* — a duplicate
+   *  click once the period target is already met is a safe no-op, not an
+   *  error, so a race between two rapid clicks never over-counts. For
+   *  `occurrenceResetPeriod: 'once'` tasks (the default), reaching target
+   *  resolves the whole follow-up (`followUpStatus: 'done'`) exactly as
+   *  before. For `'daily'` tasks, `followUpStatus` is deliberately left
+   *  alone — the task recurs every day, so no single day's completion
+   *  should freeze it "done" forever; Huddle/Dashboard instead re-derive
+   *  "does today's target still need attention" fresh each day from
+   *  `occurrences`, via `services/occurrenceTracking`. */
   public recordResidentTaskOccurrence(id: string): ResidentTask {
     const current = this.state.residentTasks.find(task => task.id === id);
     if (!current) throw new Error('Resident task not found.');
     const tracking = current.trackingConfig;
     if (!tracking?.requiredOccurrences) throw new Error('This task has no required-occurrence target to record against.');
+    const today = getTodayLocalDateString();
+    const periodCount = getEffectiveOccurrenceCount(current, today);
+    if (periodCount >= tracking.requiredOccurrences) {
+      // Already at target for this period — safe no-op (handles a
+      // duplicate/race click without over-counting or erroring).
+      return current;
+    }
     const now = new Date().toISOString();
-    const completed = Math.min((tracking.completedOccurrences || 0) + 1, tracking.requiredOccurrences);
-    const complete = completed >= tracking.requiredOccurrences;
+    const shiftId = deriveCurrentShiftId(this.state, current, new Date());
+    const shift = shiftId ? this.state.shifts.find(s => s.id === shiftId) : undefined;
+    const actor = this.currentActor;
+    const record: TaskOccurrenceRecord = {
+      id: generateUUID(),
+      occurrenceDate: today,
+      occurredAt: now,
+      completedByUserId: actor?.id,
+      completedByDisplayName: actor?.displayName ?? 'Unknown User',
+      shiftId,
+      sequence: periodCount + 1,
+    };
+    const nextCompleted = periodCount + 1;
+    const complete = nextCompleted >= tracking.requiredOccurrences;
+    const isDaily = tracking.occurrenceResetPeriod === 'daily';
     const updated: ResidentTask = {
       ...current,
-      trackingConfig: { ...tracking, completedOccurrences: completed },
-      followUpStatus: complete ? 'done' : current.followUpStatus,
+      trackingConfig: {
+        ...tracking,
+        occurrences: [...(tracking.occurrences || []), record],
+        completedOccurrences: nextCompleted,
+      },
+      followUpStatus: (!isDaily && complete) ? 'done' : current.followUpStatus,
       followUpUpdatedAt: now,
       updatedAt: now,
     };
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residentTasks: this.state.residentTasks.map(t => t.id === id ? updated : t)
-    });
+    }, {
+      action: 'occurrence_recorded', entityType: 'resident_task', entityId: id, residentId: current.residentId,
+      summary: `${current.title} occurrence recorded: ${nextCompleted}/${tracking.requiredOccurrences}`,
+      changes: `Occurrences (${today}): ${periodCount}/${tracking.requiredOccurrences} → ${nextCompleted}/${tracking.requiredOccurrences}`,
+      shiftSnapshot: shift ? (shift.shortCode || shift.name) : undefined,
+    }));
+    return updated;
+  }
+
+  /** Corrects a mistaken occurrence entry without erasing it — the record
+   *  is flagged `reversedAt`/`reversedByUserId`/`reversalReason` and
+   *  excluded from period counts going forward, but stays in
+   *  `occurrences` and in the audit trail forever (never a silent delete).
+   *  Only a non-reversed occurrence for this task can be reversed. */
+  public reverseResidentTaskOccurrence(taskId: string, occurrenceId: string, reason?: string): ResidentTask {
+    const current = this.state.residentTasks.find(task => task.id === taskId);
+    if (!current) throw new Error('Resident task not found.');
+    const tracking = current.trackingConfig;
+    const record = tracking?.occurrences?.find(o => o.id === occurrenceId);
+    if (!record) throw new Error('Occurrence record not found.');
+    if (record.reversedAt) throw new Error('This occurrence has already been reversed.');
+    const now = new Date().toISOString();
+    const actor = this.currentActor;
+    const updated: ResidentTask = {
+      ...current,
+      trackingConfig: {
+        ...tracking!,
+        occurrences: tracking!.occurrences!.map(o => o.id === occurrenceId ? {
+          ...o,
+          reversedAt: now,
+          reversedByUserId: actor?.id,
+          reversedByDisplayName: actor?.displayName ?? 'Unknown User',
+          reversalReason: reason,
+        } : o),
+        completedOccurrences: getEffectiveOccurrenceCount({ ...current, trackingConfig: { ...tracking!, occurrences: tracking!.occurrences!.map(o => o.id === occurrenceId ? { ...o, reversedAt: now } : o) } }, getTodayLocalDateString()),
+      },
+      updatedAt: now,
+    };
+    this.saveToStorage(this.appendAudit({
+      ...this.state,
+      residentTasks: this.state.residentTasks.map(t => t.id === taskId ? updated : t)
+    }, {
+      action: 'occurrence_reversed', entityType: 'resident_task', entityId: taskId, residentId: current.residentId,
+      summary: `${current.title} occurrence entry reversed`,
+      changes: `Reversed occurrence #${record.sequence} (${record.occurrenceDate})${reason ? ` — ${reason}` : ''}`,
+    }));
     return updated;
   }
 
@@ -710,10 +880,10 @@ export class DatabaseService {
       followUpUpdatedAt: now,
       updatedAt: now,
     };
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       residentTasks: this.state.residentTasks.map(t => t.id === id ? updated : t)
-    });
+    }, { action: 'tracking_extended', entityType: 'resident_task', entityId: id, residentId: current.residentId, summary: `Tracking extended: ${current.title}`, changes: `End date: ${rule.endDate || '(open)'} → ${newEndDate}` }));
     return updated;
   }
 
@@ -868,7 +1038,7 @@ export class DatabaseService {
       source: fyi.source || 'manual'
     };
     const nextVersion = this.state.binderState.version + 1;
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       fyis: [...this.state.fyis, newFYI],
       binderState: {
@@ -878,7 +1048,7 @@ export class DatabaseService {
         lastModifiedAt: new Date().toISOString(),
         pendingChangesCount: this.state.binderState.pendingChangesCount + 1
       }
-    });
+    }, { action: 'created', entityType: 'fyi', entityId: newFYI.id, residentId: newFYI.residentId, summary: `FYI created: ${newFYI.text.slice(0, 80)}` }));
     return newFYI;
   }
 
@@ -888,7 +1058,11 @@ export class DatabaseService {
     const duplicate = this.state.fyis.find(item => item.id !== id && item.status === 'active' && item.residentId === next.residentId && item.roleId === next.roleId && item.shiftId === next.shiftId && item.text.trim().toLowerCase() === next.text.trim().toLowerCase());
     if (duplicate) throw new DomainConflictError({ status: 'BLOCKED', code: 'DUPLICATE_FYI', title: 'Duplicate FYI', message: 'The same FYI already exists at this scope. Review the existing FYI before saving.' });
     const nextVersion = this.state.binderState.version + 1;
-    this.saveToStorage({
+    const fyiChanges: string[] = [];
+    if (updates.status !== undefined && updates.status !== current.status) fyiChanges.push(`Status: ${current.status} → ${updates.status}`);
+    if (updates.showOnDashboard !== undefined && updates.showOnDashboard !== current.showOnDashboard) fyiChanges.push(`Show on Dashboard: ${updates.showOnDashboard ? 'On' : 'Off'}`);
+    if (updates.showInHuddle !== undefined && updates.showInHuddle !== current.showInHuddle) fyiChanges.push(`Show in Huddle: ${updates.showInHuddle ? 'On' : 'Off'}`);
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       fyis: this.state.fyis.map(f => f.id === id ? { ...f, ...updates, updatedAt: new Date().toISOString(), version: f.version + 1 } : f),
       binderState: {
@@ -898,7 +1072,7 @@ export class DatabaseService {
         lastModifiedAt: new Date().toISOString(),
         pendingChangesCount: this.state.binderState.pendingChangesCount + 1
       }
-    });
+    }, { action: 'updated', entityType: 'fyi', entityId: id, residentId: current.residentId, summary: `FYI updated: ${current.text.slice(0, 80)}`, changes: fyiChanges.length ? fyiChanges.join('\n') : undefined }));
   }
 
   public deleteFYI(id: string): void {
@@ -943,10 +1117,10 @@ export class DatabaseService {
       createdAt: new Date().toISOString(),
       source: wound.source || 'manual'
     };
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       wounds: [...this.state.wounds, newWound]
-    });
+    }, { action: 'created', entityType: 'wound', entityId: newWound.id, residentId: newWound.residentId, summary: `Wound protocol created: ${newWound.siteLocation}` }));
     return newWound;
   }
 
@@ -959,10 +1133,11 @@ export class DatabaseService {
       if (duplicate) throw new DomainConflictError({ status: 'BLOCKED', code: 'DUPLICATE_WOUND', title: 'Active Wound Already Exists', message: `${next.siteLocation} already has another active wound protocol.` });
       assertValid(validateTaskAssignment(this.state, { ...next, kind: 'wound', title: `Wound Care · ${next.siteLocation}`, category: 'Wound Care', timingType: next.timingType || (next.time ? 'fixed' : 'period') }));
     }
-    this.saveToStorage({
+    const statusChanged = updates.status !== undefined && updates.status !== current.status;
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       wounds: this.state.wounds.map(w => w.id === id ? next : w)
-    });
+    }, { action: statusChanged ? 'status_changed' : 'updated', entityType: 'wound', entityId: id, residentId: current.residentId, summary: `Wound protocol updated: ${current.siteLocation}`, changes: statusChanged ? `Status: ${current.status} → ${updates.status}` : undefined }));
   }
 
   public deleteWound(id: string): void {
@@ -1113,6 +1288,79 @@ export class DatabaseService {
     this.installAlbertaCatalog();
   }
 
+  // ─── Users & Access ─────────────────────────────────────────────────────
+  // `UserRole` (Admin/Supervisor/LPN-RN/HCA/Viewer) — who is signed in. Not
+  // to be confused with `Role` above, which is the shift/clinical role
+  // (HCA/LPN/RN) used for print-profile and task routing.
+
+  /** Case-insensitive — "jsmith" and "JSmith" are the same account. */
+  private findUserByUsername(username: string): AppUser | undefined {
+    const normalized = username.trim().toLowerCase();
+    return this.state.users.find(u => u.username.toLowerCase() === normalized);
+  }
+
+  private countActiveAdmins(users: AppUser[]): number {
+    return users.filter(u => u.active && u.role === 'admin').length;
+  }
+
+  /** `passwordHash` must already be computed (services/auth/passwordHash.ts)
+   *  — hashing is async and this class's public API is intentionally
+   *  synchronous throughout, so hashing happens at the UI/service call site,
+   *  not here. */
+  public addUser(user: Omit<AppUser, 'id' | 'createdAt' | 'updatedAt'>): AppUser {
+    if (!user.username.trim()) throw new Error('Username is required.');
+    if (this.findUserByUsername(user.username)) throw new Error(`Username "${user.username}" is already in use.`);
+    const now = new Date().toISOString();
+    const newUser: AppUser = { ...user, id: generateUUID(), username: user.username.trim(), createdAt: now, updatedAt: now };
+    this.saveToStorage(this.appendAudit(
+      { ...this.state, users: [...this.state.users, newUser] },
+      { action: 'created', entityType: 'user', entityId: newUser.id, summary: `User created: ${newUser.displayName} (${newUser.role})` }
+    ));
+    return newUser;
+  }
+
+  /** Display name / role / active only — username and passwordHash have
+   *  their own dedicated methods so they're never silently overwritten by a
+   *  generic partial update. Throws if the change would leave the facility
+   *  with no active Admin (spec: never lock out the last admin). */
+  public updateUser(id: string, updates: Partial<Pick<AppUser, 'displayName' | 'role' | 'active'>>): void {
+    const current = this.state.users.find(u => u.id === id);
+    if (!current) throw new Error('User not found.');
+    const next: AppUser = { ...current, ...updates, updatedAt: new Date().toISOString() };
+    const wasLastActiveAdmin = current.active && current.role === 'admin' && this.countActiveAdmins(this.state.users) <= 1;
+    const stillActiveAdmin = next.active && next.role === 'admin';
+    if (wasLastActiveAdmin && !stillActiveAdmin) {
+      throw new Error('Cannot deactivate or demote the last active Admin. Promote or activate another Admin first.');
+    }
+    const changes: string[] = [];
+    if (updates.displayName !== undefined && updates.displayName !== current.displayName) changes.push(`Display name: ${current.displayName} → ${updates.displayName}`);
+    if (updates.role !== undefined && updates.role !== current.role) changes.push(`Role: ${current.role} → ${updates.role}`);
+    if (updates.active !== undefined && updates.active !== current.active) changes.push(`${updates.active ? 'Reactivated' : 'Deactivated'}`);
+    this.saveToStorage(this.appendAudit(
+      { ...this.state, users: this.state.users.map(u => u.id === id ? next : u) },
+      { action: updates.active === false ? 'deactivated' : updates.active === true ? 'reactivated' : 'updated', entityType: 'user', entityId: id, summary: `User updated: ${next.displayName}`, changes: changes.length ? changes.join('\n') : undefined }
+    ));
+  }
+
+  /** `passwordHash` must already be computed — see addUser's note. Does not
+   *  itself write an audit event: an admin resetting someone else's password
+   *  and a user changing their own are different audit actions
+   *  ('password_reset' vs 'password_changed') — callers (services/auth)
+   *  record the appropriately-worded event. */
+  public resetUserPassword(id: string, passwordHash: string): void {
+    const current = this.state.users.find(u => u.id === id);
+    if (!current) throw new Error('User not found.');
+    this.saveToStorage({ ...this.state, users: this.state.users.map(u => u.id === id ? { ...u, passwordHash, updatedAt: new Date().toISOString() } : u) });
+  }
+
+  public recordLogin(id: string): void {
+    this.saveToStorage({ ...this.state, users: this.state.users.map(u => u.id === id ? { ...u, lastLoginAt: new Date().toISOString() } : u) });
+  }
+
+  public recordAuditEvent(entry: Pick<AuditEvent, 'action' | 'entityType' | 'summary'> & Partial<Pick<AuditEvent, 'entityId' | 'residentId' | 'roomSnapshot' | 'shiftSnapshot' | 'changes'>>): void {
+    this.saveToStorage(this.appendAudit(this.state, entry));
+  }
+
   // Demo Data Management (Safe separation from Standard Catalog)
   public loadDemoData(): void {
     const demo = generateDemoData();
@@ -1165,7 +1413,7 @@ export class DatabaseService {
       [...retainedPositions, ...demoPositions.filter(position => !existingLabels.has(roomKey(position.displayLabel)))],
       this.state.residentPlacementHistory.filter(item => manualResidentIds.has(item.residentId)),
     );
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       facility: activatesDemoWorkspace ? { ...DEFAULT_FACILITY } : this.state.facility,
       settings: activatesDemoWorkspace
@@ -1180,7 +1428,7 @@ export class DatabaseService {
       attentionItems: [...cleanAttentionItems, ...demo.attentionItems],
       // ADR-001: demo completion records are not added to active state
       legacyCompletions: this.state.legacyCompletions
-    });
+    }, { action: 'demo_loaded', entityType: 'demo', summary: 'Demo data loaded' }));
   }
 
   /**
@@ -1216,7 +1464,7 @@ export class DatabaseService {
       this.state.occupancyPositions.filter(position => position.source !== 'demo'),
       this.state.residentPlacementHistory.filter(item => retainedResidentIds.has(item.residentId)),
     );
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       shifts: this.state.shifts.filter(shift => shift.source !== 'demo'),
       ...roomModel,
@@ -1225,7 +1473,7 @@ export class DatabaseService {
       fyis: this.state.fyis.filter(f => f.source !== 'demo'),
       wounds: this.state.wounds.filter(w => w.source !== 'demo'),
       attentionItems: this.state.attentionItems.filter(a => a.source !== 'demo' && (a.scope !== 'resident' || retainedResidentIds.has(a.residentId!)))
-    });
+    }, { action: 'demo_cleared', entityType: 'demo', summary: 'Demo data cleared' }));
   }
 
   public startRealSetup(): void {
@@ -1240,7 +1488,7 @@ export class DatabaseService {
       this.state.occupancyPositions.filter(position => position.source !== 'demo'),
       this.state.residentPlacementHistory.filter(item => retainedResidentIds.has(item.residentId)),
     );
-    this.saveToStorage({
+    this.saveToStorage(this.appendAudit({
       ...this.state,
       facility: { ...EMPTY_FACILITY },
       settings: {
@@ -1266,7 +1514,7 @@ export class DatabaseService {
         pendingChangesCount: 0,
         lastModifiedAt: new Date().toISOString(),
       },
-    });
+    }, { action: 'real_setup_started', entityType: 'demo', summary: 'Real setup started — demo data cleared' }));
   }
 
   public clearBatch(sourceBatchId: string): void {
@@ -1303,6 +1551,10 @@ export class DatabaseService {
   }
 
   // Backup & Restore
+  /** Pure snapshot — must stay idempotent (callers rely on two consecutive
+   *  calls producing identical output, e.g. hardening tests that verify a
+   *  failed restore left state untouched). The export action itself is
+   *  audited by the caller (`recordAuditEvent`), not here. */
   public backupDatabase(): string {
     return JSON.stringify(this.state, null, 2);
   }
@@ -1319,14 +1571,14 @@ export class DatabaseService {
       // resident-nested attention items) apart from "backup genuinely has
       // none" (leave it empty).
       const hadTopLevelAttentionItems = Array.isArray(parsed.attentionItems);
-      for (const collection of ['residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds', 'attentionItems'] as const) {
+      for (const collection of ['residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds', 'attentionItems', 'users', 'auditEvents'] as const) {
         if (parsed[collection] !== undefined && !Array.isArray(parsed[collection])) throw new Error(`Backup field “${collection}” must be a list.`);
         parsed[collection] = parsed[collection] || [];
       }
       if (parsed.shifts.some((shift: Shift) => !shift?.id || !shift?.roleId || validateMilitaryTime(shift.startTime).status === 'BLOCKED' || validateMilitaryTime(shift.endTime).status === 'BLOCKED')) {
         throw new Error('Backup contains a shift with missing identity/role or invalid military time. No data was restored.');
       }
-      for (const collection of ['shifts', 'residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds', 'attentionItems'] as const) {
+      for (const collection of ['shifts', 'residents', 'residentTasks', 'unitTasks', 'fyis', 'wounds', 'attentionItems', 'users', 'auditEvents'] as const) {
         const ids = (parsed[collection] as Array<{ id?: string }>).map(item => item?.id).filter(Boolean);
         if (new Set(ids).size !== ids.length) {
           throw new Error(`Backup field “${collection}” contains duplicate record IDs. No data was restored.`);
@@ -1370,7 +1622,7 @@ export class DatabaseService {
       parsed.attentionItems = hadTopLevelAttentionItems ? parsed.attentionItems : extractLegacyResidentAttention(parsed.residents || []);
       Object.assign(parsed, migrateRoomModel(parsed.residents || [], parsed.rooms || [], parsed.occupancyPositions || [], parsed.residentPlacementHistory || []));
       parsed.residents = stripLegacyResidentAttention(parsed.residents);
-      this.saveToStorage(parsed);
+      this.saveToStorage(this.appendAudit(parsed, { action: 'backup_restored', entityType: 'backup', summary: 'Database restored from backup' }));
     } catch (e: any) {
       throw new Error(`Failed to restore database: ${e.message}`);
     }

@@ -354,6 +354,20 @@
   .animate-fade-in {
     animation: fade-in 160ms ease-out;
   }
+
+  /* Respect the OS-level motion preference for every entrance animation
+     above — these are non-essential polish (a menu popping in, a toast
+     sliding up), never load-bearing for understanding the UI, so they
+     collapse to an instant, static end-state rather than being forced on
+     users who've asked for reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-popover-in,
+    .animate-toast-in,
+    .animate-fade-in {
+      animation-duration: 0.01ms;
+      animation-iteration-count: 1;
+    }
+  }
 }
 
 /* ─── Print CSS ─────────────────────────────────────────────────────────────── */

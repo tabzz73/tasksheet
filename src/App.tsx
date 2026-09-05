@@ -23,9 +23,13 @@ import { useDbState } from './app/useDbState';
 import { useNavigation } from './app/useNavigation';
 import { useModalOrchestration } from './app/useModalOrchestration';
 import { usePrintFlow } from './app/usePrintFlow';
+import { useAuth } from './app/useAuth';
+import { FirstAdminSetupScreen } from './components/auth/FirstAdminSetupScreen';
+import { LoginScreen } from './components/auth/LoginScreen';
 
 export function App() {
   const { dbState, isReady } = useDbState();
+  const { currentUser, sessionChecked, setCurrentUser, logout } = useAuth();
   const nav = useNavigation();
   const modal = useModalOrchestration({
     activeResidentId: nav.activeResidentId,
@@ -64,12 +68,27 @@ export function App() {
   // Initial load from the Electron file store crosses an IPC boundary and
   // isn't instant. The synchronous (browser/dev/test) adapter is always
   // ready immediately, so this never renders outside the packaged app.
-  if (!isReady) {
+  if (!isReady || !sessionChecked) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#F6F8FA] text-sm font-semibold text-[#475569]">
         Loading facility data…
       </div>
     );
+  }
+
+  // Every installation with zero local users — a brand-new install, or an
+  // existing one just upgraded from a pre-accounts version of TaskSheet —
+  // must create the first Admin before anything else. Existing records are
+  // untouched; this only gates further audited edits, per the migration plan.
+  if (dbState.users.length === 0) {
+    return <FirstAdminSetupScreen onCreated={setCurrentUser} />;
+  }
+
+  // Both gates sit before every other early return, including the
+  // print-preview full-screen overrides below, so an unauthenticated session
+  // can never reach print output.
+  if (!currentUser) {
+    return <LoginScreen onSignedIn={setCurrentUser} />;
   }
 
   // Full-screen print preview replaces the entire app layout
@@ -112,6 +131,8 @@ export function App() {
         binderUpdateRequired={dbState.binderState.status === 'update_required'}
         facilityName={dbState.facility.siteName}
         isDemoMode={demoState.demoConfigurationActive}
+        signedInUserName={currentUser.displayName}
+        onSignOut={logout}
       />
 
       {/* 2. MAIN APPLICATION CONTENT AREA */}
@@ -148,6 +169,7 @@ export function App() {
               onOpenResidentProfile={nav.openResident}
               onNavigateToSettings={() => nav.changeTab('settings')}
               onNavigateToBathing={() => nav.changeTab('reports-print')}
+              onPrintSpecializedDoc={printFlow.setSpecializedPrintDoc}
             />
           )}
 
@@ -192,6 +214,7 @@ export function App() {
                   const model = buildResidentCareSummaryModel(resId, nav.currentDate);
                   if (model) printFlow.setSpecializedPrintDoc({ type: 'resident_care', model });
                 }}
+                focusTaskId={nav.activeResidentFocusTaskId || undefined}
               />
             ) : (
               <ResidentsView
@@ -230,6 +253,7 @@ export function App() {
             <SettingsView
               key={dbState.settings.dataMode || 'operational'}
               navigationResetToken={nav.navigationResetToken}
+              currentUser={currentUser}
               onNavigateToWelcome={(presentationMode = false) => {
                 nav.changeTab('welcome');
                 nav.setIsPresentationMode(presentationMode);

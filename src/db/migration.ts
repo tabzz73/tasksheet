@@ -226,6 +226,8 @@ export function getInitialState(): AppDatabaseState {
     catalogCategories: ALBERTA_STARTER_CATEGORIES,
     catalogTaskTemplates: ALBERTA_TASK_TEMPLATES,
     unitTaskTemplates: STANDARD_UNIT_TASK_TEMPLATES,
+    users: [],
+    auditEvents: [],
   };
 }
 
@@ -344,5 +346,11 @@ export function migrateLoadedState(parsed: any): AppDatabaseState {
     catalogCategories: ALBERTA_STARTER_CATEGORIES,
     catalogTaskTemplates: mergedTemplates,
     unitTaskTemplates: STANDARD_UNIT_TASK_TEMPLATES,
+    // New top-level collections — absent on every installation created before
+    // this feature shipped. Defaulting to [] here means an upgraded install
+    // has zero users, which is exactly the signal the login gate uses to
+    // require first-admin setup (see AuthService.hasAnyUsers()).
+    users: parsed.users || [],
+    auditEvents: parsed.auditEvents || [],
   } as AppDatabaseState;
 }

@@ -8,7 +8,8 @@ import {
   Printer,
   Settings,
   Menu,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 
 export type NavigationTab =
@@ -27,6 +28,8 @@ interface SidebarProps {
   binderUpdateRequired?: boolean;
   facilityName?: string;
   isDemoMode?: boolean;
+  signedInUserName?: string;
+  onSignOut?: () => void;
 }
 
 // One shared dark-navy identity for both the desktop rail and the
@@ -44,7 +47,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onTabChange,
   binderUpdateRequired = false,
   facilityName,
-  isDemoMode = false
+  isDemoMode = false,
+  signedInUserName,
+  onSignOut
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -114,6 +119,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
         </nav>
+
+        {/* Signed-in user */}
+        {signedInUserName && (
+          <div className="px-4 py-2 flex items-center justify-between gap-2 border-t" style={{ borderColor: RAIL_LINE }}>
+            <span className="text-[11px] font-semibold truncate" style={{ color: RAIL_TEXT_MUTED }} title={signedInUserName}>{signedInUserName}</span>
+            {onSignOut && (
+              <button
+                type="button"
+                onClick={onSignOut}
+                aria-label="Sign out"
+                title="Sign out"
+                className="shrink-0 p-1 rounded-control hit-target-44 relative"
+                style={{ color: RAIL_TEXT_MUTED }}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="px-4 py-3.5 flex items-center gap-[7px] shrink-0">

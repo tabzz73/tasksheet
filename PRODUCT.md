@@ -18,7 +18,7 @@ The primary "user" of the finished screen is often not looking at it — the act
 
 ## Product Purpose
 
-TaskSheet turns resident care assignments, unit/shift responsibilities, and standing facility information into organized, print-ready HCA and LPN working sheets. Core loop: **ORGANIZE → GENERATE → PRINT**. Success is a staff member picking up an accurate, legible paper sheet for their shift with minimal setup friction.
+TaskSheet's core value is reducing the cognitive load of running a shift, not adding another system to learn — clarity, continuity, confidence, coordination. It turns resident care assignments, unit/shift responsibilities, and standing facility information into organized, print-ready HCA and LPN working sheets. Core loop: **ORGANIZE → GENERATE → PRINT**. Success is a staff member picking up an accurate, legible paper sheet for their shift with minimal setup friction.
 
 ## Positioning
 
@@ -36,7 +36,7 @@ TaskSheet is explicitly **not** a clinical charting system, EMAR, hospital EHR, 
 
 - Confirmed domains: Dashboard, Shifts, Shift Workspace (per-shift generated sheet), Residents, Resident Profile, FYI Binder, Print Center (Report Library, Custom Print Builder, specialized documents, print packages, print preview), Settings (Facility, Rooms & Occupancy, Roles & Shifts, Care Timing, Service Coverage, Preferences, Print Profiles, Quick Add Presets, Attention & Safety, Care Task Catalog, Wound Supply Catalog, Backup & Restore, Demo Workspace, App/Developer Information).
 - Recurrence engine, resident-status suppression (Active/In Hospital/Out on Pass/On Hold/Discharged/Deceased/Inactive), wound suppression (active/healing only), shift/date/timezone logic, print data-selection rules, demo provenance, and backup/restore are **verified business logic and out of scope for this and future visual work** unless a defect is confirmed.
-- No application-level user accounts/permissions in 1.0; access control is delegated to the Windows account and physical device security.
+- Local application-level user accounts exist (login gate, per-user role, append-only audit trail of who changed what and when). There is no cloud authentication or multi-workstation identity sync — accounts are local to the one workstation, and physical device security still matters, but access is no longer delegated solely to the Windows account.
 - No general resident/task CSV import; only catalog import and full JSON backup/restore.
 - Overnight shifts (e.g. 2300–0700) are supported and must read correctly across the midnight boundary, in the UI and on paper.
 - Natural room sorting must handle non-numeric room labels (e.g. "101A", "L101", "101LF") and must stay visually obvious in any resident-facing list.
@@ -45,7 +45,7 @@ TaskSheet is explicitly **not** a clinical charting system, EMAR, hospital EHR, 
 
 - Product name: **TaskSheet**. Publisher: **SoftVibeSolutions** (shown in Developer Information; keep professional and understated, not a marketing identity).
 - Existing accent color across the shipped UI is teal; the persistent sidebar uses a dark navy (`#081D3A`) as structural chrome. Treated as evidence, not a binding constraint, for this redesign pass (see DESIGN.md for the resolved direction).
-- Tagline: "The Smartest Workflow for Modern Healthcare" (existing, may be revisited if it reads as generic marketing copy rather than product description).
+- Tagline: "Less figuring out. More getting through the shift." (revised from the earlier generic "The Smartest Workflow for Modern Healthcare," which read as marketing copy rather than product description).
 
 ## Evidence on Hand
 

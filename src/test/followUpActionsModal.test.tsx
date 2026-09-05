@@ -85,13 +85,13 @@ describe('FollowUpActionsModal (shared panel — Huddle + Resident Profile)', ()
     expect(closed).toBe(false); // extending is a continuation action, panel stays open
   });
 
-  it('occurrence-based task: shows Record Next Collection, and recording it updates the count', () => {
+  it('occurrence-based task: shows Record Occurrence, and recording it updates the count', () => {
     const resident = db.addResident({ firstName: 'F', lastName: 'Occ', roomNumber: '118', status: 'active' });
     const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 3 } });
 
     render(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} />);
-    expect(screen.getByRole('button', { name: 'Record Next Collection' })).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Record Next Collection' }));
+    expect(screen.getByRole('button', { name: 'Record Occurrence' })).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Record Occurrence' }));
 
     expect(db.getState().residentTasks.find(t => t.id === task.id)?.trackingConfig?.completedOccurrences).toBe(1);
   });
@@ -123,11 +123,72 @@ describe('FollowUpActionsModal (shared panel — Huddle + Resident Profile)', ()
     expect(screen.queryByRole('button', { name: 'Open Resident / Task' })).toBeNull();
   });
 
+  it('occurrence-based task: stays live across repeated clicks in the same open session — disables once target is met without closing/reopening', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Live', roomNumber: '262', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Fluid Check', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'fluid', requiredOccurrences: 2 } });
+
+    let changed = 0;
+    const { rerender } = render(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} onChanged={() => { changed++; }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Record Occurrence' }));
+    // Force a re-render the same way a real onChanged-triggered parent
+    // update would, without closing the modal — the component must re-read
+    // live state itself rather than trusting the original `entry` prop.
+    rerender(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} onChanged={() => { changed++; }} />);
+    expect(screen.getByRole('button', { name: 'Record Occurrence' })).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Record Occurrence' }));
+    rerender(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} onChanged={() => { changed++; }} />);
+    expect(screen.queryByRole('button', { name: 'Record Occurrence' })).toBeNull();
+    expect(screen.getByText('2/2 complete for this period')).not.toBeNull();
+    expect(changed).toBe(2);
+  });
+
+  it('occurrence-based task: hides Record Occurrence and shows a complete state once the period target is met', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Complete', roomNumber: '260', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 1, completedOccurrences: 1 } });
+
+    render(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} />);
+    expect(screen.queryByRole('button', { name: 'Record Occurrence' })).toBeNull();
+    expect(screen.getByText('1/1 complete for this period')).not.toBeNull();
+  });
+
+  it('occurrence-based task: Undo last occurrence reverses the most recent record without deleting it', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Undo', roomNumber: '261', status: 'active' });
+    let task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Fluid Check', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'fluid', requiredOccurrences: 3 } });
+    task = db.recordResidentTaskOccurrence(task.id);
+    const occurrenceId = task.trackingConfig!.occurrences![0].id;
+
+    render(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: /Undo last occurrence/ }));
+
+    const stored = db.getState().residentTasks.find(t => t.id === task.id)!;
+    const reversed = stored.trackingConfig!.occurrences!.find(o => o.id === occurrenceId)!;
+    expect(reversed.reversedAt).toBeTruthy();
+    expect(stored.trackingConfig!.occurrences).toHaveLength(1); // preserved, not deleted
+    expect(stored.trackingConfig!.completedOccurrences).toBe(0);
+  });
+
   it('includes the source-of-truth reminder exactly once', () => {
     const resident = db.addResident({ firstName: 'F', lastName: 'Reminder', roomNumber: '257', status: 'active' });
     const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urine Sample Collection', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today });
 
     render(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} />);
     expect(screen.getAllByText(/TaskSheet tracks operational follow-up only/)).toHaveLength(1);
+  });
+
+  it('View History is hidden without onViewHistory, and calls it with (residentId, taskId) then closes when provided', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'History', roomNumber: '262', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urine Sample Collection', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: today });
+
+    const { rerender } = render(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => undefined} />);
+    expect(screen.queryByRole('button', { name: 'View History' })).toBeNull();
+
+    let closed = false;
+    let viewed: [string, string] | null = null;
+    rerender(<FollowUpActionsModal entry={makeEntry(task, resident)} today={today} onClose={() => { closed = true; }} onViewHistory={(residentId, taskId) => { viewed = [residentId, taskId]; }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'View History' }));
+
+    expect(viewed).toEqual([resident.id, task.id]);
+    expect(closed).toBe(true);
   });
 });

@@ -10,7 +10,8 @@ export const followUpActions = {
   markDone: (taskId: string): ResidentTask => db.setResidentTaskFollowUpStatus(taskId, 'done'),
   carryForward: (taskId: string): ResidentTask => db.setResidentTaskFollowUpStatus(taskId, 'carry_forward'),
   needsReview: (taskId: string): ResidentTask => db.setResidentTaskFollowUpStatus(taskId, 'needs_review'),
-  noLongerNeeded: (taskId: string): ResidentTask => db.setResidentTaskFollowUpStatus(taskId, 'no_longer_needed'),
+  noLongerNeeded: (taskId: string, reason?: string): ResidentTask => db.setResidentTaskFollowUpStatus(taskId, 'no_longer_needed', reason),
   extendTracking: (taskId: string, newEndDate: string): ResidentTask => db.extendResidentTaskTracking(taskId, newEndDate),
   recordOccurrence: (taskId: string): ResidentTask => db.recordResidentTaskOccurrence(taskId),
+  reverseOccurrence: (taskId: string, occurrenceId: string, reason?: string): ResidentTask => db.reverseResidentTaskOccurrence(taskId, occurrenceId, reason),
 };

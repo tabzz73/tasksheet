@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AlertTriangle, ArrowLeft, Printer } from 'lucide-react';
+import { db } from '../../db';
 import { PrintDocumentModel } from '../../services/print';
 import { PrintDocumentView } from '../print/PrintDocumentView';
 import { 
@@ -11,6 +12,8 @@ import {
   ShiftConfigReferenceModel 
 } from '../../services/print/specializedDocs';
 import { WhatChangedModel } from '../../services/printHistory';
+import { HuddleSheetModel } from '../../services/dashboard';
+import { HuddleSheetDocument } from '../print/HuddleSheetDocument';
 import { PrintPackageModel } from '../../services/print/packages';
 import { BathingScheduleDocument } from '../print/BathingScheduleDocument';
 import { WoundScheduleDocument } from '../print/WoundScheduleDocument';
@@ -36,7 +39,8 @@ export type SpecializedPrintDoc =
   | { type: 'what_changed'; model: WhatChangedModel }
   | { type: 'calibration' }
   | { type: 'blank_template'; model: PrintDocumentModel }
-  | { type: 'custom_report'; model: CustomReportModel };
+  | { type: 'custom_report'; model: CustomReportModel }
+  | { type: 'huddle'; model: HuddleSheetModel };
 
 interface PrintPreviewPageProps {
   model?: PrintDocumentModel | null;
@@ -121,6 +125,11 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
       docTitle = 'Blank TaskSheet Template';
       profileLabel = 'Letter Landscape · Facility Header + Writing Areas Only';
       subheaderText = `${specializedDoc.model.header.formattedDate} · No resident data included`;
+    } else if (specializedDoc.type === 'huddle') {
+      isLandscape = false;
+      docTitle = 'Shift Huddle / Endorsement Sheet';
+      profileLabel = 'Letter Portrait · Briefing Sheet';
+      subheaderText = `${specializedDoc.model.formattedDate}${specializedDoc.model.shiftCode ? ` · ${specializedDoc.model.shiftCode} — ${specializedDoc.model.shiftName}` : ''}`;
     } else if (specializedDoc.type === 'custom_report') {
       isLandscape = specializedDoc.model.definition.layout === 'landscape' || (specializedDoc.model.definition.layout === 'auto' && specializedDoc.model.columns.length > 6);
       docTitle = specializedDoc.model.title;
@@ -140,7 +149,33 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
         .filter(item => item.slot.overCapacity))
     : [];
   const contentWarnings = packageModel?.contentWarnings || [];
-  const hasPreviewWarnings = generationExceptions.length > 0 || bathingCapacityExceptions.length > 0 || contentWarnings.length > 0;
+  // Advisory only — per spec, an empty Huddle Sheet section never blocks
+  // printing; these surface as a heads-up, same as every other preflight
+  // warning on this page.
+  const huddleWarnings = specializedDoc?.type === 'huddle'
+    ? [
+        !specializedDoc.model.shiftCode ? 'No current shift is in effect for this date/time — the sheet will print without a shift line in the header.' : null,
+        !specializedDoc.model.hasAnyContent ? 'All Huddle sections are currently empty — only Census will have real content.' : null,
+      ].filter((warning): warning is string => Boolean(warning))
+    : [];
+  const hasPreviewWarnings = generationExceptions.length > 0 || bathingCapacityExceptions.length > 0 || contentWarnings.length > 0 || huddleWarnings.length > 0;
+
+  // Records exactly once per opened preview — mirrors the existing "record
+  // when the print preview opens, not when a physical print completes"
+  // pattern already used for the per-shift Universal TaskSheet, so Huddle
+  // Sheet prints show up in the same Audit History alongside everything else.
+  const auditedHuddlePreview = useRef(false);
+  useEffect(() => {
+    if (specializedDoc?.type === 'huddle' && !auditedHuddlePreview.current) {
+      auditedHuddlePreview.current = true;
+      db.recordAuditEvent({
+        action: 'print_preview_opened',
+        entityType: 'print',
+        summary: `Huddle Sheet print preview opened${specializedDoc.model.shiftCode ? ` (${specializedDoc.model.shiftCode})` : ''}`,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePrint = () => window.print();
 
@@ -175,6 +210,8 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
           return <PrintDocumentView document={specializedDoc.model} />;
         case 'custom_report':
           return <CustomReportDocument model={specializedDoc.model} />;
+        case 'huddle':
+          return <HuddleSheetDocument model={specializedDoc.model} />;
       }
     }
     return <div className="p-8 text-center text-faint">No document selected.</div>;
@@ -220,6 +257,7 @@ export const PrintPreviewPage: React.FC<PrintPreviewPageProps> = ({
               {generationExceptions.length > 0 && <><p className="text-xs font-black">Exceptions / Needs Review — {generationExceptions.length} timed task{generationExceptions.length === 1 ? '' : 's'} withheld</p><p className="mt-0.5 text-[11px]">{generationExceptions.map(exception => `${exception.roomNumber ? `Room ${exception.roomNumber}` : 'Unit task'} — ${exception.title} — ${exception.time} — ${exception.shiftCode} (${exception.shiftStart}–${exception.shiftEnd})`).join(' · ')}</p></>}
               {bathingCapacityExceptions.length > 0 && <><p className="text-xs font-black">Bathing Capacity / Needs Review — {bathingCapacityExceptions.length} over-capacity cell{bathingCapacityExceptions.length === 1 ? '' : 's'}</p><p className="mt-0.5 text-[11px]">{bathingCapacityExceptions.map(({ line, day, slot }) => `${line.shiftCode} ${day.label}: ${slot.scheduled} of ${slot.capacity}`).join(' · ')}</p></>}
               {contentWarnings.length > 0 && <><p className="text-xs font-black">Empty Sections — {contentWarnings.length} bundled document{contentWarnings.length === 1 ? '' : 's'} will print with no content</p><p className="mt-0.5 text-[11px]">{contentWarnings.join(' · ')}</p></>}
+              {huddleWarnings.length > 0 && <><p className="text-xs font-black">Huddle Sheet — heads up</p><p className="mt-0.5 text-[11px]">{huddleWarnings.join(' · ')}</p></>}
             </div>
           </div>
         </div>

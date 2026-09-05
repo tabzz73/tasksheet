@@ -23,7 +23,8 @@ import {
   PackagePlus
 } from 'lucide-react';
 import { db } from '../../db';
-import { Facility, FacilitySettings, FacilityBrandingSettings, Role, Shift, CatalogTaskTemplate, UnitTaskTemplate, FacilityContactExtension } from '../../types';
+import { Facility, FacilitySettings, FacilityBrandingSettings, Role, Shift, CatalogTaskTemplate, UnitTaskTemplate, FacilityContactExtension, AppUser } from '../../types';
+import { UserCog, History } from 'lucide-react';
 
 import { ShiftFormModal } from '../modals/ShiftFormModal';
 import { PrintProfileEditorTab } from './PrintProfileEditorTab';
@@ -36,6 +37,8 @@ import { DeveloperInformationTab } from './DeveloperInformationTab';
 import { WoundSupplyCatalogTab } from './WoundSupplyCatalogTab';
 import { RoomSetupTab } from './RoomSetupTab';
 import { ServiceCoverageSettingsTab } from './ServiceCoverageSettingsTab';
+import { UsersAccessTab } from './UsersAccessTab';
+import { AuditHistoryTab } from './AuditHistoryTab';
 import { DomainConflictError, ValidationResult } from '../../services/validation';
 import { ConflictNotice } from '../common/ConflictNotice';
 import { ConfirmDialog, ConfirmDialogRequest } from '../common/ConfirmDialog';
@@ -53,11 +56,12 @@ import {
 } from '../../services/facilityFormatting';
 
 interface SettingsViewProps {
+  currentUser: AppUser;
   onNavigateToWelcome?: (presentationMode?: boolean) => void;
   navigationResetToken?: number;
 }
 
-type SettingsTab = 'facility' | 'rooms' | 'care_timings' | 'service_coverage' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'emergency_codes' | 'preferences' | 'shifts' | 'catalog' | 'wound_supplies' | 'demo' | 'backup' | 'app_info' | 'developer_info';
+type SettingsTab = 'facility' | 'rooms' | 'care_timings' | 'service_coverage' | 'print_profiles' | 'quick_presets' | 'attention_rules' | 'emergency_codes' | 'preferences' | 'shifts' | 'catalog' | 'wound_supplies' | 'demo' | 'backup' | 'app_info' | 'developer_info' | 'users' | 'audit';
 
 const SETTINGS_NAV_GROUPS: Array<{
   label: string;
@@ -98,6 +102,13 @@ const SETTINGS_NAV_GROUPS: Array<{
     ],
   },
   {
+    label: 'Access & Audit',
+    items: [
+      { id: 'users', label: 'Users & Access', description: 'Local accounts, roles and passwords', icon: UserCog },
+      { id: 'audit', label: 'Audit History', description: 'Who changed what, and when', icon: History },
+    ],
+  },
+  {
     label: 'Application',
     items: [
       { id: 'app_info', label: 'App Information', description: 'Version, welcome and presentation', icon: Info },
@@ -116,8 +127,15 @@ function prepareFacilityForEditing(facility: Facility): Facility {
   };
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome, navigationResetToken = 0 }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser, onNavigateToWelcome, navigationResetToken = 0 }) => {
   const state = db.getState();
+  const isAdmin = currentUser.role === 'admin';
+  const canViewAudit = isAdmin || currentUser.role === 'supervisor';
+  const visibleNavGroups = SETTINGS_NAV_GROUPS
+    .map(group => group.label === 'Access & Audit'
+      ? { ...group, items: group.items.filter(item => item.id === 'users' ? isAdmin : item.id === 'audit' ? canViewAudit : true) }
+      : group)
+    .filter(group => group.items.length > 0);
   const [activeTab, setActiveTab] = useState<SettingsTab | null>(null);
   const [expandedNavGroup, setExpandedNavGroup] = useState('Facility');
   
@@ -407,6 +425,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
     a.download = `TaskSheet_Backup_${getTodayLocalDateString()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    db.recordAuditEvent({ action: 'backup_exported', entityType: 'backup', summary: 'Full database backup exported' });
     showFeedback('success', 'Full database backup downloaded.');
   };
 
@@ -523,7 +542,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
           section is selected; navigating away from Settings and back resets here. */}
       {activeTab === null && (
         <div className="space-y-6">
-          {SETTINGS_NAV_GROUPS.map(group => (
+          {visibleNavGroups.map(group => (
             <div key={group.label}>
               <h2 className="mb-2.5 font-heading font-extrabold text-[13px] uppercase tracking-[0.04em] text-ink-soft">{group.label}</h2>
               <div className="title-block rounded-surface overflow-hidden">
@@ -1624,6 +1643,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onNavigateToWelcome,
             </div>
           </div>
         </div>
+      )}
+
+      {/* 7. USERS & ACCESS */}
+      {activeTab === 'users' && isAdmin && (
+        <UsersAccessTab currentUser={currentUser} onShowFeedback={showFeedback} />
+      )}
+
+      {/* 8. AUDIT HISTORY */}
+      {activeTab === 'audit' && canViewAudit && (
+        <AuditHistoryTab />
       )}
           </main>
         </div>

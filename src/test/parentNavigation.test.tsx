@@ -4,10 +4,14 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { App } from '../App';
 import { db } from '../db';
+import { createFirstAdmin } from '../services/auth';
 
 describe('sidebar parent navigation', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     db.resetToDemoState();
+    // App() gates its whole tree behind sign-in — this is the one test file
+    // that renders <App/> directly, so it needs a real signed-in session.
+    await createFirstAdmin({ displayName: 'Test Admin', username: 'test-admin', password: 'test-password-123' });
     localStorage.setItem('tasksheet_welcome_dismissed', 'true');
     localStorage.setItem('tasksheet_shifts_view_mode', 'list');
     localStorage.setItem('tasksheet_residents_view_mode', 'list');

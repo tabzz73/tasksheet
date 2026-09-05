@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { db } from '../db';
 import { SHIFT_HCA_DAY_ID } from '../data/defaultData';
@@ -138,5 +138,36 @@ describe('ResidentProfileView — follow-up state beside the associated task', (
     fireEvent.click(badge);
     expect(screen.getByText('Follow-up Actions')).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Open Resident / Task' })).toBeNull();
+  });
+
+  it('Dashboard quick action: Record Occurrence updates the count without opening the full editor', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Quick', roomNumber: '262', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 3 } });
+
+    render(<ResidentFollowUpCard state={db.getState()} today="2026-09-06" onOpenResident={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: `Record occurrence for ${task.title}` }));
+
+    expect(db.getState().residentTasks.find(t => t.id === task.id)?.trackingConfig?.completedOccurrences).toBe(1);
+    expect(screen.queryByRole('dialog')).toBeNull(); // no full editor opened
+  });
+
+  it('Resident Activity & History shows an occurrence-mode task\'s daily periods separately: today fresh, yesterday retained as missed', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 4, 8, 0));
+    const resident = db.addResident({ firstName: 'F', lastName: 'History', roomNumber: '263', status: 'active' });
+    let task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Vital Signs Monitoring', category: 'Monitoring', time: '0800', frequency: 'daily', showOnDashboard: true, mustNotMiss: true, trackingConfig: { kind: 'weight', requiredOccurrences: 3, occurrenceResetPeriod: 'daily' } });
+    task = db.recordResidentTaskOccurrence(task.id);
+    task = db.recordResidentTaskOccurrence(task.id); // only 2 of 3 on Sep 4
+
+    vi.setSystemTime(new Date(2026, 8, 5, 8, 0));
+    render(<ResidentProfileView residentId={resident.id} onBack={noop} onOpenAddCareTask={noop} onOpenAddFYI={noop} onOpenAddWound={noop} onOpenQuickCareSetup={noop} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Room Safety & History' }));
+
+    expect(screen.getByText('Occurrence Progress')).not.toBeNull();
+    expect(screen.getByText('Today:')).not.toBeNull();
+    expect(screen.getByText('0/3')).not.toBeNull(); // fresh period, not carrying yesterday's 2 forward
+    expect(screen.getByText(/2\/3 completed · 1 missed/)).not.toBeNull(); // yesterday retained in history
+
+    vi.useRealTimers();
   });
 });

@@ -18,7 +18,8 @@ import {
   Copy,
   CheckCircle2,
   Filter,
-  Printer
+  Printer,
+  ClipboardList
 } from 'lucide-react';
 import { db } from '../../db';
 import { Resident, ResidentTask, Wound, FYI, ResidentStatus } from '../../types';
@@ -31,9 +32,11 @@ import { GlobalAddModal } from '../modals/GlobalAddModal';
 import { TaskAttentionBadges } from '../common/TaskAttentionBadges';
 import { getResidentStatusLabel, isResidentCarePaused } from '../../services/residentStatus';
 import { formatRecurrenceHuman, isRecurrenceScheduleEnded, restartRecurrenceRule, getTodayLocalDateString } from '../../services/recurrence';
-import { getResidentFollowUpTasks } from '../../services/dashboard';
+import { getResidentFollowUpTasks, formatOccurrenceProgressLabel } from '../../services/dashboard';
+import { getOccurrenceDates, getPeriodOccurrences, describeIncompletePastPeriod } from '../../services/occurrenceTracking';
 import { FOLLOW_UP_BADGE_CLASS } from '../dashboard/DashboardWidgets';
 import { FollowUpActionsModal, FollowUpActionsEntry } from '../dashboard/FollowUpActionsModal';
+import { ResidentActivityHistoryTab } from './ResidentActivityHistoryTab';
 
 interface ResidentProfileViewProps {
   residentId: string;
@@ -43,6 +46,10 @@ interface ResidentProfileViewProps {
   onOpenAddWound: (residentId: string) => void;
   onOpenQuickCareSetup: (resident: Resident) => void;
   onPrintCareSummary?: (residentId: string) => void;
+  /** Opens straight into Activity & History, pre-filtered to this task —
+   *  the target of a task's "View History" action, including the shortcut
+   *  offered from Dashboard/Huddle's Follow-up Actions panel. */
+  focusTaskId?: string;
 }
 
 export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
@@ -52,9 +59,11 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
   onOpenAddFYI,
   onOpenAddWound,
   onOpenQuickCareSetup,
-  onPrintCareSummary
+  onPrintCareSummary,
+  focusTaskId,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'care' | 'wounds' | 'fyis' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'care' | 'wounds' | 'fyis' | 'history'>(focusTaskId ? 'history' : 'overview');
+  const [historyFocusTaskId, setHistoryFocusTaskId] = useState<string | undefined>(focusTaskId);
   const [careTaskFilter, setCareTaskFilter] = useState<'active' | 'ended' | 'stopped' | 'all'>('active');
   const [woundFilter, setWoundFilter] = useState<'current' | 'ended' | 'resolved' | 'all'>('current');
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
@@ -104,6 +113,9 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
 
   const state = db.getState();
   const resident = state.residents.find(r => r.id === residentId);
+  const residentAuditEvents = state.auditEvents
+    .filter(event => event.residentId === residentId)
+    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
 
   if (!resident) {
     return (
@@ -126,6 +138,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
   // Follow-up state/label — same selector Dashboard and Huddle use, so this
   // page never disagrees with either about overdue/progress/carry-forward.
   const followUpByTaskId = new Map(getResidentFollowUpTasks(state, todayDateStr).map(entry => [entry.task.id, entry]));
+  const occurrenceTasks = allResidentTasks.filter(t => Boolean(t.trackingConfig?.requiredOccurrences));
   const activeTasks = allResidentTasks.filter(t => t.isActive !== false && !endedTaskIds.has(t.id));
   const stoppedTasks = allResidentTasks.filter(t => t.isActive === false);
   const displayedTasks = careTaskFilter === 'active' 
@@ -413,6 +426,11 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                     : isResidentCarePaused(resident.status)
                     ? `${getResidentStatusLabel(resident.status)} · Care sheet generation suspended; schedules are preserved`
                     : 'Discharged / Former Resident · Not included on operational sheets'}
+                </p>
+                <p className="text-[11px] text-faint mt-0.5">
+                  {residentAuditEvents[0]
+                    ? `Last updated by ${residentAuditEvents[0].userDisplayName} · ${new Date(residentAuditEvents[0].occurredAt).toLocaleString()}`
+                    : 'Created before audit history was enabled'}
                 </p>
               </div>
             </div>
@@ -718,6 +736,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                             <button
                               type="button"
                               onClick={() => setFollowUpEntry({ task: t, resident })}
+                              aria-label={`Follow-up status for ${t.title}: ${entry.statusLabel}`}
                               className={`hit-target-44 badge ${FOLLOW_UP_BADGE_CLASS[entry.bucket]} hover:opacity-80 transition-opacity`}
                             >
                               {entry.statusLabel}
@@ -745,6 +764,15 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
                     </div>
 
                     <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => { setHistoryFocusTaskId(t.id); setActiveTab('history'); }}
+                        aria-label={`View history for ${t.title}`}
+                        title="View History"
+                        className="p-1.5 text-ink-soft hover:text-accent-strong hover:bg-panel-sunken rounded-control transition-colors"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
                       <TaskActionMenu
                         onEdit={() => handleEditCareTask(t)}
                         onDuplicate={() => handleDuplicateCareTask(t)}
@@ -916,6 +944,53 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
         </div>
       )}
 
+      {activeTab === 'history' && occurrenceTasks.length > 0 && (
+        <div className="bg-panel rounded-surface border border-hairline-strong p-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-accent-strong" />
+            <h3 className="text-base font-bold text-ink">Occurrence Progress</h3>
+          </div>
+          <p className="text-xs text-muted -mt-2">Multi-occurrence follow-up tasks, by requirement period. Each period's history is preserved — a later day never overwrites an earlier one.</p>
+          <div className="space-y-4">
+            {occurrenceTasks.map(task => {
+              const required = task.trackingConfig!.requiredOccurrences!;
+              const isDaily = task.trackingConfig?.occurrenceResetPeriod === 'daily';
+              const dates = getOccurrenceDates(task.trackingConfig);
+              const periods = isDaily ? [todayDateStr, ...dates.filter(d => d !== todayDateStr)] : (dates.length ? dates : [todayDateStr]);
+              return (
+                <div key={task.id} className="rounded-control border border-hairline-strong p-3">
+                  <p className="text-sm font-bold text-ink">{task.title}</p>
+                  <div className="mt-1.5 space-y-1">
+                    {periods.map(periodDate => {
+                      const isToday = periodDate === todayDateStr;
+                      const completed = getPeriodOccurrences(task, periodDate).length;
+                      const label = isToday
+                        ? formatOccurrenceProgressLabel(completed, required)
+                        : (describeIncompletePastPeriod(task, periodDate) || `${completed}/${required} complete`);
+                      return (
+                        <p key={periodDate} className="text-xs text-ink-soft">
+                          <span className="font-semibold">{isToday ? 'Today' : new Date(`${periodDate}T00:00:00`).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}:</span> {label}
+                        </p>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <ResidentActivityHistoryTab
+          state={state}
+          residentId={resident.id}
+          residentTasks={allResidentTasks}
+          initialTaskId={historyFocusTaskId}
+          onOpenTask={t => setDrawerTask(t)}
+        />
+      )}
+
       {/* Task Details Drawer */}
       {drawerTask && (
         <TaskDetailsDrawer
@@ -963,6 +1038,7 @@ export const ResidentProfileView: React.FC<ResidentProfileViewProps> = ({
         entry={followUpEntry}
         today={todayDateStr}
         onClose={() => setFollowUpEntry(null)}
+        onViewHistory={(_residentId, taskId) => { setHistoryFocusTaskId(taskId); setActiveTab('history'); }}
         onChanged={() => { setToastMessage('Follow-up updated.'); setTimeout(() => setToastMessage(null), 4000); }}
       />
     </div>

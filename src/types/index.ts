@@ -183,19 +183,73 @@ export type ResidentTrackingKind =
   | 'sleep'
   | 'food'
   | 'behavior'
-  | 'pain';
+  | 'pain'
+  /** Generic catch-all for a facility-defined repeated/tracked follow-up
+   *  that doesn't fit one of the named clinical categories above — e.g.
+   *  vital signs monitoring, intake checks, safety/observation rounds.
+   *  Manually selectable in task creation; not offered by any catalog
+   *  template (those stay specific on purpose). */
+  | 'observation';
+
+/** One completed occurrence toward an occurrence-mode tracking task's
+ *  target (e.g. the 2nd of "3 times today"). A real operational record, not
+ *  just a tally — who, when, and (if determinable) which shift, so the
+ *  question "who recorded this and when" is always answerable, and so a
+ *  later shift can see exactly what an earlier shift already did. Never
+ *  deleted; a mistaken entry is reversed (see `reversedAt`), not removed,
+ *  so history is never silently rewritten. */
+export interface TaskOccurrenceRecord {
+  id: UUID;
+  /** The calendar day this occurrence counts toward. For a `'daily'`-reset
+   *  task this is the requirement period the occurrence belongs to (today's
+   *  3 vitals checks are a different period from tomorrow's); for a
+   *  `'once'` task it is simply the day it happened, since all occurrences
+   *  share one lifetime target. */
+  occurrenceDate: string; // YYYY-MM-DD
+  occurredAt: string; // ISO timestamp
+  completedByUserId?: UUID;
+  completedByDisplayName: string;
+  /** The shift in effect when this occurrence was recorded, when
+   *  determinable (current wall-clock time falls inside an active shift's
+   *  window) — not necessarily the task's own assigned shift. */
+  shiftId?: UUID;
+  /** Which occurrence # within its period this was (1-based) — assigned
+   *  once and never renumbered, even if an earlier one is later reversed. */
+  sequence: number;
+  /** Set when this entry was reversed as a correction. The record itself is
+   *  kept (never deleted) — see the type-level note above. */
+  reversedAt?: string;
+  reversedByUserId?: UUID;
+  reversedByDisplayName?: string;
+  reversalReason?: string;
+}
 
 /** Paper tracking prompt only. TaskSheet does not store clinical tracking results electronically. */
 export interface ResidentTrackingConfig {
   kind: ResidentTrackingKind;
   prompt?: string;
   /** When set, this tracking task is in "occurrence mode": progress reads as
-   *  `completedOccurrences/requiredOccurrences` instead of a date-bounded
-   *  Day X/Y window, and `recurrenceRule` start/end dates are not required.
-   *  An operational reminder counter only — not a record of clinical
-   *  collection/assessment completion. */
+   *  X/Y instead of a date-bounded Day X/Y window, and `recurrenceRule`
+   *  start/end dates are not required. An operational reminder counter
+   *  only — not a record of clinical collection/assessment completion. */
   requiredOccurrences?: number;
+  /** Kept in sync with `occurrences` (filtered to the current period) for
+   *  cheap reads and as a fallback for records created before per-occurrence
+   *  history existed — never the authoritative source once `occurrences` is
+   *  populated. Prefer deriving progress from `occurrences` via
+   *  `services/occurrenceTracking`. */
   completedOccurrences?: number;
+  /** `'once'` (default): occurrences accumulate across the task's whole
+   *  life — e.g. "3 urine samples required," no reset, matching the
+   *  original occurrence-mode behavior. `'daily'`: occurrences reset every
+   *  calendar day — e.g. "vital signs 3x/day" — so today's progress and
+   *  target apply to today only, and every prior day remains queryable in
+   *  Resident Activity & History instead of being overwritten. */
+  occurrenceResetPeriod?: 'once' | 'daily';
+  /** The real per-occurrence history backing the X/Y progress display —
+   *  see `TaskOccurrenceRecord`. Absent/empty on tasks that predate this
+   *  field or have no occurrences recorded yet. */
+  occurrences?: TaskOccurrenceRecord[];
 }
 
 export interface FacilityAttentionRule {
@@ -270,7 +324,7 @@ export interface SavedPrintPreset {
   updatedAt?: string;
 }
 
-export type SavedPrintPackageItemType = 'shift_document' | 'bathing_grid' | 'wound_schedule' | 'fyi_binder' | 'blank_template';
+export type SavedPrintPackageItemType = 'shift_document' | 'bathing_grid' | 'wound_schedule' | 'fyi_binder' | 'blank_template' | 'huddle_sheet';
 
 /** One document to generate as part of a saved package. Configuration only —
  *  never stores rendered content, resident data, or task snapshots. */
@@ -805,6 +859,74 @@ export interface BinderState {
   pendingChangesCount: number;
 }
 
+// ─── Local Users & Audit Trail ──────────────────────────────────────────────
+// Deliberately distinct from `Role`/`roleId` above, which is the shift/clinical
+// role (HCA/LPN/RN) used for print-profile and task routing — not a
+// user-permission concept. `UserRole` is who is signed in; `Role` is what
+// shift/discipline a task or shift belongs to. Never conflate the two.
+
+export type UserRole = 'admin' | 'supervisor' | 'lpn_rn' | 'hca' | 'viewer';
+
+export interface AppUser {
+  id: UUID;
+  /** Unique, compared case-insensitively. Not used as historical identity in
+   *  audit events — see AuditEvent.userDisplayName. */
+  username: string;
+  displayName: string;
+  role: UserRole;
+  active: boolean;
+  /** `pbkdf2$<iterations>$<saltBase64>$<hashBase64>` — never plaintext, never
+   *  reversible. Computed by services/auth/passwordHash.ts. */
+  passwordHash: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+}
+
+export type AuditAction =
+  | 'created' | 'updated' | 'status_changed' | 'ended' | 'deactivated' | 'reactivated'
+  | 'follow_up_status_changed' | 'occurrence_recorded' | 'occurrence_reversed' | 'tracking_extended'
+  | 'print_preview_opened'
+  | 'backup_exported' | 'backup_restored'
+  | 'demo_loaded' | 'demo_cleared' | 'real_setup_started'
+  | 'password_reset' | 'password_changed'
+  | 'login' | 'login_failed' | 'logout';
+
+export type AuditEntityType =
+  | 'resident' | 'resident_task' | 'attention_item' | 'fyi' | 'wound'
+  | 'shift' | 'facility_settings' | 'print' | 'backup' | 'demo' | 'user' | 'session';
+
+/** Append-only. No update/delete method is ever exposed for this collection —
+ *  a correction is logged as a new event, never an edit to an old one. */
+export interface AuditEvent {
+  id: UUID;
+  occurredAt: string;
+  /** Absent only for events that could somehow occur with no signed-in actor
+   *  (should not happen once the login gate is in place, but kept optional
+   *  rather than fabricating an actor). */
+  userId?: UUID;
+  /** Snapshot at write time — survives a later AppUser.displayName change, so
+   *  historical events remain readable even after a name edit. */
+  userDisplayName: string;
+  action: AuditAction;
+  entityType: AuditEntityType;
+  entityId?: UUID;
+  residentId?: UUID;
+  /** Snapshot, e.g. "Room 250 — Arthur Pendleton", so the event stays
+   *  readable even if the resident later moves rooms or is deactivated. */
+  roomSnapshot?: string;
+  /** Snapshot of the shift in effect for this event, when known, e.g.
+   *  "HCA Day" — currently only populated for occurrence events, since
+   *  that's the one place "which shift did this" is operationally load-
+   *  bearing (cross-shift continuity). */
+  shiftSnapshot?: string;
+  summary: string;
+  /** Concise "Field: A → B" lines, one change per line. Never a full record
+   *  blob. */
+  changes?: string;
+  sourceMode: 'demo' | 'manual';
+}
+
 export interface AppDatabaseState {
   /** Persistent data-schema version. Independent from the application release version. */
   schemaVersion?: number;
@@ -837,4 +959,6 @@ export interface AppDatabaseState {
   catalogCategories: CatalogCategory[];
   catalogTaskTemplates: CatalogTaskTemplate[];
   unitTaskTemplates: UnitTaskTemplate[];
+  users: AppUser[];
+  auditEvents: AuditEvent[];
 }

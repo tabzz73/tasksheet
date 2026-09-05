@@ -19,7 +19,8 @@ import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generato
 import { AddEntityType } from '../modals/GlobalAddModal';
 import { CardNavigationButton } from '../common/CardNavigationButton';
 import { ViewHeader } from '../common/ViewHeader';
-import { getValidatedDashboardLayout } from '../../services/dashboard';
+import { getValidatedDashboardLayout, buildHuddleSheetModel } from '../../services/dashboard';
+import { SpecializedPrintDoc } from './PrintPreviewPage';
 import {
   AwayFromUnitCard,
   ResidentAttentionCard,
@@ -43,9 +44,10 @@ interface DashboardViewProps {
   onPrintShift: (shiftSheet: GeneratedShiftSheet) => void;
   onNavigateToBinder: () => void;
   onNavigateToResidents: () => void;
-  onOpenResidentProfile?: (residentId: string) => void;
+  onOpenResidentProfile?: (residentId: string, focusTaskId?: string) => void;
   onNavigateToSettings?: () => void;
   onNavigateToBathing?: () => void;
+  onPrintSpecializedDoc?: (doc: SpecializedPrintDoc) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -58,6 +60,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenResidentProfile,
   onNavigateToSettings,
   onNavigateToBathing,
+  onPrintSpecializedDoc,
 }) => {
   // A single overlay slot, not four independent booleans, so opening one
   // dashboard overlay always closes any other — without this, Customize and
@@ -294,6 +297,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         formattedToday={formattedDate}
         onOpenResident={openResident}
         onChanged={() => forceRerender(n => n + 1)}
+        onPrintHuddle={onPrintSpecializedDoc ? () => onPrintSpecializedDoc({ type: 'huddle', model: buildHuddleSheetModel(state, currentDate) }) : undefined}
       />
 
       {/* Today's shifts — schedule table, not a card grid */}

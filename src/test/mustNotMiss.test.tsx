@@ -47,12 +47,12 @@ describe('GlobalAddModal — Must Not Be Missed and Tracking Pattern', () => {
 
     render(<GlobalAddModal isOpen mode="edit" initialResidentTask={trackingTask} onClose={() => undefined} />);
     expect(screen.getByText('Tracking Pattern')).not.toBeNull();
-    expect(screen.getByRole('button', { name: 'Date range' })).not.toBeNull();
-    expect(screen.getByRole('button', { name: 'Required occurrences' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Tracking period' })).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Repeated occurrences' })).not.toBeNull();
     expect(screen.queryByText('Due Date (optional)')).toBeNull();
   });
 
-  it('switching to Required occurrences and saving sets requiredOccurrences, preserving completedOccurrences on edit', () => {
+  it('switching to Repeated occurrences and saving sets requiredOccurrences, preserving completedOccurrences on edit', () => {
     const resident = db.getState().residents.find(r => r.status === 'active')!;
     const task = db.addResidentTask({
       residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring',
@@ -60,7 +60,7 @@ describe('GlobalAddModal — Must Not Be Missed and Tracking Pattern', () => {
     });
 
     render(<GlobalAddModal isOpen mode="edit" initialResidentTask={task} onClose={() => undefined} />);
-    expect(screen.getByRole('button', { name: 'Required occurrences' }).className).toContain('bg-ink');
+    expect(screen.getByRole('button', { name: 'Repeated occurrences' }).className).toContain('bg-ink');
     fireEvent.change(screen.getByDisplayValue('3'), { target: { value: '5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
 

@@ -12,6 +12,7 @@ build/
 # Test and coverage output
 test-results/
 playwright-report/
+test/.auth/
 /coverage/
 
 # Logs and diagnostics

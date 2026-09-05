@@ -84,4 +84,29 @@ describe('HuddleView — Must-Not-Miss Follow-up section', () => {
     expect(closed).toBe(true);
     expect(openedId).toBe(resident.id);
   });
+
+  it('View History closes Huddle and calls onOpenResident with (residentId, taskId), as a shortcut to Resident Profile Activity & History', () => {
+    const resident = db.addResident({ firstName: 'F', lastName: 'Hist', roomNumber: '251', status: 'active' });
+    const task = db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Urine Sample Collection', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, followUpDueDate: '2026-09-03', mustNotMiss: true });
+
+    let closed = false; let opened: [string, string?] | null = null;
+    render(<HuddleView isOpen onClose={() => { closed = true; }} state={db.getState()} today={today} formattedToday="Friday, September 4, 2026" onOpenResident={(id, focusTaskId) => { opened = [id, focusTaskId]; }} />);
+    fireEvent.click(screen.getByRole('button', { name: `Follow-up actions for ${task.title}, 251` }));
+    fireEvent.click(screen.getByRole('button', { name: 'View History' }));
+
+    expect(closed).toBe(true);
+    expect(opened).toEqual([resident.id, task.id]);
+  });
+
+  it('shows Print Huddle only when onPrintHuddle is provided, and invokes it without closing the modal', () => {
+    const { rerender } = render(<HuddleView isOpen onClose={() => undefined} state={db.getState()} today={today} formattedToday="Friday, September 4, 2026" />);
+    expect(screen.queryByRole('button', { name: 'Print Huddle' })).toBeNull();
+
+    let printed = false; let closed = false;
+    rerender(<HuddleView isOpen onClose={() => { closed = true; }} state={db.getState()} today={today} formattedToday="Friday, September 4, 2026" onPrintHuddle={() => { printed = true; }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Print Huddle' }));
+
+    expect(printed).toBe(true);
+    expect(closed).toBe(false);
+  });
 });

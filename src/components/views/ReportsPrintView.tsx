@@ -18,6 +18,7 @@ import {
   History,
   Bandage,
   CalendarDays,
+  ClipboardList,
 } from 'lucide-react';
 import { db } from '../../db';
 import { generateShiftSheet, GeneratedShiftSheet } from '../../services/generator';
@@ -79,6 +80,7 @@ import {
   deleteSavedPrintPackage,
 } from '../../services/print/packages';
 import { SpecializedPrintDoc } from './PrintPreviewPage';
+import { buildHuddleSheetModel } from '../../services/dashboard';
 import { ReportCatalogPanel } from './ReportCatalogPanel';
 import { ViewHeader } from '../common/ViewHeader';
 import { SavePrintPackageModal } from '../modals/SavePrintPackageModal';
@@ -878,6 +880,28 @@ export const PrintCenterView: React.FC<PrintCenterProps> = ({
         </div>
 
         <div className="divide-y divide-hairline">
+          {/* 0. Shift Huddle / Endorsement Sheet */}
+          <div className="px-5 py-3.5 flex items-center justify-between hover:bg-panel-sunken transition-colors">
+            <div className="flex items-start space-x-3">
+              <ClipboardList className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                <div className="flex items-center space-x-2">
+                  <p className="text-sm font-bold text-ink">Shift Huddle / Endorsement Sheet</p>
+                  <span className="text-[10px] bg-accent-soft text-accent-strong font-bold px-1.5 py-0.5 rounded">Letter Portrait</span>
+                </div>
+                <p className="text-xs text-muted">Census, Away From Unit, Attention, Must-Not-Miss Follow-up, FYIs, Code of the Month — read-aloud briefing sheet, not a checklist</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onPrintSpecializedDoc({ type: 'huddle', model: buildHuddleSheetModel(db.getState(), selectedDate) })}
+              className="px-3 py-1.5 bg-accent hover:bg-accent-strong text-white rounded-control text-xs font-bold flex items-center space-x-1.5 transition-colors shrink-0"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Huddle</span>
+            </button>
+          </div>
+
           {/* 1. Bathing Schedule Grid */}
           <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-panel-sunken transition-colors">
             <div className="flex items-start space-x-3">

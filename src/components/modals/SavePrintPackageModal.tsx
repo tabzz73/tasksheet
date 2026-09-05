@@ -25,6 +25,7 @@ const ITEM_TYPE_LABELS: Record<SavedPrintPackageItemType, string> = {
   wound_schedule: 'Wound & Dressing Treatment Schedule',
   fyi_binder: 'FYI Binder',
   blank_template: 'Blank TaskSheet Template',
+  huddle_sheet: 'Shift Huddle / Endorsement Sheet',
 };
 
 function newItemId() {

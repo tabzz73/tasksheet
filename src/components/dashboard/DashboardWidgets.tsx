@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ClockAlert, CircleAlert, Droplets, Hospital, Info, ShieldAlert, Sparkles, TriangleAlert, Wrench } from 'lucide-react';
+import { Activity, ClockAlert, CircleAlert, Droplets, Hospital, Info, ShieldAlert, Sparkles, TriangleAlert, Wrench, CheckCircle2 as CheckCircle2Icon } from 'lucide-react';
 import { AppDatabaseState, EmergencyCode, ResidentTaskFollowUpStatus } from '../../types';
 import { db } from '../../db';
 import {
@@ -155,6 +155,11 @@ export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: st
     onChanged?.();
   };
 
+  const handleRecordOccurrence = (taskId: string) => {
+    followUpActions.recordOccurrence(taskId);
+    onChanged?.();
+  };
+
   return (
     <div className="title-block rounded-surface p-4">
       <h2 className="flex items-center gap-1.5 font-heading text-[13px] font-bold uppercase tracking-wide text-ink-soft mb-2">
@@ -165,7 +170,9 @@ export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: st
         <p className="text-[12px] text-muted">No follow-up tasks flagged for the Dashboard.</p>
       ) : (
         <ul className="space-y-1.5">
-          {items.map(({ resident, task, bucket, statusLabel, needsReview }) => (
+          {items.map(({ resident, task, bucket, statusLabel, needsReview }) => {
+            const isOccurrenceMode = Boolean(task.trackingConfig?.requiredOccurrences);
+            return (
             <li key={task.id} className="flex items-center gap-1">
               <button
                 type="button"
@@ -182,9 +189,22 @@ export const ResidentFollowUpCard: React.FC<{ state: AppDatabaseState; today: st
                   {statusLabel}
                 </span>
               </button>
-              <FollowUpStatusMenu ariaLabel={`Update follow-up status for ${task.title}`} onSetStatus={(status) => handleSetStatus(task.id, status)} />
+              {isOccurrenceMode ? (
+                <button
+                  type="button"
+                  onClick={() => handleRecordOccurrence(task.id)}
+                  aria-label={`Record occurrence for ${task.title}`}
+                  title="Record Occurrence"
+                  className="hit-target-44 px-1.5 py-1 rounded-control text-positive hover:bg-positive-soft transition-colors"
+                >
+                  <CheckCircle2Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              ) : (
+                <FollowUpStatusMenu ariaLabel={`Update follow-up status for ${task.title}`} onSetStatus={(status) => handleSetStatus(task.id, status)} />
+              )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

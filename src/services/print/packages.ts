@@ -11,13 +11,15 @@ import {
 } from './specializedDocs';
 import { buildFyiBinderPrintModel } from './binderBuilder';
 import { FyiBinderPrintDocumentModel } from '../../components/print/FyiBinderPrintDocument';
+import { buildHuddleSheetModel, HuddleSheetModel } from '../dashboard';
 
 export type PackageDocType =
   | 'shift_document'
   | 'bathing_grid'
   | 'wound_schedule'
   | 'fyi_binder'
-  | 'blank_template';
+  | 'blank_template'
+  | 'huddle_sheet';
 
 export interface PrintPackageItem {
   id: string;
@@ -31,6 +33,7 @@ export interface PrintPackageItem {
   bathingModel?: BathingScheduleModel;
   woundModel?: WoundScheduleModel;
   fyiBinderModel?: FyiBinderPrintDocumentModel;
+  huddleModel?: HuddleSheetModel;
   /** Raw generated shift (shift_document items only) — carried so opening the
    *  package for print/preview can record a Print History entry per shift,
    *  the same way single-shift printing does. */
@@ -388,6 +391,20 @@ export function buildSavedPrintPackageModel(pkg: SavedPrintPackage, dateStr: str
           isLandscape: false,
           estimatedPages: model.summary.estimatedPages,
           shiftModel: model,
+        });
+      } else if (entry.type === 'huddle_sheet') {
+        const huddleModel = buildHuddleSheetModel(state, dateStr);
+        if (!huddleModel.hasAnyContent) {
+          contentWarnings.push('Shift Huddle / Endorsement Sheet has nothing flagged right now — it will print with only Census populated.');
+        }
+        items.push({
+          id: `pkg_huddle_${entry.id}`,
+          title: 'Shift Huddle / Endorsement Sheet',
+          subtitle: huddleModel.shiftCode ? `${huddleModel.shiftCode} — ${huddleModel.shiftName}` : 'Briefing Sheet',
+          docType: 'huddle_sheet',
+          isLandscape: false,
+          estimatedPages: 1,
+          huddleModel,
         });
       }
     } catch (err) {

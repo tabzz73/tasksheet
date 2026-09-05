@@ -21,19 +21,24 @@ export function useNavigation() {
   const [navigationResetToken, setNavigationResetToken] = useState(0);
   const [activeShiftId, setActiveShiftId] = useState<string | null>(null);
   const [activeResidentId, setActiveResidentId] = useState<string | null>(null);
+  const [activeResidentFocusTaskId, setActiveResidentFocusTaskId] = useState<string | null>(null);
 
   const openShift = (shiftId: string) => {
     setActiveShiftId(shiftId);
     setCurrentTab('shifts');
   };
 
-  const openResident = (residentId: string) => {
+  /** `focusTaskId` opens the resident straight into Activity & History,
+   *  pre-filtered to that task — the shortcut Dashboard/Huddle's Follow-up
+   *  Actions panel offers via "View History". */
+  const openResident = (residentId: string, focusTaskId?: string) => {
     setActiveResidentId(residentId);
+    setActiveResidentFocusTaskId(focusTaskId || null);
     setCurrentTab('residents');
   };
 
   const closeShift = () => setActiveShiftId(null);
-  const closeResident = () => setActiveResidentId(null);
+  const closeResident = () => { setActiveResidentId(null); setActiveResidentFocusTaskId(null); };
 
   const changeTab = (tab: NavigationTab) => {
     setCurrentTab(tab);
@@ -42,6 +47,7 @@ export function useNavigation() {
     // Shifts or Residents again should work as a reliable parent-navigation action.
     setActiveShiftId(null);
     setActiveResidentId(null);
+    setActiveResidentFocusTaskId(null);
   };
 
   const changeTabFromSidebar = (tab: NavigationTab) => {
@@ -56,6 +62,7 @@ export function useNavigation() {
     setCurrentDate,
     activeShiftId,
     activeResidentId,
+    activeResidentFocusTaskId,
     isPresentationMode,
     setIsPresentationMode,
     navigationResetToken,

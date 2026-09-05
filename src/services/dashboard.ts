@@ -1,9 +1,11 @@
-import { AppDatabaseState, AttentionItem, AttentionScope, DashboardWidgetConfig, DashboardWidgetId, EmergencyCode, FYI, OperationalPriority, Resident, ResidentTask, Wound } from '../types';
+import { AppDatabaseState, AttentionItem, AttentionScope, DashboardWidgetConfig, DashboardWidgetId, EmergencyCode, Facility, FYI, OperationalPriority, Resident, ResidentTask, Wound } from '../types';
 import { getResidentStatusLabel, isResidentCurrent } from './residentStatus';
 import { sortRoomNumbers } from './generator';
 import { buildBathingScheduleModel } from './print/specializedDocs';
 import { getDaysDifference, isWithinActiveWindow, localDateFromTimestamp } from './recurrence';
 import { DEFAULT_DASHBOARD_LAYOUT } from '../data/defaultData';
+import { getEffectiveOccurrenceCount } from './occurrenceTracking';
+import { isTimeWithinShift } from './scheduling/timeWindow';
 
 export { isWithinActiveWindow };
 
@@ -163,12 +165,16 @@ export function formatTrackingProgressLabel(startDate: string, endDate: string |
   return `Day ${clampedDay}/${totalDays}${today === endDate ? ' · Ends today' : ''}`;
 }
 
-/** "X/Y" occurrence-mode tracking progress (e.g. "1/3"), "X/Y · Complete"
- *  once the target is reached. An operational reminder counter only — see
+/** Occurrence-mode progress: "0/3" with nothing recorded yet, "1/3
+ *  completed · 2 remaining" mid-period, "3/3 complete" once the target is
+ *  reached. An operational reminder counter only — see
  *  `ResidentTrackingConfig.requiredOccurrences`. */
 export function formatOccurrenceProgressLabel(completed: number, required: number): string {
   const clamped = Math.min(Math.max(completed, 0), required);
-  return `${clamped}/${required}${clamped >= required ? ' · Complete' : ''}`;
+  if (clamped >= required) return `${clamped}/${required} complete`;
+  if (clamped === 0) return `${clamped}/${required}`;
+  const remaining = required - clamped;
+  return `${clamped}/${required} completed · ${remaining} remaining`;
 }
 
 export type ResidentFollowUpBucket =
@@ -193,8 +199,9 @@ export interface ResidentFollowUpEntry {
    *  until done, formally ended, or reviewed. */
   mustNotMiss: boolean;
   /** Set only for occurrence-mode tracking tasks (`trackingConfig.requiredOccurrences`),
-   *  e.g. "1/3", "3/3 · Complete". Mutually exclusive with the Day-X/Y label
-   *  in `statusLabel` — occurrence mode replaces it, not supplements it. */
+   *  e.g. "1/3 completed · 2 remaining", "3/3 complete". Mutually exclusive
+   *  with the Day-X/Y label in `statusLabel` — occurrence mode replaces it,
+   *  not supplements it. */
   occurrenceLabel?: string;
   /** True when this entry genuinely needs huddle attention right now —
    *  overdue, carried forward, Needs Review, or (only for Must-Not-Miss
@@ -232,9 +239,14 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
       if (task.trackingConfig.requiredOccurrences) {
         // Occurrence-mode tracking: progress is a count, not a date window —
         // no recurrenceRule/start-end dates required (mutually exclusive
-        // with Day-X/Y display).
+        // with Day-X/Y display). For a `'daily'`-reset task, `today` is the
+        // only period in play here — `getEffectiveOccurrenceCount` already
+        // scopes to it, so a prior day's completed period never leaks into
+        // today's count and today's progress never leaks into yesterday's
+        // (already-closed) history.
         const required = task.trackingConfig.requiredOccurrences;
-        const completedOcc = task.trackingConfig.completedOccurrences || 0;
+        const completedOcc = getEffectiveOccurrenceCount(task, today);
+        if (completedOcc >= required) continue; // this period's target is met — nothing to follow up on
         const label = formatOccurrenceProgressLabel(completedOcc, required);
         const escalated = status === 'needs_review';
         const bucket: ResidentFollowUpBucket = escalated ? 'needs_review' : 'tracking_active';
@@ -243,7 +255,11 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
           statusLabel: escalated ? `Needs Review · ${label}` : label,
           isTracking: true, carryForwardCount, needsReview: escalated,
           mustNotMiss, occurrenceLabel: label,
-          qualifiesForHuddleAttention: qualifies(bucket, true, undefined),
+          // Every incomplete Must-Not-Miss occurrence-mode period needs
+          // attention right now — there's no separate "final day" concept
+          // the way bounded date-range tracking has; each period IS its own
+          // deadline.
+          qualifiesForHuddleAttention: escalated || (mustNotMiss && completedOcc < required),
         });
         continue;
       }
@@ -319,6 +335,18 @@ export function getResidentFollowUpTasks(state: AppDatabaseState, today: string)
   });
 }
 
+/** Why an entry currently reads "Needs Review" — it's either an explicit
+ *  flag (a real `follow_up_status_changed` → needs_review audit event
+ *  exists to explain it) or a derived escalation once carry-forwards cross
+ *  the facility's threshold (never itself stored as a separate event, to
+ *  avoid a misleading duplicate — the triggering carry-forward event is
+ *  already in the audit trail and is what this explanation points to). */
+export function explainNeedsReview(entry: ResidentFollowUpEntry, threshold: number): string {
+  if (!entry.needsReview) return '';
+  if (entry.task.followUpStatus === 'needs_review') return 'Manually flagged for review.';
+  return `Escalated after ${entry.carryForwardCount} carry-forward${entry.carryForwardCount === 1 ? '' : 's'} (review threshold: ${threshold}).`;
+}
+
 /** Huddle's "Must-Not-Miss Follow-up" section — the subset of
  *  `getResidentFollowUpTasks` that genuinely needs attention right now
  *  (`qualifiesForHuddleAttention`), in its own priority order: Needs Review,
@@ -344,6 +372,138 @@ export function getMustNotMissFollowUp(state: AppDatabaseState, today: string): 
     if (overdueDiff !== 0) return overdueDiff;
     return sortRoomNumbers(a.resident.roomNumber, b.resident.roomNumber);
   });
+}
+
+// ─── Printable Shift Huddle / Endorsement Sheet ──────────────────────────────
+//
+// A read-only projection of `getHuddleBriefing`/`getMustNotMissFollowUp` —
+// the exact same functions the on-screen Huddle modal calls — reshaped for
+// print. There is no separate Huddle datastore to build this from (there
+// isn't one at all: Huddle is always computed fresh from Attention/
+// ResidentTask/FYI/resident status), and no second qualification rule set.
+// The one deliberate adaptation: paper has a single "Must-Not-Miss
+// Follow-up" section where the screen has two (Must-Not-Miss, plus a
+// separate general "Resident Follow-up" list) — so this section is the
+// union of both, urgent items first (Needs Review/overdue/carry-forward),
+// then any other Huddle-visible follow-up (e.g. routine Day X/Y tracking
+// mid-period). Nothing here can show an item the screen doesn't also show
+// somewhere; it just consolidates two on-screen sections into the one the
+// print layout calls for.
+
+export interface HuddleSheetAwayEntry { roomNumber: string; residentName: string; statusLabel: string }
+export interface HuddleSheetAttentionEntry { roomNumber?: string; residentName?: string; title: string; details?: string; priority: string }
+export interface HuddleSheetFollowUpEntry { roomNumber: string; residentName: string; title: string; statusLabel: string; needsReview: boolean }
+export interface HuddleSheetFyiEntry { category: string; text: string; importance: string }
+
+export interface HuddleSheetModel {
+  facility: Facility;
+  dateStr: string;
+  formattedDate: string;
+  generatedAt: string;
+  /** Best-effort "which shift is in effect right now" for the header only —
+   *  Huddle's actual content (Census/Attention/Follow-up/FYI) is day-wide,
+   *  not shift-scoped, so this is context, not a filter. Absent when no
+   *  active shift's time window contains the current time (e.g. a coverage
+   *  gap between shifts). */
+  shiftCode?: string;
+  shiftName?: string;
+  shiftTime?: string;
+  census: { activeCount: number; inHospitalCount: number; outOnPassCount: number; onHoldCount: number };
+  away: HuddleSheetAwayEntry[];
+  unitSiteAttention: HuddleSheetAttentionEntry[];
+  residentAttention: HuddleSheetAttentionEntry[];
+  mustNotMiss: HuddleSheetFollowUpEntry[];
+  importantFyis: HuddleSheetFyiEntry[];
+  codeOfMonth?: { code: string; name: string; reminder?: string };
+  hasAnyContent: boolean;
+}
+
+export function buildHuddleSheetModel(state: AppDatabaseState, dateStr: string): HuddleSheetModel {
+  const briefing = getHuddleBriefing(state, dateStr);
+  const mustNotMissEntries = getMustNotMissFollowUp(state, dateStr);
+
+  const now = new Date();
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  const currentShift = state.shifts.find(s => s.isActive !== false && isTimeWithinShift(hhmm, s.startTime, s.endTime));
+
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const formattedDate = new Date(y, m - 1, d).toLocaleDateString('en-CA', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+
+  const away: HuddleSheetAwayEntry[] = briefing.away.map(entry => ({
+    roomNumber: entry.resident.roomNumber,
+    residentName: `${entry.resident.firstName} ${entry.resident.lastName}`,
+    statusLabel: entry.statusLabel,
+  }));
+
+  const unitSiteAttention: HuddleSheetAttentionEntry[] = briefing.unitSiteAttention.map(({ item }) => ({
+    title: item.title,
+    details: item.details,
+    priority: item.priority || 'normal',
+  }));
+
+  const residentAttention: HuddleSheetAttentionEntry[] = briefing.residentAttention.map(({ item, resident }) => ({
+    roomNumber: resident?.roomNumber,
+    residentName: resident ? `${resident.firstName} ${resident.lastName}` : undefined,
+    title: item.title,
+    details: item.details,
+    priority: item.priority || 'normal',
+  }));
+
+  const seenFollowUpTaskIds = new Set<string>();
+  const combinedFollowUp: typeof mustNotMissEntries = [];
+  for (const entry of mustNotMissEntries) {
+    combinedFollowUp.push(entry);
+    seenFollowUpTaskIds.add(entry.task.id);
+  }
+  for (const entry of briefing.residentFollowUp) {
+    if (seenFollowUpTaskIds.has(entry.task.id)) continue;
+    combinedFollowUp.push(entry);
+    seenFollowUpTaskIds.add(entry.task.id);
+  }
+
+  const mustNotMiss: HuddleSheetFollowUpEntry[] = combinedFollowUp.map(entry => ({
+    roomNumber: entry.resident.roomNumber,
+    residentName: `${entry.resident.firstName} ${entry.resident.lastName}`,
+    title: entry.task.title,
+    statusLabel: entry.occurrenceLabel || entry.statusLabel,
+    needsReview: entry.needsReview,
+  }));
+
+  const importantFyis: HuddleSheetFyiEntry[] = briefing.importantFyis.map(f => ({
+    category: f.category,
+    text: f.text,
+    importance: f.importance || 'normal',
+  }));
+
+  const hasAnyContent =
+    away.length > 0 ||
+    unitSiteAttention.length > 0 ||
+    residentAttention.length > 0 ||
+    mustNotMiss.length > 0 ||
+    importantFyis.length > 0 ||
+    Boolean(briefing.codeOfMonth);
+
+  return {
+    facility: state.facility,
+    dateStr,
+    formattedDate,
+    generatedAt: new Date().toISOString(),
+    shiftCode: currentShift?.shortCode,
+    shiftName: currentShift?.name,
+    shiftTime: currentShift ? `${currentShift.startTime}–${currentShift.endTime}` : undefined,
+    census: briefing.census,
+    away,
+    unitSiteAttention,
+    residentAttention,
+    mustNotMiss,
+    importantFyis,
+    codeOfMonth: briefing.codeOfMonth
+      ? { code: briefing.codeOfMonth.code, name: briefing.codeOfMonth.name, reminder: briefing.codeOfMonth.reminder }
+      : undefined,
+    hasAnyContent,
+  };
 }
 
 export interface UnitSituationEntry {

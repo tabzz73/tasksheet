@@ -8,10 +8,12 @@ import { DemoModeBanner } from '../components/layout/DemoModeBanner';
 import { SettingsView } from '../components/views/SettingsView';
 import { getDemoState } from '../services/demoMode';
 import { ROLE_HCA_ID } from '../data/defaultData';
+import { createFirstAdmin } from '../services/auth';
 
 describe('CM-P1-001 demo-to-production safety regression', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     db.resetToInitialState();
+    await createFirstAdmin({ displayName: 'Test Admin', username: 'test-admin', password: 'test-password-123' });
   });
 
   afterEach(() => {
@@ -46,7 +48,7 @@ describe('CM-P1-001 demo-to-production safety regression', () => {
   });
 
   it('allows a fresh blank facility profile to be edited and saved', () => {
-    const view = render(<SettingsView onNavigateToWelcome={() => undefined} />);
+    const view = render(<SettingsView currentUser={db.getState().users[0]} onNavigateToWelcome={() => undefined} />);
     fireEvent.click(view.getByRole('button', { name: /Facility Setup/ }));
     const form = view.container.querySelector('form');
     const siteNameInput = view.getByLabelText('Facility or site name') as HTMLInputElement;

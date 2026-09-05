@@ -159,6 +159,14 @@ export function recordPrint(params: {
   filtered.push(entry);
   saveState({ entries: filtered });
 
+  // Honest wording: this fires when print preview is opened, not after an
+  // actual OS print completes — the platform can't reliably confirm that.
+  db.recordAuditEvent({
+    action: 'print_preview_opened',
+    entityType: 'print',
+    summary: `Print preview opened: ${params.shiftName} (${params.shiftCode}) · ${params.date}`,
+  });
+
   return entry;
 }
 

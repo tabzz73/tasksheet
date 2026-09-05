@@ -532,12 +532,12 @@ describe('getResidentFollowUpTasks — occurrence-mode tracking', () => {
     expect(entry.isTracking).toBe(true);
   });
 
-  it('shows "X/Y · Complete" once the target is reached, via completedOccurrences alone', () => {
+  it('shows "X/Y completed · Z remaining" mid-period, via the legacy completedOccurrences fallback', () => {
     const resident = db.addResident({ firstName: 'F', lastName: 'Occ2', roomNumber: '119', status: 'active' });
     db.addResidentTask({ residentId: resident.id, shiftId: SHIFT_HCA_DAY_ID, title: 'Weight Monitoring', category: 'Monitoring', time: '0800', frequency: 'once', showOnDashboard: true, trackingConfig: { kind: 'weight', requiredOccurrences: 3, completedOccurrences: 2 } });
 
     const [entry] = getResidentFollowUpTasks(db.getState(), today);
-    expect(entry.statusLabel).toBe('2/3');
+    expect(entry.statusLabel).toBe('2/3 completed · 1 remaining');
   });
 
   it('db.recordResidentTaskOccurrence increments, and marks the task done once the target is reached', () => {

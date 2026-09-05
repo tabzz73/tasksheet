@@ -145,6 +145,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
   const [taskMustNotMiss, setTaskMustNotMiss] = useState(false);
   const [taskOccurrenceMode, setTaskOccurrenceMode] = useState(false);
   const [taskRequiredOccurrences, setTaskRequiredOccurrences] = useState('');
+  const [taskOccurrenceResetPeriod, setTaskOccurrenceResetPeriod] = useState<'once' | 'daily'>('once');
   const [coverageType, setCoverageType] = useState('FUNDED');
   const [coverageStartDate, setCoverageStartDate] = useState('');
   const [coverageEndDate, setCoverageEndDate] = useState('');
@@ -253,6 +254,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskMustNotMiss(initialResidentTask.mustNotMiss === true);
         setTaskOccurrenceMode(Boolean(initialResidentTask.trackingConfig?.requiredOccurrences));
         setTaskRequiredOccurrences(initialResidentTask.trackingConfig?.requiredOccurrences ? String(initialResidentTask.trackingConfig.requiredOccurrences) : '');
+        setTaskOccurrenceResetPeriod(initialResidentTask.trackingConfig?.occurrenceResetPeriod || 'once');
         const coverage = normalizeCoverage(initialResidentTask.serviceCoverage);
         setCoverageType(coverage.type); setCoverageStartDate(coverage.startDate || ''); setCoverageEndDate(coverage.endDate || ''); setCoverageAdditional(Boolean(coverage.isAdditionalService)); setCoverageNote(coverage.note || '');
       } else if (initialUnitTask) {
@@ -332,6 +334,7 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
         setTaskMustNotMiss(false);
         setTaskOccurrenceMode(false);
         setTaskRequiredOccurrences('');
+        setTaskOccurrenceResetPeriod('once');
         setCoverageType('FUNDED'); setCoverageStartDate(''); setCoverageEndDate(''); setCoverageAdditional(false); setCoverageNote('');
         setUnitTitle('');
         setUnitInstructions('');
@@ -480,12 +483,19 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
     const serviceCoverage: TaskServiceCoverage = createCoverageSnapshot(coverageDefinition, { startDate: coverageStartDate, endDate: coverageEndDate, isAdditionalService: coverageAdditional, note: coverageNote });
     if (serviceCoverage.startDate && serviceCoverage.endDate && serviceCoverage.endDate < serviceCoverage.startDate) { setMutationConflict({ status: 'BLOCKED', code: 'INVALID_DATE_RANGE', title: 'Invalid Coverage Period', message: 'Coverage end date must be on or after the start date.' }); return; }
     if (mode === 'edit' && initialResidentTask && normalizeCoverage(initialResidentTask.serviceCoverage).type !== serviceCoverage.type && !coverageChangeConfirmed) { setMutationConflict({ status: 'WARNING', code: 'COVERAGE_CHANGE_IMPACT', title: 'Change Service Coverage?', message: `You are changing this task from ${normalizeCoverage(initialResidentTask.serviceCoverage).labelSnapshot} to ${serviceCoverage.labelSnapshot}. This changes how it appears on TaskSheets, bathing grids, resident summaries, filters, and reports.`, recommendedActions: [{ id: 'confirm_coverage', label: 'Change Coverage', kind: 'primary' }, { id: 'cancel', label: 'Cancel', kind: 'cancel' }] }); return; }
-    // Occurrence progress is never reset by a re-save/edit — only the target
-    // count and tracking kind/prompt are editable here.
+    // Occurrence progress (and its full per-occurrence history) is never
+    // reset by a re-save/edit — only the target count, reset period, and
+    // tracking kind/prompt are editable here.
     const resolvedTrackingConfig = taskTrackingConfig && (
       taskOccurrenceMode && taskRequiredOccurrences
-        ? { ...taskTrackingConfig, requiredOccurrences: Number(taskRequiredOccurrences), completedOccurrences: initialResidentTask?.trackingConfig?.completedOccurrences }
-        : { ...taskTrackingConfig, requiredOccurrences: undefined, completedOccurrences: undefined }
+        ? {
+            ...taskTrackingConfig,
+            requiredOccurrences: Number(taskRequiredOccurrences),
+            completedOccurrences: initialResidentTask?.trackingConfig?.completedOccurrences,
+            occurrenceResetPeriod: taskOccurrenceResetPeriod,
+            occurrences: initialResidentTask?.trackingConfig?.occurrences,
+          }
+        : { ...taskTrackingConfig, requiredOccurrences: undefined, completedOccurrences: undefined, occurrenceResetPeriod: undefined, occurrences: undefined }
     );
     try {
     if (mode === 'edit' && initialResidentTask) {
@@ -912,10 +922,11 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           {/* Shift Picker */}
           {(!contextShiftId || mode === 'duplicate' || mode === 'edit') && (
             <div>
-              <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
+              <label htmlFor="care-task-shift" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">
                 Shift
               </label>
               <select
+                id="care-task-shift"
                 value={shiftId}
                 onChange={(e) => setShiftId(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-panel border border-hairline-strong rounded-control text-sm focus:ring-2 focus:ring-accent"
@@ -1069,8 +1080,8 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
           <FormSection title="When">
           {/* Time Field */}
           <div>
-            <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label>
-            <select value={taskTimingType} onChange={event => { const value = event.target.value as TaskTimingType; setTaskTimingType(value); setIsNoSpecificTime(value === 'period'); }} className="mb-2 w-full rounded-control border border-hairline-strong bg-panel px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-accent">
+            <label htmlFor="care-task-timing-type" className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">Timing Type</label>
+            <select id="care-task-timing-type" value={taskTimingType} onChange={event => { const value = event.target.value as TaskTimingType; setTaskTimingType(value); setIsNoSpecificTime(value === 'period'); }} className="mb-2 w-full rounded-control border border-hairline-strong bg-panel px-3.5 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-accent">
               <option value="fixed">Fixed Clock Time</option><option value="start_of_shift">Start of Shift</option><option value="end_of_shift">End of Shift</option><option value="period">During Shift / No Specific Time</option>
             </select>
             <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wider mb-1">{taskTimingType === 'fixed' ? 'Scheduled Time (Military 24h)' : 'Resolved Time'}</label>
@@ -1152,6 +1163,24 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
             </label>
             <p className="text-[11px] text-muted">Keeps this task visible across shifts until resolved.</p>
 
+            {!taskTrackingConfig ? (
+              <button
+                type="button"
+                onClick={() => { setTaskTrackingConfig({ kind: 'observation' }); setTaskOccurrenceMode(true); }}
+                className="self-start text-[11px] font-semibold text-accent-strong hover:text-accent underline decoration-dotted underline-offset-2"
+              >
+                + This needs repeated completions or continuous tracking
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setTaskTrackingConfig(undefined); setTaskOccurrenceMode(false); setTaskRequiredOccurrences(''); }}
+                className="self-start text-[11px] font-semibold text-muted hover:text-danger underline decoration-dotted underline-offset-2"
+              >
+                Remove tracking — back to a one-time task
+              </button>
+            )}
+
             {taskMustNotMiss && !taskTrackingConfig && (
               <label className="block">
                 <span className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">Due Date (optional)</span>
@@ -1174,28 +1203,54 @@ export const GlobalAddModal: React.FC<GlobalAddModalProps> = ({
                     onClick={() => setTaskOccurrenceMode(false)}
                     className={`px-2.5 py-1 rounded text-[11px] font-medium ${!taskOccurrenceMode ? 'bg-ink text-white font-bold' : 'bg-panel border border-hairline-strong text-ink-soft'}`}
                   >
-                    Date range
+                    Tracking period
                   </button>
                   <button
                     type="button"
                     onClick={() => setTaskOccurrenceMode(true)}
                     className={`px-2.5 py-1 rounded text-[11px] font-medium ${taskOccurrenceMode ? 'bg-ink text-white font-bold' : 'bg-panel border border-hairline-strong text-ink-soft'}`}
                   >
-                    Required occurrences
+                    Repeated occurrences
                   </button>
                 </div>
                 {taskOccurrenceMode ? (
-                  <label className="block">
-                    <span className="text-[11px] text-ink-soft">Required occurrences</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={taskRequiredOccurrences}
-                      onChange={(e) => setTaskRequiredOccurrences(e.target.value)}
-                      className="mt-0.5 w-full px-2.5 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs"
-                    />
-                    <span className="block text-[11px] text-muted mt-0.5">Progress reads as "1/3", "2/3" — an operational reminder count, not a clinical record. Use the recurrence dates above only to schedule the task itself, not to bound this progress.</span>
-                  </label>
+                  <div className="space-y-2">
+                    <label className="block">
+                      <span className="text-[11px] text-ink-soft">Required occurrences</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={taskRequiredOccurrences}
+                        onChange={(e) => setTaskRequiredOccurrences(e.target.value)}
+                        className="mt-0.5 w-full px-2.5 py-1.5 bg-panel border border-hairline-strong rounded-control text-xs"
+                      />
+                    </label>
+                    <div>
+                      <span className="text-[11px] text-ink-soft">Period</span>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setTaskOccurrenceResetPeriod('once')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-medium ${taskOccurrenceResetPeriod === 'once' ? 'bg-ink text-white font-bold' : 'bg-panel border border-hairline-strong text-ink-soft'}`}
+                        >
+                          One-time total
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTaskOccurrenceResetPeriod('daily')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-medium ${taskOccurrenceResetPeriod === 'daily' ? 'bg-ink text-white font-bold' : 'bg-panel border border-hairline-strong text-ink-soft'}`}
+                        >
+                          Each day
+                        </button>
+                      </div>
+                    </div>
+                    <span className="block text-[11px] text-muted">
+                      {taskOccurrenceResetPeriod === 'daily'
+                        ? `Progress reads as "1/${taskRequiredOccurrences || 'N'} completed", resetting to 0 every day — e.g. "3 times daily." Yesterday's count stays in Resident Activity & History; it never carries into today's target.`
+                        : `Progress reads as "1/${taskRequiredOccurrences || 'N'} completed" and accumulates across the whole open requirement — e.g. "3 urine samples required," no daily reset.`}
+                      {' '}An operational reminder count, not a clinical record. Use the recurrence dates above only to schedule the task itself, not to bound this progress.
+                    </span>
+                  </div>
                 ) : (
                   <span className="block text-[11px] text-muted">Progress reads from the recurrence Start/End dates above ("Day 4/5").</span>
                 )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarClock, ClockAlert, Hospital, RotateCcw, ShieldAlert, TriangleAlert, Users } from 'lucide-react';
+import { CalendarClock, ClockAlert, Hospital, Printer, RotateCcw, ShieldAlert, TriangleAlert, Users } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { CardNavigationButton } from '../common/CardNavigationButton';
 import { FollowUpActionsModal, FollowUpActionsEntry, toFollowUpActionsEntry } from './FollowUpActionsModal';
@@ -16,14 +16,20 @@ interface HuddleViewProps {
    *  passed in rather than reformatted here so the two views can never drift
    *  onto different date conventions for what is the same operational day. */
   formattedToday: string;
-  /** Closes the Huddle and navigates when "Open Resident / Task" is chosen
-   *  from a Must-Not-Miss row's Follow-up Actions panel. */
-  onOpenResident?: (residentId: string) => void;
+  /** Closes the Huddle and navigates when "Open Resident / Task" or "View
+   *  History" is chosen from a Must-Not-Miss row's Follow-up Actions panel.
+   *  `focusTaskId`, when present, opens Resident Profile straight into
+   *  Activity & History filtered to that task. */
+  onOpenResident?: (residentId: string, focusTaskId?: string) => void;
   /** Called after a Follow-up Actions mutation so the parent (Dashboard)
    *  re-renders with fresh state — Huddle's `state` prop is a snapshot, not
    *  a live subscription, matching the pattern every other dashboard widget
    *  already uses. */
   onChanged?: () => void;
+  /** Opens the printable Huddle Sheet — the same read-only projection this
+   *  modal itself renders, reused rather than a second Huddle pipeline.
+   *  Omitted hides the "Print Huddle" action entirely. */
+  onPrintHuddle?: () => void;
 }
 
 /** Icon per Must-Not-Miss row state — never color alone. Needs Review gets
@@ -46,7 +52,7 @@ const SectionHeading: React.FC<{ children: React.ReactNode }> = ({ children }) =
  *  showInHuddle Attention (Unit/Site and Resident), showInHuddle Resident
  *  Tasks, showInHuddle FYIs, and Code of the Month. Not a record type: there
  *  is nothing here to create, edit, or persist. */
-export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, today, formattedToday, onOpenResident, onChanged }) => {
+export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, today, formattedToday, onOpenResident, onChanged, onPrintHuddle }) => {
   const [actionsEntry, setActionsEntry] = useState<FollowUpActionsEntry | null>(null);
   if (!isOpen) return null;
   const briefing = getHuddleBriefing(state, today);
@@ -188,7 +194,13 @@ export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, 
           <p className="text-[12.5px] text-muted">Nothing flagged for huddle — a quiet shift so far.</p>
         )}
 
-        <div className="flex items-center justify-end pt-3 border-t border-hairline">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-hairline">
+          {onPrintHuddle && (
+            <button type="button" onClick={onPrintHuddle} className="btn btn-secondary inline-flex items-center gap-1.5">
+              <Printer className="w-3.5 h-3.5" aria-hidden="true" />
+              Print Huddle
+            </button>
+          )}
           <button type="button" onClick={onClose} className="btn btn-secondary">Done</button>
         </div>
       </div>
@@ -198,6 +210,7 @@ export const HuddleView: React.FC<HuddleViewProps> = ({ isOpen, onClose, state, 
       today={today}
       onClose={() => setActionsEntry(null)}
       onOpenResident={onOpenResident ? (residentId) => { onClose(); onOpenResident(residentId); } : undefined}
+      onViewHistory={onOpenResident ? (residentId, taskId) => { onClose(); onOpenResident(residentId, taskId); } : undefined}
       onChanged={onChanged}
     />
     </>
